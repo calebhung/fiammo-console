@@ -138,6 +138,13 @@
       <button id="refresh-prompt-btn">refresh prompt</button>
       <pre class="result" id="refresh-prompt-result"></pre>
     </section>
+
+    <section class="tool card">
+      <h2>refresh constellations</h2>
+      <p class="hint">forces every user's constellation (mind-map themes + insight) to regenerate on their next app sync — bypasses the normal 7-day cooldown and minimum word/entry threshold.</p>
+      <button id="refresh-constellation-btn">refresh constellations</button>
+      <pre class="result" id="refresh-constellation-result"></pre>
+    </section>
   </main>
 
   <footer class="site">
@@ -254,6 +261,20 @@
     btn.disabled = true;
     try {
       const data = await callFunction("admin-refresh-prompt");
+      setResult(result, data, false);
+    } catch (e) {
+      setResult(result, e.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("refresh-constellation-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("refresh-constellation-btn");
+    const result = document.getElementById("refresh-constellation-result");
+    btn.disabled = true;
+    try {
+      const data = await callFunction("admin-refresh-constellation");
       setResult(result, data, false);
     } catch (e) {
       setResult(result, e.message, true);
