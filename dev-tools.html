@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Fiammo — Dev Tools</title>
+<link rel="icon" href="flame.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width: 720px; }
+
+  #gate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+    padding: 56px 32px;
+  }
+  #gate input {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.95rem;
+    padding: 10px 14px;
+    width: 100%;
+    max-width: 280px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  #gate .error {
+    color: #B3261E;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.8rem;
+    min-height: 1em;
+  }
+
+  #tools { display: none; }
+
+  .tool {
+    margin-bottom: 24px;
+  }
+  .tool h2 { margin-top: 0; }
+  .tool p.hint {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin: -6px 0 16px;
+  }
+
+  button, .tool input[type="email"] {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.85rem;
+  }
+
+  button {
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid var(--accent-strong);
+    background: var(--accent);
+    color: #FFFDF8;
+    cursor: pointer;
+  }
+  button:hover { background: var(--accent-strong); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.danger { border-color: #B3261E; background: #B3261E; }
+  button.danger:hover { background: #8C1D17; }
+
+  .tool input[type="email"] {
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    width: 100%;
+    max-width: 320px;
+    margin-right: 8px;
+  }
+
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  pre.result {
+    margin-top: 14px;
+    padding: 14px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    display: none;
+  }
+  pre.result.show { display: block; }
+  pre.result.err { border-color: #B3261E; color: #B3261E; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <a class="wordmark" href="/">
+      <img class="mark" src="flame.svg" alt="">
+      <span class="word"><span class="initial">f</span><span class="i">i</span>ammo</span>
+    </a>
+    <span class="tagline">dev tools</span>
+  </header>
+
+  <section id="gate" class="card">
+    <h1 style="margin:0">dev tools</h1>
+    <p style="margin:0; color: var(--muted)">enter the admin password to continue</p>
+    <input type="password" id="gate-password" placeholder="password" autocomplete="off">
+    <button id="gate-submit">enter</button>
+    <div class="error" id="gate-error"></div>
+  </section>
+
+  <main id="tools">
+    <section class="tool card">
+      <h2>generate demo guest</h2>
+      <p class="hint">creates a real, fully-onboarded account (profile + default circles) with a randomly generated email/password/handle/phone that unmistakably signal it's a demo account. no posts, friends, or messages.</p>
+      <button id="create-demo-btn">generate demo account</button>
+      <pre class="result" id="create-demo-result"></pre>
+    </section>
+
+    <section class="tool card">
+      <h2>delete user</h2>
+      <p class="hint">permanently deletes a user and everything associated with them (posts, circles, messages, notifications, storage files) by email. this cannot be undone.</p>
+      <div class="row">
+        <input type="email" id="delete-email" placeholder="user@example.com">
+        <button class="danger" id="delete-btn">delete user</button>
+      </div>
+      <pre class="result" id="delete-result"></pre>
+    </section>
+
+    <section class="tool card">
+      <h2>refresh today's prompt</h2>
+      <p class="hint">rotates the daily prompt shown to all users to the next one in the library, effective immediately.</p>
+      <button id="refresh-prompt-btn">refresh prompt</button>
+      <pre class="result" id="refresh-prompt-result"></pre>
+    </section>
+  </main>
+
+  <footer class="site">
+    <span>&copy; 2026 Fiammo</span>
+    <span><a href="mailto:hello@fiammo.co">hello@fiammo.co</a></span>
+  </footer>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://syqqxogkqmuojchbglle.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
+  const SESSION_KEY = "fiammo_devtools_pw";
+
+  const gate = document.getElementById("gate");
+  const tools = document.getElementById("tools");
+  const gatePassword = document.getElementById("gate-password");
+  const gateSubmit = document.getElementById("gate-submit");
+  const gateError = document.getElementById("gate-error");
+
+  function showTools() {
+    gate.style.display = "none";
+    tools.style.display = "block";
+  }
+
+  function getPassword() {
+    return sessionStorage.getItem(SESSION_KEY) || "";
+  }
+
+  async function callFunction(name, body) {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "apikey": SUPABASE_ANON_KEY,
+        "x-admin-password": getPassword(),
+      },
+      body: JSON.stringify(body || {}),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      sessionStorage.removeItem(SESSION_KEY);
+      gate.style.display = "flex";
+      tools.style.display = "none";
+      gateError.textContent = "session expired — re-enter the password";
+      throw new Error("unauthorized");
+    }
+    if (!res.ok) throw new Error(data.error || `request failed (${res.status})`);
+    return data;
+  }
+
+  async function tryPassword(pw) {
+    if (!pw) return;
+    gateSubmit.disabled = true;
+    gateError.textContent = "";
+    sessionStorage.setItem(SESSION_KEY, pw);
+    try {
+      await callFunction("admin-check-password");
+      showTools();
+    } catch (e) {
+      sessionStorage.removeItem(SESSION_KEY);
+      gateError.textContent = "incorrect password";
+    } finally {
+      gateSubmit.disabled = false;
+    }
+  }
+
+  gateSubmit.addEventListener("click", () => tryPassword(gatePassword.value));
+  gatePassword.addEventListener("keydown", e => { if (e.key === "Enter") tryPassword(gatePassword.value); });
+
+  // Re-validate a stored password silently rather than trusting it blindly.
+  if (getPassword()) tryPassword(getPassword());
+
+  function setResult(el, data, isError) {
+    el.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    el.classList.add("show");
+    el.classList.toggle("err", !!isError);
+  }
+
+  document.getElementById("create-demo-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("create-demo-btn");
+    const result = document.getElementById("create-demo-result");
+    btn.disabled = true;
+    try {
+      const data = await callFunction("admin-create-demo-user");
+      setResult(result, data, false);
+    } catch (e) {
+      setResult(result, e.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("delete-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("delete-btn");
+    const result = document.getElementById("delete-result");
+    const email = document.getElementById("delete-email").value.trim();
+    if (!email) return;
+    if (!confirm(`Permanently delete ${email} and all associated data? This cannot be undone.`)) return;
+    btn.disabled = true;
+    try {
+      const data = await callFunction("admin-delete-user", { email });
+      setResult(result, data, false);
+    } catch (e) {
+      setResult(result, e.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("refresh-prompt-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("refresh-prompt-btn");
+    const result = document.getElementById("refresh-prompt-result");
+    btn.disabled = true;
+    try {
+      const data = await callFunction("admin-refresh-prompt");
+      setResult(result, data, false);
+    } catch (e) {
+      setResult(result, e.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
