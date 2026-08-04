@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Fiammo — You're invited</title>
+<meta name="description" content="Fiammo — a private, text-first social app.">
+<link rel="icon" href="flame.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width: 480px; }
+
+  .hero { text-align: center; }
+
+  #invite-title { margin-top: 8px; }
+
+  .download-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 12px 28px;
+    border-radius: 10px;
+    border: 1px solid var(--accent-strong);
+    background: var(--accent);
+    color: #FFFDF8 !important;
+    font-family: 'Lora', Georgia, serif;
+    font-size: 0.95rem;
+    text-decoration: none;
+  }
+  .download-btn:hover { background: var(--accent-strong); color: #FFFDF8; }
+
+  .secondary {
+    margin-top: 20px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .secondary a { color: var(--muted); }
+  .secondary a:hover { color: var(--accent-strong); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <a class="wordmark" href="/">
+      <img class="mark" src="flame.svg" alt="">
+      <span class="word"><span class="initial">f</span><span class="i">i</span>ammo</span>
+    </a>
+  </header>
+
+  <main class="card hero">
+    <img class="hero-mark" src="flame.svg" alt="Fiammo">
+    <h1 id="invite-title">you're invited to fiammo</h1>
+    <p class="tagline center">write. share. let it burn.</p>
+    <p>A private, text-first social app for small, user-defined circles. Posts burn 24 hours after sharing. Echoes let people respond privately, without the noise of a public feed.</p>
+    <a class="download-btn" href="https://testflight.apple.com/join/AHuTFP24">get fiammo</a>
+  </main>
+
+  <p class="secondary" style="text-align:center">
+    <a href="index.html">learn more</a> &nbsp;·&nbsp; <a href="privacy.html">privacy</a> &nbsp;·&nbsp; <a href="terms.html">terms</a>
+  </p>
+
+  <footer class="site">
+    <span>&copy; 2026 Fiammo</span>
+    <span><a href="mailto:hello@fiammo.co">hello@fiammo.co</a></span>
+  </footer>
+</div>
+
+<script>
+  // Purely cosmetic personalization from the ?from= query param — no network
+  // calls, no state stored anywhere. Nothing here is an opt-in of any kind,
+  // it's just a download link, so there's nothing to persist or confirm.
+  const from = new URLSearchParams(location.search).get("from");
+  if (from) {
+    document.getElementById("invite-title").textContent = `${from} wants you on fiammo`;
+    document.title = `${from} invited you to Fiammo`;
+  }
+</script>
+</body>
+</html>
