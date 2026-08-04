@@ -22,6 +22,27 @@
   #state p { margin: 0; color: var(--muted); }
   #state.err h1 { color: var(--accent); }
 
+  #confirm-btn {
+    margin-top: 8px;
+    padding: 12px 28px;
+    border-radius: 10px;
+    border: 1px solid var(--accent-strong);
+    background: var(--accent);
+    color: #FFFDF8;
+    font-family: 'Lora', Georgia, serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  #confirm-btn:hover { background: var(--accent-strong); }
+  #confirm-btn:disabled { opacity: 0.5; cursor: default; }
+
+  .disclosure {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    max-width: 340px;
+  }
+
   .secondary {
     margin-top: 24px;
     font-family: 'JetBrains Mono', 'SF Mono', monospace;
@@ -42,8 +63,13 @@
   </header>
 
   <section id="state" class="card">
-    <h1 id="state-title">confirming…</h1>
-    <p id="state-body">hang on a second</p>
+    <h1 id="state-title">get updates on fiammo</h1>
+    <p id="state-body">a friend added you so you can get a text whenever they post. no app needed.</p>
+    <button id="confirm-btn">yes, text me updates</button>
+    <p class="disclosure">
+      you'll get a text each time they post. message &amp; data rates may apply.
+      reply STOP at any time to opt out.
+    </p>
   </section>
 
   <p class="secondary" id="secondary" style="display:none">
@@ -64,20 +90,29 @@
   const titleEl = document.getElementById("state-title");
   const bodyEl = document.getElementById("state-body");
   const secondaryEl = document.getElementById("secondary");
+  const btnEl = document.getElementById("confirm-btn");
+  const disclosureEl = document.querySelector(".disclosure");
+
+  const token = new URLSearchParams(location.search).get("token");
 
   function show(title, body, isError) {
     titleEl.textContent = title;
     bodyEl.textContent = body;
     stateEl.classList.toggle("err", !!isError);
+    btnEl.style.display = "none";
+    disclosureEl.style.display = "none";
     secondaryEl.style.display = "block";
   }
 
-  async function confirm() {
-    const token = new URLSearchParams(location.search).get("token");
-    if (!token) {
-      show("this link isn't valid", "check that you copied the whole link from the text.", true);
-      return;
-    }
+  if (!token) {
+    show("this link isn't valid", "check that you copied the whole link from the text.", true);
+  }
+
+  // Confirmation is a deliberate, single click — nothing is sent to the server,
+  // and nobody is enrolled in anything, until this button is pressed.
+  btnEl.addEventListener("click", async () => {
+    btnEl.disabled = true;
+    btnEl.textContent = "confirming…";
 
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/accept-circle-invite`, {
@@ -107,11 +142,13 @@
         false
       );
     } catch (e) {
+      btnEl.disabled = false;
+      btnEl.textContent = "yes, text me updates";
       show("something went wrong", "give it another try in a moment.", true);
+      btnEl.style.display = "inline-block";
+      disclosureEl.style.display = "block";
     }
-  }
-
-  confirm();
+  });
 </script>
 </body>
 </html>
