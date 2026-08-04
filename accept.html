@@ -22,8 +22,40 @@
   #state p { margin: 0; color: var(--muted); }
   #state.err h1 { color: var(--accent); }
 
+  #confirm-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  #phone-last4 {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 1.1rem;
+    letter-spacing: 0.3em;
+    text-align: center;
+    width: 110px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .field-label {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .field-error {
+    color: #B3261E;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem;
+    min-height: 1em;
+  }
+
   #confirm-btn {
-    margin-top: 8px;
+    margin-top: 4px;
     padding: 12px 28px;
     border-radius: 10px;
     border: 1px solid var(--accent-strong);
@@ -37,6 +69,7 @@
   #confirm-btn:disabled { opacity: 0.5; cursor: default; }
 
   .disclosure {
+    margin-top: 4px;
     font-family: 'JetBrains Mono', 'SF Mono', monospace;
     font-size: 0.72rem;
     color: var(--muted);
@@ -65,7 +98,14 @@
   <section id="state" class="card">
     <h1 id="state-title">get updates on fiammo</h1>
     <p id="state-body">a friend added you so you can get a text whenever they post. no app needed.</p>
-    <button id="confirm-btn">yes, text me updates</button>
+
+    <form id="confirm-form">
+      <label class="field-label" for="phone-last4">confirm the last 4 digits of your phone number</label>
+      <input type="tel" id="phone-last4" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000">
+      <div class="field-error" id="field-error"></div>
+      <button id="confirm-btn" type="submit" disabled>yes, text me updates</button>
+    </form>
+
     <p class="disclosure">
       you'll get a text each time they post. message &amp; data rates may apply.
       reply STOP at any time to opt out.
@@ -90,16 +130,21 @@
   const titleEl = document.getElementById("state-title");
   const bodyEl = document.getElementById("state-body");
   const secondaryEl = document.getElementById("secondary");
+  const formEl = document.getElementById("confirm-form");
+  const inputEl = document.getElementById("phone-last4");
+  const fieldErrorEl = document.getElementById("field-error");
   const btnEl = document.getElementById("confirm-btn");
   const disclosureEl = document.querySelector(".disclosure");
 
   const token = new URLSearchParams(location.search).get("token");
 
+  // Full-page terminal state (invalid link, success). Distinct from
+  // fieldErrorEl, which reports a wrong-digits guess without nuking the form.
   function show(title, body, isError) {
     titleEl.textContent = title;
     bodyEl.textContent = body;
     stateEl.classList.toggle("err", !!isError);
-    btnEl.style.display = "none";
+    formEl.style.display = "none";
     disclosureEl.style.display = "none";
     secondaryEl.style.display = "block";
   }
@@ -108,10 +153,20 @@
     show("this link isn't valid", "check that you copied the whole link from the text.", true);
   }
 
-  // Confirmation is a deliberate, single click — nothing is sent to the server,
-  // and nobody is enrolled in anything, until this button is pressed.
-  btnEl.addEventListener("click", async () => {
+  inputEl.addEventListener("input", () => {
+    inputEl.value = inputEl.value.replace(/\D/g, "").slice(0, 4);
+    btnEl.disabled = inputEl.value.length !== 4;
+  });
+
+  // Confirmation is a deliberate submit with the visitor's own phone digits —
+  // nothing is sent to the server, and nobody is enrolled in anything, until
+  // this form is submitted.
+  formEl.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    fieldErrorEl.textContent = "";
     btnEl.disabled = true;
+    inputEl.disabled = true;
+    const originalLabel = btnEl.textContent;
     btnEl.textContent = "confirming…";
 
     try {
@@ -122,9 +177,18 @@
           "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
           "apikey": SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, phone_last4: inputEl.value }),
       });
       const data = await res.json().catch(() => ({}));
+
+      if (res.status === 403 && data.error === "phone_mismatch") {
+        fieldErrorEl.textContent = "those digits don't match — double check and try again.";
+        btnEl.disabled = false;
+        inputEl.disabled = false;
+        btnEl.textContent = originalLabel;
+        inputEl.focus();
+        return;
+      }
 
       if (!res.ok) {
         show(
@@ -142,11 +206,10 @@
         false
       );
     } catch (e) {
+      fieldErrorEl.textContent = "something went wrong — give it another try.";
       btnEl.disabled = false;
-      btnEl.textContent = "yes, text me updates";
-      show("something went wrong", "give it another try in a moment.", true);
-      btnEl.style.display = "inline-block";
-      disclosureEl.style.display = "block";
+      inputEl.disabled = false;
+      btnEl.textContent = originalLabel;
     }
   });
 </script>
