@@ -107,12 +107,44 @@
     background: #B3261E;
     color: #FFFDF8;
   }
+  .badge.fail {
+    background: #B3261E;
+    color: #FFFDF8;
+  }
+  .badge.skip {
+    background: var(--border);
+    color: var(--muted);
+  }
   .stats {
     font-family: 'JetBrains Mono', 'SF Mono', monospace;
     font-size: 0.78rem;
     color: var(--muted);
     margin-top: 12px;
   }
+
+  #diagnostics-categories details,
+  #diagnostics-history details {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+  }
+  #diagnostics-categories summary,
+  #diagnostics-history summary {
+    cursor: pointer;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.82rem;
+  }
+  .check-row {
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem;
+  }
+  .check-row:last-child { border-bottom: none; }
+  .check-detail { margin-top: 2px; color: var(--muted); }
+  .check-detail.err { color: #B3261E; }
 </style>
 </head>
 <body>
@@ -176,6 +208,19 @@
       <p class="stats" id="circle-sms-stats"></p>
       <pre class="result" id="circle-sms-log"></pre>
     </section>
+
+    <section class="tool card">
+      <h2>run full diagnostics</h2>
+      <p class="hint">runs an end-to-end sweep of every backend-dependent feature (auth, circles, posts, echoes, DMs, notifications, push, screen time, schema drift) against two persistent diagnostic accounts, then cleans up everything it created. no real SMS/push reaches a device — pipelines are verified without contacting real phones. takes roughly 30–60s.</p>
+      <div class="row">
+        <button id="run-diagnostics-btn">run full diagnostics</button>
+        <span id="diagnostics-progress" class="badge" style="display:none"></span>
+      </div>
+      <p class="stats" id="diagnostics-summary"></p>
+      <div id="diagnostics-categories"></div>
+      <h3 style="margin-top:20px; font-size:0.95rem">recent runs</h3>
+      <div id="diagnostics-history"></div>
+    </section>
   </main>
 
   <footer class="site">
@@ -199,6 +244,7 @@
     gate.style.display = "none";
     tools.style.display = "block";
     refreshCircleSmsStatus();
+    refreshDiagnosticsHistory();
   }
 
   function getPassword() {
@@ -359,6 +405,135 @@
   });
 
   circleSmsRefreshBtn.addEventListener("click", refreshCircleSmsStatus);
+
+  // --- Run full diagnostics ---
+
+  const DIAGNOSTIC_CATEGORIES = [
+    { fn: "admin-diagnostics-schema", key: "schema", label: "schema" },
+    { fn: "admin-diagnostics-auth-profile", key: "authProfile", label: "auth & profile" },
+    { fn: "admin-diagnostics-social", key: "social", label: "circles & friends" },
+    { fn: "admin-diagnostics-content", key: "content", label: "posts & feed" },
+    { fn: "admin-diagnostics-echoes-messaging", key: "echoesMessaging", label: "echoes & messaging" },
+    { fn: "admin-diagnostics-notifications-push", key: "notificationsPush", label: "notifications & push" },
+    { fn: "admin-diagnostics-screentime-guardian", key: "screentimeGuardian", label: "screen time & guardian" },
+  ];
+
+  const diagRunBtn = document.getElementById("run-diagnostics-btn");
+  const diagProgress = document.getElementById("diagnostics-progress");
+  const diagSummary = document.getElementById("diagnostics-summary");
+  const diagCategories = document.getElementById("diagnostics-categories");
+  const diagHistory = document.getElementById("diagnostics-history");
+
+  function escapeHtml(s) {
+    const div = document.createElement("div");
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  function renderCategoryResult(container, label, result) {
+    const checks = result.checks || [];
+    const passCount = checks.filter(c => c.status === "pass").length;
+    const failCount = checks.filter(c => c.status === "fail").length;
+    const skipCount = checks.filter(c => c.status === "skip").length;
+
+    const details = document.createElement("details");
+    details.open = failCount > 0;
+
+    const summary = document.createElement("summary");
+    summary.innerHTML = `<strong>${escapeHtml(label)}</strong> — ${passCount} passed` +
+      (failCount ? `, ${failCount} failed` : "") +
+      (skipCount ? `, ${skipCount} skipped` : "");
+    details.appendChild(summary);
+
+    for (const c of checks) {
+      const row = document.createElement("div");
+      row.className = "check-row";
+      const badgeClass = c.status === "pass" ? "badge on" : c.status === "fail" ? "badge fail" : "badge skip";
+      let html = `<span class="${badgeClass}">${c.status}</span> <strong>${escapeHtml(c.name)}</strong>` +
+        (c.ms ? ` <span style="color:var(--muted)">(${c.ms}ms)</span>` : "");
+      if (c.detail) {
+        html += `<div class="check-detail${c.status === "fail" ? " err" : ""}">${escapeHtml(c.detail)}</div>`;
+      }
+      row.innerHTML = html;
+      details.appendChild(row);
+    }
+    container.appendChild(details);
+  }
+
+  async function runFullDiagnostics() {
+    diagRunBtn.disabled = true;
+    diagCategories.innerHTML = "";
+    diagSummary.textContent = "";
+    diagProgress.style.display = "inline-block";
+
+    const runId = crypto.randomUUID();
+    const startedAt = Date.now();
+    const context = {};
+    const allCategories = [];
+    let aborted = false;
+
+    try {
+      for (let i = 0; i < DIAGNOSTIC_CATEGORIES.length; i++) {
+        const cat = DIAGNOSTIC_CATEGORIES[i];
+        diagProgress.textContent = `running: ${cat.label} (${i + 1}/${DIAGNOSTIC_CATEGORIES.length})…`;
+        const result = await callFunction(cat.fn, { runId, context });
+        context[cat.key] = result.context || {};
+        allCategories.push(result);
+        renderCategoryResult(diagCategories, cat.label, result);
+      }
+    } catch (e) {
+      aborted = true;
+      diagProgress.textContent = `aborted: ${e.message}`;
+    }
+
+    diagProgress.textContent = "cleaning up…";
+    try {
+      const cleanupResult = await callFunction("admin-diagnostics-cleanup", {
+        runId, categories: allCategories, aborted, context,
+      });
+      renderCategoryResult(diagCategories, "cleanup", cleanupResult);
+      const totals = cleanupResult.totals || {};
+      const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+      diagSummary.textContent = `${totals.passed}/${totals.total} passed` +
+        (totals.failed ? ` (${totals.failed} failed)` : "") +
+        (totals.skipped ? ` (${totals.skipped} skipped)` : "") +
+        ` — ${seconds}s` + (aborted ? " — run aborted early, see above" : "");
+    } catch (e) {
+      diagSummary.textContent = `cleanup itself failed: ${e.message} — check the Supabase dashboard for leftover diagnostic-tagged rows`;
+    } finally {
+      diagProgress.style.display = "none";
+      diagRunBtn.disabled = false;
+      refreshDiagnosticsHistory();
+    }
+  }
+
+  diagRunBtn.addEventListener("click", runFullDiagnostics);
+
+  async function refreshDiagnosticsHistory() {
+    try {
+      const data = await callFunction("admin-diagnostics-history");
+      diagHistory.innerHTML = "";
+      for (const run of data.runs || []) {
+        const details = document.createElement("details");
+        const summary = document.createElement("summary");
+        const when = new Date(run.started_at).toLocaleString();
+        summary.textContent = `${when} — ${run.passed}/${run.total_checks} passed` +
+          (run.failed ? `, ${run.failed} failed` : "") +
+          (run.skipped ? `, ${run.skipped} skipped` : "") +
+          (run.aborted ? " (aborted)" : "");
+        details.appendChild(summary);
+        const pre = document.createElement("pre");
+        pre.className = "result show";
+        pre.style.marginTop = "8px";
+        pre.textContent = JSON.stringify(run.categories, null, 2);
+        details.appendChild(pre);
+        diagHistory.appendChild(details);
+      }
+      if (!data.runs?.length) diagHistory.textContent = "no runs yet";
+    } catch (e) {
+      diagHistory.textContent = "couldn't load run history";
+    }
+  }
 </script>
 </body>
 </html>
