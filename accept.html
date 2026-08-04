@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Fiammo — Confirm</title>
+<link rel="icon" href="flame.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width: 480px; }
+
+  #state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+    padding: 56px 32px;
+  }
+  #state h1 { margin: 0; }
+  #state p { margin: 0; color: var(--muted); }
+  #state.err h1 { color: var(--accent); }
+
+  .secondary {
+    margin-top: 24px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .secondary a { color: var(--muted); }
+  .secondary a:hover { color: var(--accent-strong); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <a class="wordmark" href="/">
+      <img class="mark" src="flame.svg" alt="">
+      <span class="word"><span class="initial">f</span><span class="i">i</span>ammo</span>
+    </a>
+  </header>
+
+  <section id="state" class="card">
+    <h1 id="state-title">confirming…</h1>
+    <p id="state-body">hang on a second</p>
+  </section>
+
+  <p class="secondary" id="secondary" style="display:none">
+    curious what fiammo is? <a href="index.html">learn more</a>
+  </p>
+
+  <footer class="site">
+    <span>&copy; 2026 Fiammo</span>
+    <span><a href="mailto:hello@fiammo.co">hello@fiammo.co</a></span>
+  </footer>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://syqqxogkqmuojchbglle.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
+
+  const stateEl = document.getElementById("state");
+  const titleEl = document.getElementById("state-title");
+  const bodyEl = document.getElementById("state-body");
+  const secondaryEl = document.getElementById("secondary");
+
+  function show(title, body, isError) {
+    titleEl.textContent = title;
+    bodyEl.textContent = body;
+    stateEl.classList.toggle("err", !!isError);
+    secondaryEl.style.display = "block";
+  }
+
+  async function confirm() {
+    const token = new URLSearchParams(location.search).get("token");
+    if (!token) {
+      show("this link isn't valid", "check that you copied the whole link from the text.", true);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/accept-circle-invite`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        show(
+          "this link isn't valid",
+          "it may have already been used, or check that you copied the whole link.",
+          true
+        );
+        return;
+      }
+
+      const name = data.owner_name || "your friend";
+      show(
+        "you're set",
+        `you'll get a text from ${name} whenever they post to fiammo. reply STOP anytime to opt out.`,
+        false
+      );
+    } catch (e) {
+      show("something went wrong", "give it another try in a moment.", true);
+    }
+  }
+
+  confirm();
+</script>
+</body>
+</html>
