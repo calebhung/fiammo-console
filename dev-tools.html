@@ -94,6 +94,25 @@
   }
   pre.result.show { display: block; }
   pre.result.err { border-color: #B3261E; color: #B3261E; }
+
+  .badge {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--border);
+    color: var(--muted);
+  }
+  .badge.on {
+    background: #B3261E;
+    color: #FFFDF8;
+  }
+  .stats {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 12px;
+  }
 </style>
 </head>
 <body>
@@ -145,6 +164,18 @@
       <button id="refresh-constellation-btn">refresh constellations</button>
       <pre class="result" id="refresh-constellation-result"></pre>
     </section>
+
+    <section class="tool card">
+      <h2>circle SMS</h2>
+      <p class="hint">kill switch for the per-post Twilio texts to opted-in circle contacts. off by default — nothing sends, and no credits are spent, while disabled, no matter who posts.</p>
+      <div class="row">
+        <span id="circle-sms-badge" class="badge">loading…</span>
+        <button id="circle-sms-toggle-btn" disabled>loading…</button>
+        <button id="circle-sms-refresh-btn">refresh</button>
+      </div>
+      <p class="stats" id="circle-sms-stats"></p>
+      <pre class="result" id="circle-sms-log"></pre>
+    </section>
   </main>
 
   <footer class="site">
@@ -167,6 +198,7 @@
   function showTools() {
     gate.style.display = "none";
     tools.style.display = "block";
+    refreshCircleSmsStatus();
   }
 
   function getPassword() {
@@ -282,6 +314,51 @@
       btn.disabled = false;
     }
   });
+
+  const circleSmsBadge = document.getElementById("circle-sms-badge");
+  const circleSmsToggleBtn = document.getElementById("circle-sms-toggle-btn");
+  const circleSmsRefreshBtn = document.getElementById("circle-sms-refresh-btn");
+  const circleSmsStats = document.getElementById("circle-sms-stats");
+  const circleSmsLog = document.getElementById("circle-sms-log");
+  let circleSmsEnabled = false;
+
+  function renderCircleSmsStatus(data) {
+    circleSmsEnabled = !!data.enabled;
+    circleSmsBadge.textContent = circleSmsEnabled ? "ON — live Twilio sends" : "OFF — nothing sends";
+    circleSmsBadge.classList.toggle("on", circleSmsEnabled);
+    circleSmsToggleBtn.textContent = circleSmsEnabled ? "disable circle SMS" : "enable circle SMS";
+    circleSmsToggleBtn.classList.toggle("danger", circleSmsEnabled);
+    circleSmsToggleBtn.disabled = false;
+    circleSmsStats.textContent =
+      `${data.total_sent} sent · ${data.total_failed} failed · ${data.total_runs} post(s) triggered a send`;
+    const lines = (data.recent || []).map(r =>
+      `${r.created_at}  post=${r.post_id || "—"}  sent=${r.sent}  failed=${r.failed}`
+    );
+    setResult(circleSmsLog, lines.length ? lines.join("\n") : "no sends logged yet", false);
+  }
+
+  async function refreshCircleSmsStatus() {
+    circleSmsBadge.textContent = "loading…";
+    try {
+      const data = await callFunction("admin-circle-sms-status");
+      renderCircleSmsStatus(data);
+    } catch (e) {
+      circleSmsBadge.textContent = "error loading status";
+    }
+  }
+
+  circleSmsToggleBtn.addEventListener("click", async () => {
+    circleSmsToggleBtn.disabled = true;
+    try {
+      await callFunction("admin-circle-sms-toggle", { enabled: !circleSmsEnabled });
+      await refreshCircleSmsStatus();
+    } catch (e) {
+      alert(e.message);
+      circleSmsToggleBtn.disabled = false;
+    }
+  });
+
+  circleSmsRefreshBtn.addEventListener("click", refreshCircleSmsStatus);
 </script>
 </body>
 </html>
