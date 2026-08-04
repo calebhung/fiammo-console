@@ -68,6 +68,19 @@
   #confirm-btn:hover { background: var(--accent-strong); }
   #confirm-btn:disabled { opacity: 0.5; cursor: default; }
 
+  #decline-link {
+    margin-top: 2px;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  #decline-link:hover { color: var(--accent-strong); }
+
   .disclosure {
     margin-top: 4px;
     font-family: 'JetBrains Mono', 'SF Mono', monospace;
@@ -75,6 +88,8 @@
     color: var(--muted);
     max-width: 340px;
   }
+  .disclosure a { color: var(--muted); }
+  .disclosure a:hover { color: var(--accent-strong); }
 
   .secondary {
     margin-top: 24px;
@@ -96,19 +111,22 @@
   </header>
 
   <section id="state" class="card">
-    <h1 id="state-title">get updates on fiammo</h1>
-    <p id="state-body">a friend added you so you can get a text whenever they post. no app needed.</p>
+    <h1 id="state-title">loading…</h1>
+    <p id="state-body">one second</p>
 
-    <form id="confirm-form">
-      <label class="field-label" for="phone-last4">confirm the last 4 digits of your phone number</label>
+    <form id="confirm-form" style="display:none">
+      <label class="field-label" for="phone-last4">confirm the last 4 digits of the phone number that got this text</label>
       <input type="tel" id="phone-last4" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000">
       <div class="field-error" id="field-error"></div>
       <button id="confirm-btn" type="submit" disabled>yes, text me updates</button>
+      <button id="decline-link" type="button">no thanks</button>
     </form>
 
-    <p class="disclosure">
+    <p class="disclosure" id="disclosure" style="display:none">
       you'll get a text each time they post. message &amp; data rates may apply.
-      reply STOP at any time to opt out.
+      reply HELP for help, STOP at any time to opt out.
+      by confirming you agree to fiammo's
+      <a href="terms.html">terms</a> and <a href="privacy.html">privacy policy</a>.
     </p>
   </section>
 
@@ -126,21 +144,35 @@
   const SUPABASE_URL = "https://syqqxogkqmuojchbglle.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
 
-  const stateEl = document.getElementById("state");
   const titleEl = document.getElementById("state-title");
   const bodyEl = document.getElementById("state-body");
+  const stateEl = document.getElementById("state");
   const secondaryEl = document.getElementById("secondary");
   const formEl = document.getElementById("confirm-form");
   const inputEl = document.getElementById("phone-last4");
   const fieldErrorEl = document.getElementById("field-error");
   const btnEl = document.getElementById("confirm-btn");
-  const disclosureEl = document.querySelector(".disclosure");
+  const declineBtnEl = document.getElementById("decline-link");
+  const disclosureEl = document.getElementById("disclosure");
 
   const token = new URLSearchParams(location.search).get("token");
 
-  // Full-page terminal state (invalid link, success). Distinct from
-  // fieldErrorEl, which reports a wrong-digits guess without nuking the form.
-  function show(title, body, isError) {
+  function callEdge(name, body) {
+    return fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "apikey": SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify(body || {}),
+    });
+  }
+
+  // Full-page terminal state (invalid link, expired, declined, success).
+  // Distinct from fieldErrorEl, which reports a wrong-digits guess without
+  // hiding the form so the visitor can just try again.
+  function showTerminal(title, body, isError) {
     titleEl.textContent = title;
     bodyEl.textContent = body;
     stateEl.classList.toggle("err", !!isError);
@@ -149,14 +181,58 @@
     secondaryEl.style.display = "block";
   }
 
-  if (!token) {
-    show("this link isn't valid", "check that you copied the whole link from the text.", true);
+  function errorMessageFor(errCode) {
+    switch (errCode) {
+      case "expired": return ["this link has expired", "ask them to add you again for a fresh one."];
+      case "declined": return ["you've already said no thanks", "you won't get any texts. ask them to add you again if you change your mind."];
+      case "too_many_attempts": return ["too many attempts", "wait about 15 minutes and try again."];
+      default: return ["this link isn't valid", "check that you copied the whole link from the text."];
+    }
   }
+
+  async function loadPreview() {
+    if (!token) {
+      const [title, body] = errorMessageFor("invalid");
+      showTerminal(title, body, true);
+      return;
+    }
+    try {
+      const res = await callEdge("preview-circle-invite", { token });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const [title, body] = errorMessageFor(data.error);
+        showTerminal(title, body, true);
+        return;
+      }
+
+      if (data.already_confirmed) {
+        showTerminal("you're already set", `you're getting texts from ${data.owner_name} whenever they post. reply STOP anytime to opt out.`, false);
+        return;
+      }
+
+      titleEl.textContent = `${data.owner_name} wants to text you`;
+      bodyEl.textContent = `they added you so you can get a text whenever they post. no app needed.`;
+      formEl.style.display = "flex";
+      disclosureEl.style.display = "block";
+    } catch (e) {
+      const [title, body] = errorMessageFor(null);
+      showTerminal(title, body, true);
+    }
+  }
+
+  loadPreview();
 
   inputEl.addEventListener("input", () => {
     inputEl.value = inputEl.value.replace(/\D/g, "").slice(0, 4);
     btnEl.disabled = inputEl.value.length !== 4;
   });
+
+  function setFormBusy(busy) {
+    btnEl.disabled = busy || inputEl.value.length !== 4;
+    declineBtnEl.disabled = busy;
+    inputEl.disabled = busy;
+  }
 
   // Confirmation is a deliberate submit with the visitor's own phone digits —
   // nothing is sent to the server, and nobody is enrolled in anything, until
@@ -164,52 +240,52 @@
   formEl.addEventListener("submit", async (e) => {
     e.preventDefault();
     fieldErrorEl.textContent = "";
-    btnEl.disabled = true;
-    inputEl.disabled = true;
+    setFormBusy(true);
     const originalLabel = btnEl.textContent;
     btnEl.textContent = "confirming…";
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/accept-circle-invite`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-          "apikey": SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ token, phone_last4: inputEl.value }),
-      });
+      const res = await callEdge("accept-circle-invite", { token, phone_last4: inputEl.value });
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 403 && data.error === "phone_mismatch") {
         fieldErrorEl.textContent = "those digits don't match — double check and try again.";
-        btnEl.disabled = false;
-        inputEl.disabled = false;
+        setFormBusy(false);
         btnEl.textContent = originalLabel;
         inputEl.focus();
         return;
       }
 
       if (!res.ok) {
-        show(
-          "this link isn't valid",
-          "it may have already been used, or check that you copied the whole link.",
-          true
-        );
+        const [title, body] = errorMessageFor(data.error);
+        showTerminal(title, body, true);
         return;
       }
 
       const name = data.owner_name || "your friend";
-      show(
-        "you're set",
-        `you'll get a text from ${name} whenever they post to fiammo. reply STOP anytime to opt out.`,
-        false
-      );
+      showTerminal("you're set", `you'll get a text from ${name} whenever they post to fiammo. reply STOP anytime to opt out.`, false);
     } catch (e) {
       fieldErrorEl.textContent = "something went wrong — give it another try.";
-      btnEl.disabled = false;
-      inputEl.disabled = false;
+      setFormBusy(false);
       btnEl.textContent = originalLabel;
+    }
+  });
+
+  declineBtnEl.addEventListener("click", async () => {
+    if (!confirm("You won't get any texts from this invite. Continue?")) return;
+    setFormBusy(true);
+    try {
+      const res = await callEdge("accept-circle-invite", { token, decline: true });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const [title, body] = errorMessageFor(data.error);
+        showTerminal(title, body, true);
+        return;
+      }
+      showTerminal("no problem", "you won't get any texts. ask them to add you again if you change your mind.", false);
+    } catch (e) {
+      fieldErrorEl.textContent = "something went wrong — give it another try.";
+      setFormBusy(false);
     }
   });
 </script>
