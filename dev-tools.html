@@ -67,7 +67,7 @@
   button.danger { border-color: #B3261E; background: #B3261E; }
   button.danger:hover { background: #8C1D17; }
 
-  .tool input[type="email"] {
+  .tool input[type="email"], .tool input[type="text"] {
     padding: 9px 12px;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -175,9 +175,9 @@
 
     <section class="tool card">
       <h2>delete user</h2>
-      <p class="hint">permanently deletes a user and everything associated with them (posts, circles, messages, notifications, storage files) by email. this cannot be undone.</p>
+      <p class="hint">permanently deletes a user and everything associated with them (posts, circles, messages, notifications, storage files) by email or username. this cannot be undone.</p>
       <div class="row">
-        <input type="email" id="delete-email" placeholder="user@example.com">
+        <input type="text" id="delete-identifier" placeholder="user@example.com or @handle">
         <button class="danger" id="delete-btn">delete user</button>
       </div>
       <pre class="result" id="delete-result"></pre>
@@ -319,12 +319,18 @@
   document.getElementById("delete-btn").addEventListener("click", async () => {
     const btn = document.getElementById("delete-btn");
     const result = document.getElementById("delete-result");
-    const email = document.getElementById("delete-email").value.trim();
-    if (!email) return;
-    if (!confirm(`Permanently delete ${email} and all associated data? This cannot be undone.`)) return;
+    const identifier = document.getElementById("delete-identifier").value.trim();
+    if (!identifier) return;
+    // Looks like an email (has an @ followed by a dot) → email; otherwise treat
+    // it as a username/handle (stripping an optional leading @).
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier);
+    const payload = isEmail
+      ? { email: identifier }
+      : { username: identifier.replace(/^@/, "") };
+    if (!confirm(`Permanently delete ${identifier} and all associated data? This cannot be undone.`)) return;
     btn.disabled = true;
     try {
-      const data = await callFunction("admin-delete-user", { email });
+      const data = await callFunction("admin-delete-user", payload);
       setResult(result, data, false);
     } catch (e) {
       setResult(result, e.message, true);
