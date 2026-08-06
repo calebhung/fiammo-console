@@ -145,6 +145,49 @@
   .check-row:last-child { border-bottom: none; }
   .check-detail { margin-top: 2px; color: var(--muted); }
   .check-detail.err { color: #B3261E; }
+
+  .report-row {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    margin-top: 10px;
+  }
+  .report-row .report-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .report-row .report-reason {
+    background: #B3261E;
+    color: #FFFDF8;
+    padding: 3px 8px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  .report-row .report-content {
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 6px;
+    background: var(--border);
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .report-row .report-content.deleted {
+    font-style: italic;
+    color: var(--muted);
+  }
+  .report-row .report-details {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
 </style>
 </head>
 <body>
@@ -210,6 +253,16 @@
     </section>
 
     <section class="tool card">
+      <h2>reported posts</h2>
+      <p class="hint">posts reported from the app, newest first. reporting hides the post for that reporter only — it's still live for everyone else unless you delete it or delete the author above. content shown is the live post, or a snapshot taken at report time if it's since been deleted.</p>
+      <div class="row">
+        <button id="reports-refresh-btn">refresh</button>
+        <span id="reports-summary" class="stats"></span>
+      </div>
+      <div id="reports-list"></div>
+    </section>
+
+    <section class="tool card">
       <h2>run full diagnostics</h2>
       <p class="hint">runs an end-to-end sweep of every backend-dependent feature (auth, circles, posts, echoes, DMs, notifications, push, screen time, schema drift) against two persistent diagnostic accounts, then cleans up everything it created. no real SMS/push reaches a device — pipelines are verified without contacting real phones. takes roughly 30–60s.</p>
       <div class="row">
@@ -245,6 +298,7 @@
     tools.style.display = "block";
     refreshCircleSmsStatus();
     refreshDiagnosticsHistory();
+    refreshReports();
   }
 
   function getPassword() {
@@ -411,6 +465,71 @@
   });
 
   circleSmsRefreshBtn.addEventListener("click", refreshCircleSmsStatus);
+
+  // --- Reported posts ---
+
+  const REPORT_REASON_LABELS = {
+    harassment: "harassment",
+    inappropriate_content: "inappropriate content",
+    spam: "spam",
+    hate_speech: "hate speech",
+    other: "other",
+  };
+
+  const reportsRefreshBtn = document.getElementById("reports-refresh-btn");
+  const reportsSummary = document.getElementById("reports-summary");
+  const reportsList = document.getElementById("reports-list");
+
+  function renderReports(reports) {
+    reportsList.innerHTML = "";
+    reportsSummary.textContent = `${reports.length} report${reports.length === 1 ? "" : "s"}`;
+    if (!reports.length) {
+      reportsList.textContent = "no reports yet";
+      return;
+    }
+    for (const r of reports) {
+      const row = document.createElement("div");
+      row.className = "report-row";
+
+      const reporterHandle = r.reporter?.handle ? `@${r.reporter.handle}` : "unknown";
+      const reportedHandle = r.reported_user?.handle ? `@${r.reported_user.handle}` : "unknown";
+      const when = new Date(r.reported_at).toLocaleString();
+      const reasonLabel = REPORT_REASON_LABELS[r.reason] || r.reason;
+
+      let html = `<div class="report-top">`
+        + `<span class="report-reason">${escapeHtml(reasonLabel)}</span>`
+        + `<span>${escapeHtml(reporterHandle)} reported ${escapeHtml(reportedHandle)}</span>`
+        + `<span>·</span><span>${escapeHtml(when)}</span>`
+        + `</div>`;
+      if (r.details) {
+        html += `<div class="report-details">"${escapeHtml(r.details)}"</div>`;
+      }
+      const post = r.post || {};
+      if (post.deleted) {
+        html += `<div class="report-content deleted">${post.content ? escapeHtml(post.content) : "(no content captured)"} — post has since been deleted</div>`;
+      } else {
+        html += `<div class="report-content">${escapeHtml(post.content || "")}</div>`;
+      }
+      row.innerHTML = html;
+      reportsList.appendChild(row);
+    }
+  }
+
+  async function refreshReports() {
+    reportsSummary.textContent = "loading…";
+    reportsRefreshBtn.disabled = true;
+    try {
+      const data = await callFunction("admin-list-reports");
+      renderReports(data.reports || []);
+    } catch (e) {
+      reportsSummary.textContent = "";
+      reportsList.textContent = `couldn't load reports: ${e.message}`;
+    } finally {
+      reportsRefreshBtn.disabled = false;
+    }
+  }
+
+  reportsRefreshBtn.addEventListener("click", refreshReports);
 
   // --- Run full diagnostics ---
 
