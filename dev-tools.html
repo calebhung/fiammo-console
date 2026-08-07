@@ -495,9 +495,11 @@
       const reportedHandle = r.reported_user?.handle ? `@${r.reported_user.handle}` : "unknown";
       const when = new Date(r.reported_at).toLocaleString();
       const reasonLabel = REPORT_REASON_LABELS[r.reason] || r.reason;
+      const isMessage = r.content_type === "message";
 
       let html = `<div class="report-top">`
         + `<span class="report-reason">${escapeHtml(reasonLabel)}</span>`
+        + `<span class="badge">${isMessage ? "message" : "post"}</span>`
         + `<span>${escapeHtml(reporterHandle)} reported ${escapeHtml(reportedHandle)}</span>`
         + `<span>·</span><span>${escapeHtml(when)}</span>`
         + `</div>`;
@@ -505,8 +507,9 @@
         html += `<div class="report-details">"${escapeHtml(r.details)}"</div>`;
       }
       const post = r.post || {};
+      const deletedLabel = isMessage ? "message has since been deleted" : "post has since been deleted";
       if (post.deleted) {
-        html += `<div class="report-content deleted">${post.content ? escapeHtml(post.content) : "(no content captured)"} — post has since been deleted</div>`;
+        html += `<div class="report-content deleted">${post.content ? escapeHtml(post.content) : "(no content captured)"} — ${deletedLabel}</div>`;
       } else {
         html += `<div class="report-content">${escapeHtml(post.content || "")}</div>`;
       }
