@@ -575,10 +575,8 @@
     { fn: "admin-diagnostics-social", key: "social", label: "circles & friends" },
     { fn: "admin-diagnostics-content", key: "content", label: "posts & feed" },
     { fn: "admin-diagnostics-echoes-messaging", key: "echoesMessaging", label: "echoes & messaging" },
+    { fn: "admin-diagnostics-moderation", key: "moderation", label: "blocking & reporting" },
     { fn: "admin-diagnostics-notifications-push", key: "notificationsPush", label: "notifications & push" },
-    // screentime-guardian is deliberately not run — the feature isn't built in
-    // production yet (screen_time/screen_time_guardians tables don't exist).
-    // The edge function itself is untouched and ready to re-add here once it is.
   ];
 
   const diagRunBtn = document.getElementById("run-diagnostics-btn");
