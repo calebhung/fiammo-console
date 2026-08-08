@@ -157,6 +157,12 @@
 
   const token = new URLSearchParams(location.search).get("token");
 
+  // Reserved token for compliance reviewers (e.g. Twilio campaign review).
+  // Renders the real opt-in UI and copy with mock data — no edge function
+  // calls, so nothing expires, gets consumed, or touches real invite data.
+  const SAMPLE_TOKEN = "sample-review";
+  const isSample = token === SAMPLE_TOKEN;
+
   function callEdge(name, body) {
     return fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
       method: "POST",
@@ -194,6 +200,13 @@
     if (!token) {
       const [title, body] = errorMessageFor("invalid");
       showTerminal(title, body, true);
+      return;
+    }
+    if (isSample) {
+      titleEl.textContent = `Jordan wants to text you`;
+      bodyEl.textContent = `they added you so you can get a text whenever they post. no app needed.`;
+      formEl.style.display = "flex";
+      disclosureEl.style.display = "block";
       return;
     }
     try {
@@ -244,6 +257,11 @@
     const originalLabel = btnEl.textContent;
     btnEl.textContent = "confirming…";
 
+    if (isSample) {
+      showTerminal("you're set", "you'll get a text from Jordan whenever they post to fiammo. reply STOP anytime to opt out.", false);
+      return;
+    }
+
     try {
       const res = await callEdge("accept-circle-invite", { token, phone_last4: inputEl.value });
       const data = await res.json().catch(() => ({}));
@@ -274,6 +292,12 @@
   declineBtnEl.addEventListener("click", async () => {
     if (!confirm("You won't get any texts from this invite. Continue?")) return;
     setFormBusy(true);
+
+    if (isSample) {
+      showTerminal("no problem", "you won't get any texts. ask them to add you again if you change your mind.", false);
+      return;
+    }
+
     try {
       const res = await callEdge("accept-circle-invite", { token, decline: true });
       const data = await res.json().catch(() => ({}));
