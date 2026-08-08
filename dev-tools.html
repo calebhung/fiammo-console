@@ -212,7 +212,11 @@
     <section class="tool card">
       <h2>generate demo guest</h2>
       <p class="hint">creates a real, fully-onboarded account (profile + default circles) with a randomly generated email/password/handle/phone that unmistakably signal it's a demo account. no posts, friends, or messages.</p>
-      <button id="create-demo-btn">generate demo account</button>
+      <div class="row">
+        <button id="create-demo-btn">generate demo account</button>
+        <button id="copy-demo-email-btn" style="display:none">copy email</button>
+        <button id="copy-demo-password-btn" style="display:none">copy password</button>
+      </div>
       <pre class="result" id="create-demo-result"></pre>
     </section>
 
@@ -356,13 +360,42 @@
     el.classList.toggle("err", !!isError);
   }
 
+  const copyDemoEmailBtn = document.getElementById("copy-demo-email-btn");
+  const copyDemoPasswordBtn = document.getElementById("copy-demo-password-btn");
+  let lastDemoAccount = null;
+
+  async function copyToClipboard(btn, text) {
+    const original = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(text);
+      btn.textContent = "copied!";
+    } catch (e) {
+      btn.textContent = "couldn't copy";
+    }
+    setTimeout(() => { btn.textContent = original; }, 1200);
+  }
+
+  copyDemoEmailBtn.addEventListener("click", () => {
+    if (lastDemoAccount) copyToClipboard(copyDemoEmailBtn, lastDemoAccount.email);
+  });
+  copyDemoPasswordBtn.addEventListener("click", () => {
+    if (lastDemoAccount) copyToClipboard(copyDemoPasswordBtn, lastDemoAccount.password);
+  });
+
   document.getElementById("create-demo-btn").addEventListener("click", async () => {
     const btn = document.getElementById("create-demo-btn");
     const result = document.getElementById("create-demo-result");
     btn.disabled = true;
+    copyDemoEmailBtn.style.display = "none";
+    copyDemoPasswordBtn.style.display = "none";
     try {
       const data = await callFunction("admin-create-demo-user");
       setResult(result, data, false);
+      if (data.email && data.password) {
+        lastDemoAccount = data;
+        copyDemoEmailBtn.style.display = "";
+        copyDemoPasswordBtn.style.display = "";
+      }
     } catch (e) {
       setResult(result, e.message, true);
     } finally {
