@@ -78,7 +78,37 @@
     margin-right: 8px;
   }
 
+  .tool textarea {
+    font-family: 'Lora', Georgia, 'Times New Roman', serif;
+    font-size: 0.95rem;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+    width: 100%;
+    max-width: 420px;
+    resize: vertical;
+    display: block;
+    margin-top: 8px;
+  }
+
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+  .confirm-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 14px 0;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.82rem;
+  }
+  .confirm-row input[type="checkbox"] {
+    margin-top: 2px;
+    width: 16px;
+    height: 16px;
+    accent-color: #B3261E;
+  }
 
   pre.result {
     margin-top: 14px;
@@ -235,6 +265,20 @@
       <p class="hint">rotates the daily prompt shown to all users to the next one in the library, effective immediately.</p>
       <button id="refresh-prompt-btn">refresh prompt</button>
       <pre class="result" id="refresh-prompt-result"></pre>
+    </section>
+
+    <section class="tool card">
+      <h2>send custom push notification</h2>
+      <p class="hint">sends a push notification to every registered device, right now. this cannot be undone or recalled once sent — double-check the title and body below before confirming.</p>
+      <input type="text" id="broadcast-title" placeholder="title" maxlength="120">
+      <textarea id="broadcast-body" placeholder="body" rows="3" maxlength="500"></textarea>
+      <p class="stats">preview: <span id="broadcast-preview">—</span></p>
+      <label class="confirm-row">
+        <input type="checkbox" id="broadcast-confirm-checkbox">
+        <span>I've reviewed exactly what will be sent, to every user, right now.</span>
+      </label>
+      <button class="danger" id="broadcast-send-btn" disabled>send to all users</button>
+      <pre class="result" id="broadcast-result"></pre>
     </section>
 
     <section class="tool card">
@@ -437,6 +481,46 @@
       setResult(result, e.message, true);
     } finally {
       btn.disabled = false;
+    }
+  });
+
+  const broadcastTitle = document.getElementById("broadcast-title");
+  const broadcastBody = document.getElementById("broadcast-body");
+  const broadcastPreview = document.getElementById("broadcast-preview");
+  const broadcastCheckbox = document.getElementById("broadcast-confirm-checkbox");
+  const broadcastSendBtn = document.getElementById("broadcast-send-btn");
+  const broadcastResult = document.getElementById("broadcast-result");
+
+  function updateBroadcastPreview() {
+    const t = broadcastTitle.value.trim();
+    const b = broadcastBody.value.trim();
+    broadcastPreview.textContent = (t || b) ? `${t || "(no title)"} — ${b || "(no body)"}` : "—";
+    // Any edit after checking invalidates the confirmation — re-lock the send button
+    // so the checkbox always reflects the content that's actually about to be sent.
+    broadcastCheckbox.checked = false;
+    broadcastSendBtn.disabled = true;
+  }
+  broadcastTitle.addEventListener("input", updateBroadcastPreview);
+  broadcastBody.addEventListener("input", updateBroadcastPreview);
+
+  broadcastCheckbox.addEventListener("change", () => {
+    broadcastSendBtn.disabled = !(broadcastCheckbox.checked && broadcastTitle.value.trim() && broadcastBody.value.trim());
+  });
+
+  broadcastSendBtn.addEventListener("click", async () => {
+    broadcastSendBtn.disabled = true;
+    try {
+      const data = await callFunction("admin-send-push-broadcast", {
+        title: broadcastTitle.value.trim(),
+        body: broadcastBody.value.trim(),
+      });
+      setResult(broadcastResult, data, false);
+      broadcastTitle.value = "";
+      broadcastBody.value = "";
+      updateBroadcastPreview();
+    } catch (e) {
+      setResult(broadcastResult, e.message, true);
+      broadcastCheckbox.checked = false;
     }
   });
 
