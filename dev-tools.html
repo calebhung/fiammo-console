@@ -241,7 +241,12 @@
   <main id="tools">
     <section class="tool card">
       <h2>generate demo guest</h2>
-      <p class="hint">creates a real, fully-onboarded account (profile + default circles) with a randomly generated email/password/handle/phone that unmistakably signal it's a demo account. no posts, friends, or messages.</p>
+      <p class="hint">creates a real, fully-onboarded account (profile + default circles) with a randomly generated email/password/phone that unmistakably signal it's a demo account. no posts, friends, or messages. optionally set the handle/first name/last name below — useful for copy accounts — anything left blank still gets a random demo value.</p>
+      <div class="row">
+        <input type="text" id="demo-handle" placeholder="handle (optional)">
+        <input type="text" id="demo-first-name" placeholder="first name (optional)">
+        <input type="text" id="demo-last-name" placeholder="last name (optional)">
+      </div>
       <div class="row">
         <button id="create-demo-btn">generate demo account</button>
         <button id="copy-demo-email-btn" style="display:none">copy email</button>
@@ -433,7 +438,11 @@
     copyDemoEmailBtn.style.display = "none";
     copyDemoPasswordBtn.style.display = "none";
     try {
-      const data = await callFunction("admin-create-demo-user");
+      const data = await callFunction("admin-create-demo-user", {
+        handle: document.getElementById("demo-handle").value.trim(),
+        first_name: document.getElementById("demo-first-name").value.trim(),
+        last_name: document.getElementById("demo-last-name").value.trim(),
+      });
       setResult(result, data, false);
       if (data.email && data.password) {
         lastDemoAccount = data;
