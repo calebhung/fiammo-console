@@ -41,7 +41,23 @@
   .tool {
     margin-bottom: 24px;
   }
-  .tool h2 { margin-top: 0; }
+  .tool h2 {
+    margin-top: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+  }
+  .tool h2 .chevron {
+    font-size: 0.7em;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+    margin-left: 12px;
+    flex-shrink: 0;
+  }
+  .tool.collapsed h2 .chevron { transform: rotate(-90deg); }
+  .tool.collapsed .tool-body { display: none; }
   .tool p.hint {
     font-family: 'JetBrains Mono', 'SF Mono', monospace;
     font-size: 0.78rem;
@@ -240,8 +256,9 @@
   </section>
 
   <main id="tools">
-    <section class="tool card">
-      <h2>generate demo guest</h2>
+    <section class="tool card" data-tool="demo">
+      <h2><span>generate demo guest</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
       <p class="hint">creates a real, fully-onboarded account (profile + default circles) with a randomly generated email/password/phone that unmistakably signal it's a demo account. no posts, friends, or messages. optionally set the handle/first name/last name below — useful for copy accounts — anything left blank still gets a random demo value.</p>
       <div class="row">
         <input type="text" id="demo-handle" placeholder="handle (optional)">
@@ -254,27 +271,33 @@
         <button id="copy-demo-password-btn" style="display:none">copy password</button>
       </div>
       <pre class="result" id="create-demo-result"></pre>
+      </div>
     </section>
 
-    <section class="tool card">
-      <h2>delete user</h2>
+    <section class="tool card" data-tool="delete">
+      <h2><span>delete user</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
       <p class="hint">permanently deletes a user and everything associated with them (posts, circles, messages, notifications, storage files) by email or username. this cannot be undone.</p>
       <div class="row">
         <input type="text" id="delete-identifier" placeholder="user@example.com or @handle">
         <button class="danger" id="delete-btn">delete user</button>
       </div>
       <pre class="result" id="delete-result"></pre>
+      </div>
     </section>
 
-    <section class="tool card">
-      <h2>refresh today's prompt</h2>
+    <section class="tool card" data-tool="refresh-prompt">
+      <h2><span>refresh today's prompt</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
       <p class="hint">rotates the daily prompt shown to all users to the next one in the library, effective immediately.</p>
       <button id="refresh-prompt-btn">refresh prompt</button>
       <pre class="result" id="refresh-prompt-result"></pre>
+      </div>
     </section>
 
-    <section class="tool card">
-      <h2>send custom push notification</h2>
+    <section class="tool card" data-tool="broadcast">
+      <h2><span>send custom push notification</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
       <p class="hint">sends a push notification to every registered device, right now. this cannot be undone or recalled once sent — double-check the title and body below before confirming.</p>
       <input type="text" id="broadcast-title" placeholder="title" maxlength="120">
       <textarea id="broadcast-body" placeholder="body" rows="3" maxlength="500"></textarea>
@@ -285,17 +308,21 @@
       </label>
       <button class="danger" id="broadcast-send-btn" disabled>send to all users</button>
       <pre class="result" id="broadcast-result"></pre>
+      </div>
     </section>
 
-    <section class="tool card">
-      <h2>refresh constellations</h2>
+    <section class="tool card" data-tool="refresh-constellation">
+      <h2><span>refresh constellations</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
       <p class="hint">forces every user's constellation (mind-map themes + insight) to regenerate on their next app sync — bypasses the normal 7-day cooldown and minimum word/entry threshold.</p>
       <button id="refresh-constellation-btn">refresh constellations</button>
       <pre class="result" id="refresh-constellation-result"></pre>
+      </div>
     </section>
 
-    <section class="tool card">
-      <h2>circle SMS</h2>
+    <section class="tool card" data-tool="circle-sms">
+      <h2><span>circle SMS</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
       <p class="hint">kill switch for the per-post Twilio texts to opted-in circle contacts. off by default — nothing sends, and no credits are spent, while disabled, no matter who posts.</p>
       <div class="row">
         <span id="circle-sms-badge" class="badge">loading…</span>
@@ -304,20 +331,24 @@
       </div>
       <p class="stats" id="circle-sms-stats"></p>
       <pre class="result" id="circle-sms-log"></pre>
+      </div>
     </section>
 
-    <section class="tool card">
-      <h2>reported posts</h2>
+    <section class="tool card" data-tool="reports">
+      <h2><span>reported posts</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
       <p class="hint">posts reported from the app, newest first. reporting hides the post for that reporter only — it's still live for everyone else unless you delete it or delete the author above. content shown is the live post, or a snapshot taken at report time if it's since been deleted.</p>
       <div class="row">
         <button id="reports-refresh-btn">refresh</button>
         <span id="reports-summary" class="stats"></span>
       </div>
       <div id="reports-list"></div>
+      </div>
     </section>
 
-    <section class="tool card">
-      <h2>run full diagnostics</h2>
+    <section class="tool card" data-tool="diagnostics">
+      <h2><span>run full diagnostics</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
       <p class="hint">runs an end-to-end sweep of every backend-dependent feature (auth, circles, posts, echoes, DMs, blocking & reporting, notifications, push, schema drift) against two persistent diagnostic accounts, then cleans up everything it created. no real SMS/push reaches a device — pipelines are verified without contacting real phones. takes roughly 30–60s.</p>
       <div class="row">
         <button id="run-diagnostics-btn">run full diagnostics</button>
@@ -327,6 +358,7 @@
       <div id="diagnostics-categories"></div>
       <h3 style="margin-top:20px; font-size:0.95rem">recent runs</h3>
       <div id="diagnostics-history"></div>
+      </div>
     </section>
   </main>
 
@@ -354,6 +386,36 @@
     refreshDiagnosticsHistory();
     refreshReports();
   }
+
+  // --- Collapsible tool sections ---
+  // Persisted in localStorage (unlike the admin password above, which is
+  // deliberately sessionStorage-only) so which sections are collapsed
+  // survives closing the tab/browser, not just a reload.
+  const COLLAPSE_KEY = "fiammo_devtools_collapsed";
+
+  function getCollapsedTools() {
+    try { return new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || "[]")); }
+    catch (e) { return new Set(); }
+  }
+
+  function setToolCollapsed(id, collapsed) {
+    const set = getCollapsedTools();
+    if (collapsed) set.add(id); else set.delete(id);
+    localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...set]));
+  }
+
+  function initCollapsibleTools() {
+    const collapsed = getCollapsedTools();
+    document.querySelectorAll(".tool[data-tool]").forEach(section => {
+      const id = section.dataset.tool;
+      if (collapsed.has(id)) section.classList.add("collapsed");
+      section.querySelector("h2").addEventListener("click", () => {
+        const nowCollapsed = section.classList.toggle("collapsed");
+        setToolCollapsed(id, nowCollapsed);
+      });
+    });
+  }
+  initCollapsibleTools();
 
   function getPassword() {
     return sessionStorage.getItem(SESSION_KEY) || "";
