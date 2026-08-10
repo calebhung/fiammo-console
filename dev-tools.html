@@ -251,17 +251,6 @@
 
   /* --- activity log --- */
 
-  /* Breaks out of the 720px column the rest of the page sits in: a log line
-     carries seven fields and reads as noise once they start wrapping. */
-  #activity-log-card {
-    /* width, not max-width: max-width can only shrink an element inside its
-       parent's content box, and the point here is to grow past it. */
-    width: min(1180px, calc(100vw - 40px));
-    max-width: none;
-    margin-left: 50%;
-    transform: translateX(-50%);
-  }
-
   .log-controls {
     display: flex;
     gap: 8px;
@@ -277,6 +266,10 @@
     color: var(--muted);
   }
   .log-controls .filter-label + .log-chip { margin-left: -2px; }
+
+  /* Narrower than the page's default 320px text input so live/search/refresh/
+     clear all sit on one line inside the 720px column. */
+  #log-search { max-width: 196px; margin-right: 0; }
 
   .log-chip {
     display: inline-flex;
@@ -311,91 +304,99 @@
   #log-live-btn.paused { background: var(--border); border-color: var(--border); color: var(--muted); }
   #log-live-btn.paused #log-live-dot { background: var(--muted); animation: none; }
 
+  /* The stream reads as one continuous console rather than a table of rows:
+     columns are padded in JS with real spaces (see fit()) and held in
+     alignment by the monospace font, exactly as a log file on disk would be.
+     Tall and scrolled vertically so the page itself doesn't grow without
+     bound.
+
+     Deliberately no horizontal scroll: a line too long for the column is
+     clipped with an ellipsis and read in full by clicking it open. Letting it
+     scroll sideways instead meant every row background stopped at whatever
+     width that row happened to be, so scrolling right left ragged untinted
+     gaps across the error lines — and the tail of a path isn't worth that. */
   #log-list {
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--bg);
-    overflow: hidden;
+    height: 60vh;
+    min-height: 420px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px 0;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.75;
   }
   #log-list:empty { display: none; }
 
-  .log-row { border-bottom: 1px solid var(--border); }
-  .log-row:last-child { border-bottom: none; }
-  .log-row.lvl-error { background: rgba(179, 38, 30, 0.05); }
-  .log-row.lvl-warn  { background: rgba(184, 115, 26, 0.05); }
+  /* Tints sit on the line rather than the row so they land on the same box
+     that carries the hover state. */
 
-  /* A button rather than a div so a row is keyboard-reachable; the base button
-     styling in this file is all-accent, so most of it gets unset here. */
-  .log-head {
-    display: grid;
-    grid-template-columns: 88px 58px 46px minmax(110px, 1fr) minmax(140px, 2.2fr) 40px 56px;
-    gap: 10px;
-    align-items: baseline;
+  /* A button rather than a div so a line is keyboard-reachable; the base
+     button styling in this file is all-accent, so most of it gets unset here.
+     white-space: pre is what preserves the padding into columns. */
+  .log-line {
+    display: block;
     width: 100%;
-    padding: 5px 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 14px;
     text-align: left;
     background: none;
     border: none;
     border-radius: 0;
     color: var(--text);
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
-    font-size: 0.72rem;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    white-space: pre;
     cursor: pointer;
   }
-  .log-head:hover { background: var(--card); }
-  .log-head > span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  .log-row.lvl-error .log-line { background: rgba(179, 38, 30, 0.06); }
+  .log-row.lvl-warn  .log-line { background: rgba(184, 115, 26, 0.06); }
+  /* Last, and matching the tints' specificity, so hover still reads on an
+     error or warning line. */
+  .log-row .log-line:hover { background: var(--card); }
 
-  .log-time { color: var(--muted); }
-  .log-src { text-transform: lowercase; }
+  .log-time { color: #B0A08D; }
   .log-src.src-ios      { color: #2F6F4F; }
   .log-src.src-edge     { color: #3B6FA0; }
   .log-src.src-devtools { color: #8B5210; }
-  .log-lvl { text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.64rem; }
   .log-row.lvl-error .log-lvl { color: #B3261E; font-weight: 500; }
   .log-row.lvl-warn  .log-lvl { color: var(--gold); font-weight: 500; }
   .log-row.lvl-info  .log-lvl { color: var(--muted); }
   .log-row.lvl-debug .log-lvl { color: #B0A08D; }
+  .log-event { color: var(--ink); }
   .log-detail { color: var(--muted); }
-  .log-status { text-align: right; }
   .log-status.s-ok   { color: #2F6F4F; }
   .log-status.s-warn { color: var(--gold); }
   .log-status.s-err  { color: #B3261E; }
-  .log-dur { text-align: right; color: var(--muted); }
+  .log-dur { color: #B0A08D; }
 
+  /* Indented under its line like a stack trace under a log entry, rather than
+     boxed off as a separate panel. */
   .log-meta {
     display: none;
-    margin: 0;
-    padding: 10px 12px 14px;
+    margin: 2px 14px 10px;
+    padding: 10px 12px;
     background: var(--card);
-    border-top: 1px solid var(--border);
-    font-family: 'JetBrains Mono', 'SF Mono', monospace;
-    font-size: 0.72rem;
+    border-left: 2px solid var(--border);
+    font-family: inherit;
+    font-size: inherit;
+    line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
+    color: var(--text);
   }
   .log-row.open .log-meta { display: block; }
+  .log-row.open .log-line { background: var(--card); }
 
   .log-footer {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-top: 12px;
-  }
-
-  /* Below the grid's natural minimum the columns start colliding, so the row
-     reflows to a wrapping line instead of seven crushed ellipses. */
-  @media (max-width: 720px) {
-    .log-head {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px 10px;
-    }
-    .log-head > span { overflow: visible; white-space: normal; }
-    .log-detail { flex-basis: 100%; }
   }
 </style>
 </head>
@@ -1243,6 +1244,24 @@
     return node ? { id: Number(node.dataset.rowId) } : null;
   }
 
+  // Column widths in characters. The line is assembled with real spaces rather
+  // than CSS boxes so it stays a genuine block of text — copy a line out of the
+  // page and it pastes as the same aligned log line it looked like.
+  // Each is one wider than the longest real value: "ERROR" (5), "devtools" (8),
+  // "devtools.auth_failed" (20), "200" (3), "15021ms" (7) — the extra column
+  // being the separating space.
+  const LOG_COLS = { level: 6, source: 9, event: 21, status: 4, dur: 9 };
+
+  // Pads short values and truncates long ones, so a column is always exactly
+  // its stated width. Padding alone isn't enough: one overlong value would
+  // shove the rest of its line right and break the alignment that makes the
+  // stream scannable in the first place.
+  function fit(value, width) {
+    const s = String(value ?? "");
+    if (s.length > width - 1) return s.slice(0, width - 2) + "… ";
+    return s + " ".repeat(width - s.length);
+  }
+
   function logRowNode(row) {
     const node = document.createElement("div");
     node.className = `log-row lvl-${row.level}`;
@@ -1260,17 +1279,19 @@
       : row.status >= 400 ? "s-warn"
       : "s-ok";
 
-    const head = document.createElement("button");
-    head.className = "log-head";
-    head.innerHTML =
-      `<span class="log-time">${escapeHtml(time)}</span>` +
-      `<span class="log-src src-${escapeHtml(row.source)}">${escapeHtml(row.source)}</span>` +
-      `<span class="log-lvl">${escapeHtml(row.level)}</span>` +
-      `<span class="log-event">${escapeHtml(row.event)}</span>` +
-      `<span class="log-detail">${escapeHtml(detail)}</span>` +
-      `<span class="log-status ${statusClass}">${row.status ?? ""}</span>` +
-      `<span class="log-dur">${row.duration_ms == null ? "" : row.duration_ms + "ms"}</span>`;
-    head.addEventListener("click", () => node.classList.toggle("open"));
+    // Padding is applied before escaping: escapeHtml turns one character into
+    // several (& -> &amp;), so measuring afterwards would misalign the column.
+    const line = document.createElement("button");
+    line.className = "log-line";
+    line.innerHTML =
+      `<span class="log-time">${escapeHtml(time)}</span>  ` +
+      `<span class="log-lvl">${escapeHtml(fit(row.level.toUpperCase(), LOG_COLS.level))}</span>` +
+      `<span class="log-src src-${escapeHtml(row.source)}">${escapeHtml(fit(row.source, LOG_COLS.source))}</span>` +
+      `<span class="log-event">${escapeHtml(fit(row.event, LOG_COLS.event))}</span>` +
+      `<span class="log-status ${statusClass}">${escapeHtml(fit(row.status ?? "", LOG_COLS.status))}</span>` +
+      `<span class="log-dur">${escapeHtml(fit(row.duration_ms == null ? "" : row.duration_ms + "ms", LOG_COLS.dur))}</span>` +
+      `<span class="log-detail">${escapeHtml(detail)}</span>`;
+    line.addEventListener("click", () => node.classList.toggle("open"));
 
     const meta = document.createElement("pre");
     meta.className = "log-meta";
@@ -1291,7 +1312,7 @@
       metadata: row.metadata,
     }, null, 2);
 
-    node.appendChild(head);
+    node.appendChild(line);
     node.appendChild(meta);
     return node;
   }
