@@ -248,6 +248,155 @@
     font-size: 0.85rem;
     color: var(--muted);
   }
+
+  /* --- activity log --- */
+
+  /* Breaks out of the 720px column the rest of the page sits in: a log line
+     carries seven fields and reads as noise once they start wrapping. */
+  #activity-log-card {
+    /* width, not max-width: max-width can only shrink an element inside its
+       parent's content box, and the point here is to grow past it. */
+    width: min(1180px, calc(100vw - 40px));
+    max-width: none;
+    margin-left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .log-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .log-controls .filter-label {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .log-controls .filter-label + .log-chip { margin-left: -2px; }
+
+  .log-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--muted);
+    cursor: pointer;
+    user-select: none;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.72rem;
+  }
+  .log-chip input { display: none; }
+  .log-chip.on {
+    border-color: var(--accent-strong);
+    background: var(--accent);
+    color: #FFFDF8;
+  }
+
+  #log-live-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #FFFDF8;
+    margin-right: 7px;
+    animation: log-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes log-pulse { 0%, 100% { opacity: 1 } 50% { opacity: 0.2 } }
+  #log-live-btn.paused { background: var(--border); border-color: var(--border); color: var(--muted); }
+  #log-live-btn.paused #log-live-dot { background: var(--muted); animation: none; }
+
+  #log-list {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    overflow: hidden;
+  }
+  #log-list:empty { display: none; }
+
+  .log-row { border-bottom: 1px solid var(--border); }
+  .log-row:last-child { border-bottom: none; }
+  .log-row.lvl-error { background: rgba(179, 38, 30, 0.05); }
+  .log-row.lvl-warn  { background: rgba(184, 115, 26, 0.05); }
+
+  /* A button rather than a div so a row is keyboard-reachable; the base button
+     styling in this file is all-accent, so most of it gets unset here. */
+  .log-head {
+    display: grid;
+    grid-template-columns: 88px 58px 46px minmax(110px, 1fr) minmax(140px, 2.2fr) 40px 56px;
+    gap: 10px;
+    align-items: baseline;
+    width: 100%;
+    padding: 5px 11px;
+    text-align: left;
+    background: none;
+    border: none;
+    border-radius: 0;
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.72rem;
+    cursor: pointer;
+  }
+  .log-head:hover { background: var(--card); }
+  .log-head > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .log-time { color: var(--muted); }
+  .log-src { text-transform: lowercase; }
+  .log-src.src-ios      { color: #2F6F4F; }
+  .log-src.src-edge     { color: #3B6FA0; }
+  .log-src.src-devtools { color: #8B5210; }
+  .log-lvl { text-transform: uppercase; letter-spacing: 0.03em; font-size: 0.64rem; }
+  .log-row.lvl-error .log-lvl { color: #B3261E; font-weight: 500; }
+  .log-row.lvl-warn  .log-lvl { color: var(--gold); font-weight: 500; }
+  .log-row.lvl-info  .log-lvl { color: var(--muted); }
+  .log-row.lvl-debug .log-lvl { color: #B0A08D; }
+  .log-detail { color: var(--muted); }
+  .log-status { text-align: right; }
+  .log-status.s-ok   { color: #2F6F4F; }
+  .log-status.s-warn { color: var(--gold); }
+  .log-status.s-err  { color: #B3261E; }
+  .log-dur { text-align: right; color: var(--muted); }
+
+  .log-meta {
+    display: none;
+    margin: 0;
+    padding: 10px 12px 14px;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.72rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .log-row.open .log-meta { display: block; }
+
+  .log-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+  }
+
+  /* Below the grid's natural minimum the columns start colliding, so the row
+     reflows to a wrapping line instead of seven crushed ellipses. */
+  @media (max-width: 720px) {
+    .log-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+    }
+    .log-head > span { overflow: visible; white-space: normal; }
+    .log-detail { flex-basis: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -269,6 +418,37 @@
   </section>
 
   <main id="tools">
+    <section class="tool card" id="activity-log-card" data-tool="activity-log">
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">activity log</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
+      <p class="hint">everything happening across all three surfaces, newest first — every HTTP call the iOS app makes to supabase, every edge function invocation with its status and duration, and every action taken on this page. click a row for the full record. history goes back 30 days; request and response bodies are never recorded, only their sizes.</p>
+      <div class="row">
+        <button id="log-live-btn"><span id="log-live-dot"></span><span id="log-live-label">live</span></button>
+        <input type="text" id="log-search" placeholder="search event, message, or path">
+        <button id="log-refresh-btn">refresh</button>
+        <button class="danger" id="log-clear-btn">clear</button>
+      </div>
+      <div class="row log-controls">
+        <span class="filter-label">source</span>
+        <label class="log-chip on"><input type="checkbox" data-source="ios" checked>ios</label>
+        <label class="log-chip on"><input type="checkbox" data-source="edge" checked>edge</label>
+        <label class="log-chip on"><input type="checkbox" data-source="devtools" checked>dev tools</label>
+        <span class="filter-label" style="margin-left:10px">level</span>
+        <label class="log-chip on"><input type="checkbox" data-level="debug" checked>debug</label>
+        <label class="log-chip on"><input type="checkbox" data-level="info" checked>info</label>
+        <label class="log-chip on"><input type="checkbox" data-level="warn" checked>warn</label>
+        <label class="log-chip on"><input type="checkbox" data-level="error" checked>error</label>
+      </div>
+      <p class="stats" id="log-summary"></p>
+      <div id="log-list"></div>
+      <div class="log-footer">
+        <button id="log-more-btn" style="display:none">load older</button>
+        <span class="stats" id="log-note" style="margin-top:0"></span>
+      </div>
+      <pre class="result" id="log-clear-result"></pre>
+      </div>
+    </section>
+
     <section class="tool card" data-tool="demo">
       <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">generate demo guest</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
@@ -386,6 +566,13 @@
   const SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
   const SESSION_KEY = "fiammo_devtools_pw";
 
+  // Identifies this page load in the activity log, so one sitting's actions can
+  // be told apart from another tab's. Declared up here rather than beside the
+  // rest of the activity-log code at the bottom because callFunction reads it,
+  // and callFunction runs during the stored-password re-validation below —
+  // before the bottom of this script has executed.
+  const DEVTOOLS_SESSION_ID = crypto.randomUUID();
+
   const gate = document.getElementById("gate");
   const tools = document.getElementById("tools");
   const gatePassword = document.getElementById("gate-password");
@@ -398,6 +585,7 @@
     refreshCircleSmsStatus();
     refreshDiagnosticsHistory();
     refreshReports();
+    startActivityLog();
   }
 
   // --- Collapsible tool sections ---
@@ -503,7 +691,18 @@
     return sessionStorage.getItem(SESSION_KEY) || "";
   }
 
+  // Excluded from activity-log self-reporting: the viewer polls this one every
+  // couple of seconds to tail, so logging it would append rows faster than they
+  // can be read and bury the actual activity under "someone looked at the logs".
+  const LOG_SILENT_FUNCTIONS = new Set(["admin-logs-list"]);
+
   async function callFunction(name, body) {
+    // Sent as headers so the edge side can stamp the same ids on its own row
+    // (see supabase/functions/_shared/logging.ts) — that's what lets a click
+    // here and the invocation it caused be lined up in the log.
+    const requestId = crypto.randomUUID();
+    const startedAt = performance.now();
+
     const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
       method: "POST",
       headers: {
@@ -511,9 +710,27 @@
         "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
         "apikey": SUPABASE_ANON_KEY,
         "x-admin-password": getPassword(),
+        "x-fiammo-request-id": requestId,
+        "x-fiammo-session-id": DEVTOOLS_SESSION_ID,
       },
       body: JSON.stringify(body || {}),
     });
+
+    if (!LOG_SILENT_FUNCTIONS.has(name)) {
+      // Not awaited: the log write must never sit between a click and its
+      // result. logDevtoolsEvent swallows its own failures.
+      logDevtoolsEvent({
+        level: res.ok ? "info" : res.status >= 500 ? "error" : "warn",
+        event: "devtools.action",
+        message: name,
+        method: "POST",
+        path: `/functions/v1/${name}`,
+        status: res.status,
+        durationMs: Math.round(performance.now() - startedAt),
+        metadata: { requestId },
+      });
+    }
+
     const data = await res.json().catch(() => ({}));
     if (res.status === 401) {
       sessionStorage.removeItem(SESSION_KEY);
@@ -537,6 +754,9 @@
     } catch (e) {
       sessionStorage.removeItem(SESSION_KEY);
       gateError.textContent = "incorrect password";
+      // Worth a row of its own: a rejected password on a page that isn't linked
+      // from anywhere is the one signal here that someone is poking at it.
+      logDevtoolsEvent({ level: "warn", event: "devtools.auth_failed", message: "incorrect admin password" });
     } finally {
       gateSubmit.disabled = false;
     }
@@ -933,6 +1153,318 @@
       diagHistory.textContent = "couldn't load run history";
     }
   }
+
+  // --- Activity log ---
+
+  const LOG_PAGE_SIZE = 100;
+  const LOG_TAIL_MS = 2000;
+  // Ceiling on rows held in the DOM. A live tail left open all afternoon would
+  // otherwise grow without bound; older rows are still one "load older" away
+  // (or a refresh), so nothing is actually lost by dropping them from view.
+  const LOG_MAX_ROWS = 1000;
+
+  const logList = document.getElementById("log-list");
+  const logSummary = document.getElementById("log-summary");
+  const logNote = document.getElementById("log-note");
+  const logSearch = document.getElementById("log-search");
+  const logLiveBtn = document.getElementById("log-live-btn");
+  const logLiveLabel = document.getElementById("log-live-label");
+  const logMoreBtn = document.getElementById("log-more-btn");
+  const logRefreshBtn = document.getElementById("log-refresh-btn");
+  const logClearBtn = document.getElementById("log-clear-btn");
+  const logClearResult = document.getElementById("log-clear-result");
+
+  let logTailing = true;
+  let logTailTimer = null;
+  let logRequestInFlight = false;
+  let logRowCount = 0;
+  let logErrors24h = null;
+  let logFilterDebounce = null;
+  let logLoadInFlight = false;
+  // Bumped by every load. A response that comes back carrying a stale token
+  // belongs to filters the user has already moved on from, and appending it
+  // would paint old rows over the new view — which is exactly what happened
+  // when several chips were toggled in quick succession.
+  let logLoadToken = 0;
+
+  /// Writes a row describing something that happened on this page. Goes
+  /// straight to PostgREST rather than through an edge function: app_logs
+  /// grants anon append-only access precisely so clients can do this, and
+  /// bouncing through a function would only add a hop.
+  async function logDevtoolsEvent(entry) {
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/app_logs`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "apikey": SUPABASE_ANON_KEY,
+          "Prefer": "return=minimal",
+        },
+        body: JSON.stringify({
+          source: "devtools",
+          level: entry.level || "info",
+          event: entry.event,
+          message: entry.message ?? null,
+          method: entry.method ?? null,
+          path: entry.path ?? null,
+          status: entry.status ?? null,
+          duration_ms: entry.durationMs ?? null,
+          session_id: DEVTOOLS_SESSION_ID,
+          client_time: new Date().toISOString(),
+          metadata: entry.metadata || {},
+        }),
+      });
+    } catch (e) {
+      // A broken logger must not break the tool it's logging.
+    }
+  }
+
+  function logSelected(attr) {
+    return [...document.querySelectorAll(`#activity-log-card input[data-${attr}]`)]
+      .filter(input => input.checked)
+      .map(input => input.dataset[attr]);
+  }
+
+  function logFilters() {
+    return {
+      limit: LOG_PAGE_SIZE,
+      sources: logSelected("source"),
+      levels: logSelected("level"),
+      search: logSearch.value.trim(),
+    };
+  }
+
+  // Cursors are read back off the rendered rows rather than tracked in their
+  // own variables, so trimming to LOG_MAX_ROWS can't leave a cursor pointing at
+  // a row that's no longer on screen. Just the id: the server keysets on it
+  // alone, since id is the exact append order and created_at isn't.
+  function logCursor(node) {
+    return node ? { id: Number(node.dataset.rowId) } : null;
+  }
+
+  function logRowNode(row) {
+    const node = document.createElement("div");
+    node.className = `log-row lvl-${row.level}`;
+    node.dataset.rowId = row.id;
+
+    // client_time is when the device says it happened; created_at is when the
+    // row landed. The former reads truer for the batched iOS rows, which would
+    // otherwise all share a flush timestamp.
+    const when = new Date(row.client_time || row.created_at);
+    const time = when.toLocaleTimeString([], { hour12: false }) +
+      "." + String(when.getMilliseconds()).padStart(3, "0");
+    const detail = [row.method, row.path].filter(Boolean).join(" ") || row.message || "";
+    const statusClass = row.status == null ? ""
+      : row.status >= 500 ? "s-err"
+      : row.status >= 400 ? "s-warn"
+      : "s-ok";
+
+    const head = document.createElement("button");
+    head.className = "log-head";
+    head.innerHTML =
+      `<span class="log-time">${escapeHtml(time)}</span>` +
+      `<span class="log-src src-${escapeHtml(row.source)}">${escapeHtml(row.source)}</span>` +
+      `<span class="log-lvl">${escapeHtml(row.level)}</span>` +
+      `<span class="log-event">${escapeHtml(row.event)}</span>` +
+      `<span class="log-detail">${escapeHtml(detail)}</span>` +
+      `<span class="log-status ${statusClass}">${row.status ?? ""}</span>` +
+      `<span class="log-dur">${row.duration_ms == null ? "" : row.duration_ms + "ms"}</span>`;
+    head.addEventListener("click", () => node.classList.toggle("open"));
+
+    const meta = document.createElement("pre");
+    meta.className = "log-meta";
+    meta.textContent = JSON.stringify({
+      id: row.id,
+      received_at: row.created_at,
+      client_time: row.client_time,
+      source: row.source,
+      level: row.level,
+      event: row.event,
+      message: row.message,
+      method: row.method,
+      path: row.path,
+      status: row.status,
+      duration_ms: row.duration_ms,
+      user_id: row.user_id,
+      session_id: row.session_id,
+      metadata: row.metadata,
+    }, null, 2);
+
+    node.appendChild(head);
+    node.appendChild(meta);
+    return node;
+  }
+
+  function logTrim() {
+    while (logRowCount > LOG_MAX_ROWS && logList.lastElementChild) {
+      logList.removeChild(logList.lastElementChild);
+      logRowCount--;
+    }
+  }
+
+  function logAppend(row) { logList.appendChild(logRowNode(row)); logRowCount++; }
+  function logPrepend(row) { logList.prepend(logRowNode(row)); logRowCount++; }
+
+  function updateLogSummary() {
+    const parts = [`${logRowCount} row${logRowCount === 1 ? "" : "s"} shown`];
+    if (logErrors24h !== null) {
+      parts.push(`${logErrors24h} warning${logErrors24h === 1 ? "" : "s"}/error${logErrors24h === 1 ? "" : "s"} in the last 24h`);
+    }
+    logSummary.textContent = parts.join(" · ");
+  }
+
+  async function loadLogs() {
+    const token = ++logLoadToken;
+    const filters = logFilters();
+    logList.innerHTML = "";
+    logRowCount = 0;
+    logMoreBtn.style.display = "none";
+    logNote.textContent = "";
+
+    // Every box unticked is a genuine "show me nothing", but an empty array on
+    // the wire is indistinguishable from "don't filter" — so it's answered here
+    // rather than sent.
+    if (!filters.sources.length || !filters.levels.length) {
+      logSummary.textContent = "no source or level selected";
+      return;
+    }
+
+    logSummary.textContent = "loading…";
+    logLoadInFlight = true;
+    try {
+      const data = await callFunction("admin-logs-list", filters);
+      if (token !== logLoadToken) return;
+      for (const row of data.logs || []) logAppend(row);
+      if (data.errors_last_24h !== null && data.errors_last_24h !== undefined) {
+        logErrors24h = data.errors_last_24h;
+      }
+      logMoreBtn.style.display = data.has_more ? "" : "none";
+      if (!logRowCount) logNote.textContent = "nothing logged yet for these filters";
+      updateLogSummary();
+    } catch (e) {
+      if (token !== logLoadToken) return;
+      logSummary.textContent = `couldn't load: ${e.message}`;
+    } finally {
+      if (token === logLoadToken) logLoadInFlight = false;
+    }
+  }
+
+  async function loadOlderLogs() {
+    const token = logLoadToken;
+    const before = logCursor(logList.lastElementChild);
+    if (!before) return;
+    logMoreBtn.disabled = true;
+    try {
+      const data = await callFunction("admin-logs-list", { ...logFilters(), before });
+      // A filter change while this page was in flight makes these rows the
+      // wrong ones to append to what's now on screen.
+      if (token !== logLoadToken) return;
+      for (const row of data.logs || []) logAppend(row);
+      logMoreBtn.style.display = data.has_more ? "" : "none";
+      updateLogSummary();
+    } catch (e) {
+      if (token !== logLoadToken) return;
+      logNote.textContent = `couldn't load older rows: ${e.message}`;
+    } finally {
+      logMoreBtn.disabled = false;
+    }
+  }
+
+  async function tickLogTail() {
+    if (!logTailing || logRequestInFlight || document.hidden) return;
+    const token = logLoadToken;
+    const filters = logFilters();
+    if (!filters.sources.length || !filters.levels.length) return;
+
+    const after = logCursor(logList.firstElementChild);
+    logRequestInFlight = true;
+    try {
+      // With nothing on screen there's no cursor to tail from, so the first
+      // matching row has to come from a normal load. Skipped while one is
+      // already running: loadLogs bumps the stale-response token, so firing it
+      // here would cancel the load the user just triggered by changing a
+      // filter, and the view would stay empty.
+      if (!after) {
+        if (!logLoadInFlight) await loadLogs();
+        return;
+      }
+
+      const data = await callFunction("admin-logs-list", { ...filters, after });
+      if (token !== logLoadToken) return;
+      const rows = data.logs || [];
+      if (!rows.length) return;
+      // Server order is newest-first; prepending oldest-first leaves the newest
+      // on top, where the tail belongs.
+      for (const row of [...rows].reverse()) logPrepend(row);
+      logTrim();
+      logNote.textContent = "";
+      updateLogSummary();
+    } catch (e) {
+      // Tail failures are left silent on purpose — a blip shouldn't stamp an
+      // error over a working view, and the next tick two seconds later either
+      // recovers or the manual refresh surfaces the real message.
+    } finally {
+      logRequestInFlight = false;
+    }
+  }
+
+  function setLogTailing(on) {
+    logTailing = on;
+    logLiveBtn.classList.toggle("paused", !on);
+    logLiveLabel.textContent = on ? "live" : "paused";
+  }
+
+  logLiveBtn.addEventListener("click", () => setLogTailing(!logTailing));
+  logRefreshBtn.addEventListener("click", loadLogs);
+  logMoreBtn.addEventListener("click", loadOlderLogs);
+
+  // Filter changes are coalesced rather than fired per keystroke/click: ticking
+  // three chips in a row is one intent, not three. The stale-token guard in
+  // loadLogs keeps it correct either way; this just stops the wasted requests.
+  function reloadLogsSoon(delay) {
+    clearTimeout(logFilterDebounce);
+    logFilterDebounce = setTimeout(loadLogs, delay);
+  }
+
+  logSearch.addEventListener("input", () => reloadLogsSoon(350));
+
+  document.querySelectorAll("#activity-log-card .log-chip input").forEach(input => {
+    input.addEventListener("change", () => {
+      input.closest(".log-chip").classList.toggle("on", input.checked);
+      reloadLogsSoon(150);
+    });
+  });
+
+  logClearBtn.addEventListener("click", async () => {
+    if (!confirm("Delete every row in the activity log? This cannot be undone.")) return;
+    logClearBtn.disabled = true;
+    try {
+      const data = await callFunction("admin-logs-clear", { confirm: true });
+      setResult(logClearResult, data, false);
+      await loadLogs();
+    } catch (e) {
+      setResult(logClearResult, e.message, true);
+    } finally {
+      logClearBtn.disabled = false;
+    }
+  });
+
+  function startActivityLog() {
+    if (logTailTimer) return;
+    logDevtoolsEvent({ event: "devtools.open", message: "dev tools page opened" });
+    loadLogs();
+    // A plain interval rather than a self-scheduling chain: tickLogTail already
+    // no-ops while a request is in flight or the tab is hidden, so ticks can't
+    // pile up on a slow response.
+    logTailTimer = setInterval(tickLogTail, LOG_TAIL_MS);
+  }
+
+  // Coming back to a backgrounded tab, catch up immediately instead of waiting
+  // out the interval that was skipped while hidden.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && logTailTimer) tickLogTail();
+  });
 </script>
 </body>
 </html>
