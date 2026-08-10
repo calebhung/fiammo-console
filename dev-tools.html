@@ -46,9 +46,9 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     user-select: none;
   }
+  .tool h2 .title { flex: 1; }
   .tool h2 .chevron {
     font-size: 0.7em;
     color: var(--muted);
@@ -58,6 +58,19 @@
   }
   .tool.collapsed h2 .chevron { transform: rotate(-90deg); }
   .tool.collapsed .tool-body { display: none; }
+
+  .tool h2 .drag-handle {
+    cursor: grab;
+    color: var(--muted);
+    margin-right: 10px;
+    flex-shrink: 0;
+    letter-spacing: -1px;
+  }
+  .tool h2 .drag-handle:active { cursor: grabbing; }
+  .tool.drag-over {
+    box-shadow: 0 -2px 0 0 var(--accent-strong);
+  }
+  .tool.dragging { opacity: 0.4; }
   .tool p.hint {
     font-family: 'JetBrains Mono', 'SF Mono', monospace;
     font-size: 0.78rem;
@@ -257,7 +270,7 @@
 
   <main id="tools">
     <section class="tool card" data-tool="demo">
-      <h2><span>generate demo guest</span><span class="chevron">▾</span></h2>
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">generate demo guest</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
       <p class="hint">creates a real, fully-onboarded account (profile + default circles) with a randomly generated email/password/phone that unmistakably signal it's a demo account. no posts, friends, or messages. optionally set the handle/first name/last name below — useful for copy accounts — anything left blank still gets a random demo value.</p>
       <div class="row">
@@ -275,7 +288,7 @@
     </section>
 
     <section class="tool card" data-tool="delete">
-      <h2><span>delete user</span><span class="chevron">▾</span></h2>
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">delete user</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
       <p class="hint">permanently deletes a user and everything associated with them (posts, circles, messages, notifications, storage files) by email or username. this cannot be undone.</p>
       <div class="row">
@@ -287,7 +300,7 @@
     </section>
 
     <section class="tool card" data-tool="refresh-prompt">
-      <h2><span>refresh today's prompt</span><span class="chevron">▾</span></h2>
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">refresh today's prompt</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
       <p class="hint">rotates the daily prompt shown to all users to the next one in the library, effective immediately.</p>
       <button id="refresh-prompt-btn">refresh prompt</button>
@@ -296,7 +309,7 @@
     </section>
 
     <section class="tool card" data-tool="broadcast">
-      <h2><span>send custom push notification</span><span class="chevron">▾</span></h2>
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">send custom push notification</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
       <p class="hint">sends a push notification to every registered device, right now. this cannot be undone or recalled once sent — double-check the title and body below before confirming.</p>
       <input type="text" id="broadcast-title" placeholder="title" maxlength="120">
@@ -312,7 +325,7 @@
     </section>
 
     <section class="tool card" data-tool="refresh-constellation">
-      <h2><span>refresh constellations</span><span class="chevron">▾</span></h2>
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">refresh constellations</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
       <p class="hint">forces every user's constellation (mind-map themes + insight) to regenerate on their next app sync — bypasses the normal 7-day cooldown and minimum word/entry threshold.</p>
       <button id="refresh-constellation-btn">refresh constellations</button>
@@ -321,7 +334,7 @@
     </section>
 
     <section class="tool card" data-tool="circle-sms">
-      <h2><span>circle SMS</span><span class="chevron">▾</span></h2>
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">circle SMS</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
       <p class="hint">kill switch for the per-post Twilio texts to opted-in circle contacts. off by default — nothing sends, and no credits are spent, while disabled, no matter who posts.</p>
       <div class="row">
@@ -335,7 +348,7 @@
     </section>
 
     <section class="tool card" data-tool="reports">
-      <h2><span>reported posts</span><span class="chevron">▾</span></h2>
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">reported posts</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
       <p class="hint">posts reported from the app, newest first. reporting hides the post for that reporter only — it's still live for everyone else unless you delete it or delete the author above. content shown is the live post, or a snapshot taken at report time if it's since been deleted.</p>
       <div class="row">
@@ -347,7 +360,7 @@
     </section>
 
     <section class="tool card" data-tool="diagnostics">
-      <h2><span>run full diagnostics</span><span class="chevron">▾</span></h2>
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">run full diagnostics</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
       <p class="hint">runs an end-to-end sweep of every backend-dependent feature (auth, circles, posts, echoes, DMs, blocking & reporting, notifications, push, schema drift) against two persistent diagnostic accounts, then cleans up everything it created. no real SMS/push reaches a device — pipelines are verified without contacting real phones. takes roughly 30–60s.</p>
       <div class="row">
@@ -409,13 +422,82 @@
     document.querySelectorAll(".tool[data-tool]").forEach(section => {
       const id = section.dataset.tool;
       if (collapsed.has(id)) section.classList.add("collapsed");
-      section.querySelector("h2").addEventListener("click", () => {
+      section.querySelector("h2").addEventListener("click", e => {
+        // The drag handle lives inside the h2 too — a click there is the
+        // start of a drag, not a request to collapse the section.
+        if (e.target.closest(".drag-handle")) return;
         const nowCollapsed = section.classList.toggle("collapsed");
         setToolCollapsed(id, nowCollapsed);
       });
     });
   }
+
+  // --- Reorderable tool sections ---
+  // Same localStorage-only persistence as collapse state above — this is a
+  // personal layout of your own dev tools environment, not something that
+  // should follow you to a different browser/device.
+  const ORDER_KEY = "fiammo_devtools_order";
+
+  function getToolOrder() {
+    try { return JSON.parse(localStorage.getItem(ORDER_KEY) || "null"); }
+    catch (e) { return null; }
+  }
+
+  function saveToolOrder() {
+    const order = [...tools.querySelectorAll(".tool[data-tool]")].map(s => s.dataset.tool);
+    localStorage.setItem(ORDER_KEY, JSON.stringify(order));
+  }
+
+  function applyToolOrder() {
+    const order = getToolOrder();
+    if (!order || !order.length) return;
+    const byId = {};
+    tools.querySelectorAll(".tool[data-tool]").forEach(s => { byId[s.dataset.tool] = s; });
+    // Only known ids get reordered — a tool added after this order was saved
+    // (or one that's since been removed) is left wherever it already sits
+    // instead of silently vanishing or crashing on a missing lookup.
+    order.forEach(id => { if (byId[id]) tools.appendChild(byId[id]); });
+  }
+
+  function initReorderableTools() {
+    applyToolOrder();
+    let dragSection = null;
+
+    tools.querySelectorAll(".tool[data-tool]").forEach(section => {
+      const handle = section.querySelector(".drag-handle");
+
+      handle.addEventListener("dragstart", e => {
+        dragSection = section;
+        e.dataTransfer.effectAllowed = "move";
+        // Required for Firefox to actually start the drag; the id itself is unused.
+        e.dataTransfer.setData("text/plain", section.dataset.tool);
+        section.classList.add("dragging");
+      });
+      handle.addEventListener("dragend", () => {
+        section.classList.remove("dragging");
+        document.querySelectorAll(".tool.drag-over").forEach(s => s.classList.remove("drag-over"));
+        dragSection = null;
+        saveToolOrder();
+      });
+
+      section.addEventListener("dragover", e => {
+        if (!dragSection || dragSection === section) return;
+        e.preventDefault();
+        const rect = section.getBoundingClientRect();
+        const before = (e.clientY - rect.top) < rect.height / 2;
+        tools.insertBefore(dragSection, before ? section : section.nextSibling);
+      });
+      section.addEventListener("dragenter", e => {
+        if (!dragSection || dragSection === section) return;
+        e.preventDefault();
+        section.classList.add("drag-over");
+      });
+      section.addEventListener("dragleave", () => section.classList.remove("drag-over"));
+    });
+  }
+
   initCollapsibleTools();
+  initReorderableTools();
 
   function getPassword() {
     return sessionStorage.getItem(SESSION_KEY) || "";
