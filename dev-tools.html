@@ -313,16 +313,6 @@
     --log-dim: #8C7B69;
   }
 
-  /* The one section that breaks the page's 720px column: a log table crammed
-     into it truncated the detail on nearly every row. Centred on the viewport
-     regardless of where the column sits, and never wider than the window. */
-  #activity-log-card {
-    position: relative;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(1280px, calc(100vw - 32px));
-  }
-
   /* The scroll container, and the thing that looks like a table: rows are a
      grid (see .log-line) under a header that stays put while the history
      scrolls past it.
@@ -336,13 +326,13 @@
     border: 1px solid #2C2219;
     border-radius: 10px;
     background: var(--log-bg);
-    height: 72vh;
-    min-height: 520px;
+    height: 48vh;
+    min-height: 320px;
     overflow-y: auto;
     overflow-x: hidden;
     font-family: 'JetBrains Mono', 'SF Mono', monospace;
-    font-size: 0.74rem;
-    line-height: 2.05;
+    font-size: 0.7rem;
+    line-height: 1.95;
     color: var(--log-text);
     scrollbar-color: #4A3B2D var(--log-bg);
   }
@@ -350,12 +340,16 @@
   /* Shared by the header and every row, so a column is one width in one place
      and the two can't drift apart. Widths are in ch of the monospace font and
      sized to the longest real value: "12:00:00.000", "DEBUG", "devtools",
-     "devtools.auth_failed", "200", "15021ms" — detail takes the rest. */
+     "200", "15021ms" — detail takes whatever is left of the page's column.
+     Event is the one that's deliberately short of its longest value: giving it
+     the full 21ch it wants leaves detail too narrow to read at this width, and
+     an event name is recognisable from its first dozen characters in a way a
+     path isn't. */
   #log-head, .log-line {
     display: grid;
-    grid-template-columns: 13ch 6ch 9ch 23ch 6ch 8ch minmax(0, 1fr);
-    gap: 0 12px;
-    padding: 0 16px;
+    grid-template-columns: 12ch 5ch 8ch 16ch 4ch 7ch minmax(0, 1fr);
+    gap: 0 10px;
+    padding: 0 12px;
   }
 
   #log-head {
@@ -490,7 +484,9 @@
           <span>level</span>
           <span>source</span>
           <span>event</span>
-          <span>status</span>
+          <!-- "code", not "status": the column is 4ch wide, which is all an
+               HTTP status needs and two characters less than the word. -->
+          <span>code</span>
           <span>took</span>
           <span>detail</span>
         </div>
