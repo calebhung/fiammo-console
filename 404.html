@@ -8,6 +8,91 @@
 <meta name="robots" content="noindex">
 <link rel="icon" href="flame.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
+<style>
+  /* Every color here comes from style.css's variables — the page reads as the
+     homepage with the hero swapped out, not as a separately styled screen. */
+  .error-hero {
+    text-align: center;
+    padding-top: 44px;
+    padding-bottom: 40px;
+  }
+
+  /* The splash: the mark sitting in a warm copper glow, which is the one place
+     this page is allowed to be louder than the rest of the site. */
+  .flame-splash {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 22px;
+  }
+
+  .flame-splash::before {
+    content: "";
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201, 111, 59, 0.20) 0%, rgba(201, 111, 59, 0.07) 45%, rgba(201, 111, 59, 0) 70%);
+  }
+
+  .flame-splash img {
+    position: relative;
+    height: 60px;
+    width: auto;
+  }
+
+  .error-code {
+    font-family: 'Lora', Georgia, serif;
+    font-weight: 700;
+    font-size: 4.2rem;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--accent);
+    margin: 0;
+  }
+
+  .error-hero h1 {
+    font-size: 1.55rem;
+    margin: 14px 0 0;
+  }
+
+  .error-hero .tagline {
+    margin: 10px 0 22px;
+  }
+
+  /* .hero left-aligns its body copy, which is right for the homepage's longer
+     paragraph and wrong for two lines of apology. */
+  .error-hero p.error-body {
+    text-align: center;
+    max-width: 420px;
+    margin: 0 auto;
+    color: var(--muted);
+  }
+
+  .error-links {
+    margin-top: 30px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .error-links a {
+    color: var(--muted);
+    text-decoration: none;
+    margin: 0 10px;
+  }
+
+  .error-links a:hover { color: var(--accent-strong); }
+
+  @media (max-width: 480px) {
+    .error-code { font-size: 3.4rem; }
+    .error-links a { margin: 0 6px; }
+  }
+</style>
 </head>
 <body>
 <div class="wrap">
@@ -26,12 +111,18 @@
   <!-- Served by Cloudflare Pages for any path that doesn't match a file. Without
        it, Pages falls back to index.html with a 200, so every typo'd or stale
        URL rendered as a page that looked like it had worked. -->
-  <main class="card hero">
-    <img class="hero-mark" src="flame.svg" alt="">
-    <h1>Nothing here</h1>
-    <p class="tagline center">404 — page not found</p>
-    <p>This page doesn't exist, or it has moved. If you followed a confirmation link from a text message, check that you copied the whole link — they're long and easy to cut short.</p>
-    <p><a href="/">Home</a> &nbsp;·&nbsp; <a href="/support.html">Support</a> &nbsp;·&nbsp; <a href="/privacy.html">Privacy Policy</a> &nbsp;·&nbsp; <a href="/terms.html">Terms of Service</a></p>
+  <main class="card error-hero">
+    <span class="flame-splash"><img src="flame.svg" alt=""></span>
+    <p class="error-code">404</p>
+    <h1>this one burned</h1>
+    <p class="tagline center">page not found</p>
+    <p class="error-body">Nothing lives at this address. If you followed a confirmation link from a text, check that you copied the whole thing — they're long and easy to cut short.</p>
+    <p class="error-links">
+      <a href="/">Home</a>
+      <a href="/support.html">Support</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+    </p>
   </main>
 
   <footer class="site">
