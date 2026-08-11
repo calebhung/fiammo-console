@@ -1188,31 +1188,32 @@
   // when several chips were toggled in quick succession.
   let logLoadToken = 0;
 
-  /// Writes a row describing something that happened on this page. Goes
-  /// straight to PostgREST rather than through an edge function: app_logs
-  /// grants anon append-only access precisely so clients can do this, and
-  /// bouncing through a function would only add a hop.
+  /// Writes a row describing something that happened on this page. Routed
+  /// through the password-gated admin-logs-append function rather than raw
+  /// PostgREST: migration 049 revoked the anon INSERT on app_logs (the anon
+  /// key is public, so that grant was an open write endpoint for anyone).
+  /// Called directly with fetch, NOT via callFunction — callFunction logs its
+  /// own calls, which would recurse.
   async function logDevtoolsEvent(entry) {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/app_logs`, {
+      await fetch(`${SUPABASE_URL}/functions/v1/admin-logs-append`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
           "apikey": SUPABASE_ANON_KEY,
-          "Prefer": "return=minimal",
+          "x-admin-password": getPassword(),
         },
         body: JSON.stringify({
-          source: "devtools",
           level: entry.level || "info",
           event: entry.event,
           message: entry.message ?? null,
           method: entry.method ?? null,
           path: entry.path ?? null,
           status: entry.status ?? null,
-          duration_ms: entry.durationMs ?? null,
-          session_id: DEVTOOLS_SESSION_ID,
-          client_time: new Date().toISOString(),
+          durationMs: entry.durationMs ?? null,
+          sessionId: DEVTOOLS_SESSION_ID,
+          clientTime: new Date().toISOString(),
           metadata: entry.metadata || {},
         }),
       });
