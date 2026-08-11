@@ -339,16 +339,20 @@
 
   /* Shared by the header and every row, so a column is one width in one place
      and the two can't drift apart. Widths are in ch of the monospace font and
-     sized to the longest real value: "12:00:00.000", "DEBUG", "devtools",
-     "200", "15021ms" — detail takes whatever is left of the page's column.
-     Event is the one that's deliberately short of its longest value: giving it
-     the full 21ch it wants leaves detail too narrow to read at this width, and
-     an event name is recognisable from its first dozen characters in a way a
-     path isn't. */
+     sized to the longest real value: "12:00:00", "DEBUG", "devtools", "200",
+     "15021ms" — detail takes whatever is left of the page's column.
+
+     Event and user are deliberately short of their longest values: at this
+     width every character one of them takes comes out of detail. An event name
+     is recognisable from its first dozen characters and a handle from its
+     first ten, in a way a path isn't — and the row opens to the full record
+     either way. Time gives up its milliseconds for the same reason; rows are
+     ordered by insertion, not by the clock, so the sub-second digits were
+     decoration on all but the busiest stretches. */
   #log-head, .log-line {
     display: grid;
-    grid-template-columns: 12ch 5ch 8ch 16ch 4ch 7ch minmax(0, 1fr);
-    gap: 0 10px;
+    grid-template-columns: 8ch 5ch 8ch 11ch 14ch 4ch 7ch minmax(0, 1fr);
+    gap: 0 9px;
     padding: 0 12px;
   }
 
@@ -403,6 +407,12 @@
   .log-row.lvl-debug .log-lvl { color: #6B5C4C; }
   .log-event { color: var(--log-text); }
   .log-detail { color: #A2937F; }
+  /* Dimmer than the event beside it: the handle is what a row is scanned for
+     but not what it says, and two full-brightness columns in a row compete. */
+  .log-user { color: #D6C7B0; }
+  /* The uuid fallback for a user with no profile left — deliberately faint,
+     since it identifies a row without naming anyone. */
+  .log-user.anon { color: #6B5C4C; }
   .log-status.s-ok   { color: #7FBE96; }
   .log-status.s-warn { color: #E8B45C; }
   .log-status.s-err  { color: #F0827A; }
@@ -459,7 +469,7 @@
       <p class="hint">everything happening across all three surfaces, newest first — every HTTP call the iOS app makes to supabase, every edge function invocation with its status and duration, and every action taken on this page. click a row for the full record, and keep scrolling to pull in older history — it goes back 30 days. request and response bodies are never recorded, only their sizes.</p>
       <div class="row">
         <button id="log-live-btn"><span id="log-live-dot"></span><span id="log-live-label">live</span></button>
-        <input type="text" id="log-search" placeholder="search event, message, or path">
+        <input type="text" id="log-search" placeholder="search handle, event, message, or path">
         <button id="log-refresh-btn">refresh</button>
         <button class="danger" id="log-clear-btn">clear</button>
       </div>
@@ -481,8 +491,11 @@
       <div id="log-console">
         <div id="log-head">
           <span>time</span>
-          <span>level</span>
+          <!-- "lvl": the column is 5ch, which "DEBUG" fills exactly, so the
+               full word would sit flush against the next header. -->
+          <span>lvl</span>
           <span>source</span>
+          <span>user</span>
           <span>event</span>
           <!-- "code", not "status": the column is 4ch wide, which is all an
                HTTP status needs and two characters less than the word. -->
@@ -1590,8 +1603,7 @@
     // row landed. The former reads truer for the batched iOS rows, which would
     // otherwise all share a flush timestamp.
     const when = new Date(row.client_time || row.created_at);
-    const time = when.toLocaleTimeString([], { hour12: false }) +
-      "." + String(when.getMilliseconds()).padStart(3, "0");
+    const time = when.toLocaleTimeString([], { hour12: false });
     const detail = [row.method, row.path].filter(Boolean).join(" ") || row.message || "";
     const statusClass = row.status == null ? ""
       : row.status >= 500 ? "s-err"
@@ -1606,16 +1618,29 @@
     // which makes it the wrong tool for an attribute.
     const line = document.createElement("button");
     line.className = "log-line";
+    // tip: true titles the cell with its own text (for the ones that clip);
+    // a string titles it with something fuller than what's shown.
     const cell = (cls, text, tip) => {
       const span = document.createElement("span");
       span.className = cls;
       span.textContent = text;
-      if (tip && text) span.title = text;
+      if (tip && text) span.title = tip === true ? text : tip;
       line.appendChild(span);
     };
+    // The handle comes resolved by admin-logs-list; a row with a user_id but
+    // no handle belongs to someone whose profile is gone, and the head of the
+    // uuid is the only thing left that identifies them. Rows with no user at
+    // all (edge crons, the gate, anything pre-sign-in) leave the cell empty
+    // rather than printing a placeholder into every other line.
+    const userText = row.handle ? "@" + row.handle
+      : row.user_id ? String(row.user_id).slice(0, 8)
+      : "";
+    const userClass = row.handle ? "log-user" : "log-user anon";
+
     cell("log-time", time);
     cell("log-lvl", row.level.toUpperCase());
     cell(`log-src src-${row.source}`, row.source);
+    cell(userClass, userText, row.user_id ? `${row.handle ? "@" + row.handle + " · " : ""}${row.user_id}` : true);
     cell("log-event", row.event, true);
     cell(`log-status ${statusClass}`, row.status == null ? "" : String(row.status));
     cell("log-dur", row.duration_ms == null ? "" : row.duration_ms + "ms");
@@ -1637,6 +1662,7 @@
       status: row.status,
       duration_ms: row.duration_ms,
       user_id: row.user_id,
+      handle: row.handle ?? null,
       session_id: row.session_id,
       metadata: row.metadata,
     }, null, 2);
