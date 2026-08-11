@@ -24,7 +24,7 @@
 
   <main class="card">
     <h1>Fiammo Privacy Policy</h1>
-    <p class="updated">Last updated: Aug 2, 2026</p>
+    <p class="updated">Last updated: Aug 10, 2026</p>
 
     <h2>Overview</h2>
     <p>Fiammo is a private, text-first social app built around small, user-defined circles and friends. This policy explains what information we collect, how we use it, and the choices you have — particularly around text message (SMS) notifications and AI-powered features.</p>
@@ -32,15 +32,19 @@
     <h2>Information We Collect</h2>
     <ul>
       <li><strong>Account information:</strong> your phone number, or an email address and password, and any profile details you provide. You can also sign in with Google or Apple, in which case we receive basic profile information (such as your name and email) from that provider.</li>
-      <li><strong>Content you create:</strong> posts, echoes, and circle and friend memberships.</li>
-      <li><strong>Contact information you provide about others:</strong> when you add someone to a circle, you may provide their phone number so fiammo can send them an invitation. See "SMS Invitations" below for how this is used.</li>
+      <li><strong>Content you create:</strong> posts, echoes, comments, direct messages, and circle and friend memberships.</li>
+      <li><strong>Contact information you provide about others:</strong> when you add someone who isn't on fiammo to a circle, you provide their phone number and name so we can create the invitation link you send them. See "SMS Notifications and Consent" below for how this is used.</li>
+      <li><strong>Contacts you choose to match:</strong> if you grant contacts access, phone numbers from your address book are sent to our backend to check which of them already have fiammo accounts, so we can suggest people you may know. This happens only while you have granted that permission, and we do not use these numbers to message anyone.</li>
+      <li><strong>Consent records:</strong> when someone confirms an invitation to receive texts, we record the confirmation time, the IP address, and the browser user agent of the device that confirmed. This is how we demonstrate that consent to receive messages was actually given, and it applies whether or not that person is a fiammo user.</li>
+      <li><strong>Device information for notifications:</strong> if you enable push notifications, we store the notification token your device provides so we can deliver them.</li>
     </ul>
 
     <h2>How We Use Your Information</h2>
     <ul>
       <li>To operate the app: displaying your circles, friends, posts, and echoes to the people you've chosen to share them with.</li>
       <li>To send you SMS notifications you've opted into (see below).</li>
-      <li>To send a one-time SMS invitation on your behalf when you add someone new to one of your circles.</li>
+      <li>To create the invitation link you send to someone you've added to a circle, and to record their response to it.</li>
+      <li>To suggest people you may already know, if you've granted contacts access.</li>
       <li>To generate AI-powered writing insights through our Constellation feature (see below).</li>
     </ul>
 
@@ -49,15 +53,24 @@
 
     <h2>SMS Notifications and Consent</h2>
     <p><strong>Notifications to existing users.</strong> If you opt in, fiammo will text you when someone in your circle shares a new post. These messages include a brief preview of the post and a link back to the app. Message frequency varies based on circle activity. You can opt out at any time by replying STOP, or by adjusting your notification settings in the app.</p>
-    <p><strong>Invitations to new contacts.</strong> When you add someone new to one of your circles, fiammo will send that person a single, one-time text message on your behalf, inviting them to opt in to future notifications about your posts. This message is sent only after you review the list of people you're adding and explicitly confirm that you have their consent to be contacted. No further messages are sent to that person unless they reply YES to opt in themselves.</p>
-    <p><strong>Your responsibility.</strong> By confirming a bulk invitation, you are representing that you have permission to share each listed phone number with fiammo for this purpose. Please only add people who have agreed to be contacted.</p>
-    <p><strong>Opting out.</strong> Anyone who no longer wishes to receive texts from fiammo — whether an existing user or someone who received a one-time invitation — can reply STOP at any time. To resume receiving messages after opting out, text START to the same number.</p>
+    <p><strong>Invitations to new contacts.</strong> Fiammo never sends the first message to someone who hasn't already agreed to hear from us. When you add someone who isn't on fiammo to one of your circles, we create a personal confirmation link for that phone number and open your device's own messaging app with a draft — you send that invitation yourself, from your own number, and you can edit or cancel it before sending.</p>
+    <p><strong>How someone opts in.</strong> The invitation link opens a page on fiammo.co showing who invited them, what they'd receive, how often, that message and data rates may apply, and how to get help or stop. To confirm, they enter the last four digits of the phone number that received the invitation, which ties the consent to that specific number. Only after that confirmation does fiammo send any automated message to it. Anyone can decline on the same page, and a link that goes unanswered expires after 30 days.</p>
+    <p><strong>Your responsibility.</strong> When you add someone's phone number to a circle, you are representing that you have permission to share that number with fiammo for this purpose. Please only add people who have agreed to be contacted.</p>
+    <p><strong>Opting out.</strong> Anyone who no longer wishes to receive texts from fiammo — whether an existing user or someone who confirmed an invitation — can reply STOP to any message at any time. To resume receiving messages after opting out, text START to the same number. You can also opt out before ever receiving a post notification by choosing "no thanks" on the confirmation page, and users can turn SMS notifications off in the app's settings.</p>
 
     <h2>Sharing of Information</h2>
-    <p>We do not sell your information. We share information only as necessary to run the app: SMS notifications and invitations are delivered through our messaging provider (Twilio); post content is sent to our AI provider (Groq) if you use the Constellation feature; and basic profile information is exchanged with Google or Apple if you choose to sign in with one of those providers. We do not otherwise share your circle contents, friend connections, posts, or echo activity outside the app.</p>
+    <p>We do not sell your information. We share information only as necessary to run the app:</p>
+    <ul>
+      <li><strong>Hosting and storage (Supabase).</strong> Your account, posts, messages, circles, and consent records are stored in our database and processed by our backend functions, which run on Supabase. This is where fiammo's data lives.</li>
+      <li><strong>Messaging (Twilio).</strong> SMS notifications are delivered through Twilio. Invitations are sent by you, from your own device and number, and do not pass through Twilio.</li>
+      <li><strong>Push notifications (Apple).</strong> Push notifications are delivered through Apple's Push Notification service.</li>
+      <li><strong>AI features (Groq).</strong> Post content is sent to Groq only if you use the Constellation feature.</li>
+      <li><strong>Sign-in (Google, Apple).</strong> Basic profile information is exchanged with Google or Apple if you choose to sign in with one of those providers.</li>
+    </ul>
+    <p>We do not otherwise share your circle contents, friend connections, posts, messages, or echo activity outside the app.</p>
 
     <h2>Data Retention</h2>
-    <p>Posts become invisible to others 24 hours after posting ("burning"). Burned posts are not immediately deleted from our systems — we retain them on our backend after they burn. Echo records and account information are retained as described in our terms of service. If you'd like a burned post permanently deleted from our systems, contact us at <a href="mailto:privacy@fiammo.co">privacy@fiammo.co</a>.</p>
+    <p>Posts become invisible to others 24 hours after posting ("burning"). Burned posts are not immediately deleted from our systems — we retain them on our backend after they burn. Echo records and account information are retained as described in our terms of service. Consent records are kept for as long as we may need to show that consent was given, including after someone opts out. If you'd like a burned post permanently deleted from our systems, contact us at <a href="mailto:privacy@fiammo.co">privacy@fiammo.co</a>.</p>
 
     <h2>Your Choices</h2>
     <ul>

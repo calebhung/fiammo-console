@@ -110,11 +110,18 @@
     </a>
   </header>
 
+  <!-- The consent form and its disclosure are visible in the served HTML, not
+       revealed by script. Everything here used to start hidden and get switched
+       on once the token lookup resolved, which meant anything reading the page
+       without running JS — a compliance reviewer's capture tool, a carrier
+       audit, a preview crawler — saw "loading…" and no call to action at all.
+       Script now personalizes this copy for a real visitor and hides it on a
+       bad token (showTerminal), rather than being what makes it exist. -->
   <section id="state" class="card">
-    <h1 id="state-title">loading…</h1>
-    <p id="state-body">one second</p>
+    <h1 id="state-title">confirm you want texts from fiammo</h1>
+    <p id="state-body">someone added you so you can get a text whenever they post. no app needed.</p>
 
-    <form id="confirm-form" style="display:none">
+    <form id="confirm-form">
       <label class="field-label" for="phone-last4">confirm the last 4 digits of the phone number that got this text</label>
       <input type="tel" id="phone-last4" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000">
       <div class="field-error" id="field-error"></div>
@@ -122,7 +129,7 @@
       <button id="decline-link" type="button">no thanks</button>
     </form>
 
-    <p class="disclosure" id="disclosure" style="display:none">
+    <p class="disclosure" id="disclosure">
       you'll get a text each time they post. message &amp; data rates may apply.
       reply HELP for help, STOP at any time to opt out.
       by confirming you agree to fiammo's
