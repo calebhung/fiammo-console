@@ -711,10 +711,15 @@
         "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
         "apikey": SUPABASE_ANON_KEY,
         "x-admin-password": getPassword(),
-        "x-fiammo-request-id": requestId,
-        "x-fiammo-session-id": DEVTOOLS_SESSION_ID,
       },
-      body: JSON.stringify(body || {}),
+      // Correlation ids ride in the body, NOT in custom headers. A custom
+      // header has to be listed in the function's own
+      // Access-Control-Allow-Headers or the browser blocks the call at
+      // preflight — so sending them as headers meant every admin tool on this
+      // page broke ("Failed to fetch") against any function still running a
+      // build older than the shared CORS change. Body fields need no CORS
+      // allowance, so this can't happen again.
+      body: JSON.stringify({ ...(body || {}), _requestId: requestId, _sessionId: DEVTOOLS_SESSION_ID }),
     });
 
     if (!LOG_SILENT_FUNCTIONS.has(name)) {
