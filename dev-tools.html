@@ -528,6 +528,19 @@
       </div>
     </section>
 
+    <section class="tool card" data-tool="app-config">
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">app config</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
+      <p class="hint">values the app reads at runtime instead of having them baked into the build — change one here and it takes effect without an App Store release. every key also has a default compiled into the app equal to what's shown here, so a device that can't reach this table behaves exactly as it does today. the app caches these, so a change reaches a running device on its next launch or foreground, not instantly.</p>
+      <div class="row">
+        <button id="config-refresh-btn">refresh</button>
+        <span id="config-summary" class="stats"></span>
+      </div>
+      <div id="config-list"></div>
+      <pre class="result" id="config-log"></pre>
+      </div>
+    </section>
+
     <section class="tool card" data-tool="reports">
       <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">reported posts</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
@@ -584,6 +597,7 @@
     gate.style.display = "none";
     tools.style.display = "block";
     refreshCircleSmsStatus();
+    refreshConfig();
     refreshDiagnosticsHistory();
     refreshReports();
     startActivityLog();
@@ -962,6 +976,131 @@
   });
 
   circleSmsRefreshBtn.addEventListener("click", refreshCircleSmsStatus);
+
+  // --- App config ---
+
+  const configList = document.getElementById("config-list");
+  const configSummary = document.getElementById("config-summary");
+  const configLog = document.getElementById("config-log");
+  const configRefreshBtn = document.getElementById("config-refresh-btn");
+
+  // Mirrors admin-config-set's validate() so a bad value is caught before the
+  // round trip, and so the input can be the right shape for the type.
+  const CONFIG_KINDS = {
+    post_burn_hours: "number",
+    feed_gate_enabled: "boolean",
+    min_supported_version: "string",
+    constellation_system_prompt: "text",
+  };
+
+  function configInputFor(key, value) {
+    const kind = CONFIG_KINDS[key] || "string";
+    if (kind === "boolean") {
+      const sel = document.createElement("select");
+      for (const v of ["true", "false"]) {
+        const o = document.createElement("option");
+        o.value = v; o.textContent = v; o.selected = String(value) === v;
+        sel.appendChild(o);
+      }
+      return sel;
+    }
+    if (kind === "text") {
+      const ta = document.createElement("textarea");
+      ta.rows = 6;
+      ta.style.width = "100%";
+      ta.placeholder = "leave empty to use the prompt built into the function";
+      ta.value = value === null || value === undefined ? "" : String(value);
+      return ta;
+    }
+    const input = document.createElement("input");
+    input.type = kind === "number" ? "number" : "text";
+    input.value = value === null || value === undefined ? "" : String(value);
+    return input;
+  }
+
+  // The value is sent as real JSON, not a string — 24 not "24". The client's
+  // typed accessors read the wrong type as absent and fall back to the built-in
+  // default, which looks like the save silently doing nothing.
+  function configValueFrom(key, el) {
+    const kind = CONFIG_KINDS[key] || "string";
+    if (kind === "boolean") return el.value === "true";
+    if (kind === "number") {
+      const n = Number(el.value);
+      if (!Number.isInteger(n)) throw new Error("must be a whole number");
+      return n;
+    }
+    if (kind === "text") {
+      const t = el.value.trim();
+      return t.length ? t : null;
+    }
+    return el.value.trim();
+  }
+
+  function renderConfig(rows) {
+    configList.innerHTML = "";
+    if (!rows.length) {
+      configSummary.textContent = "no config rows";
+      return;
+    }
+    configSummary.textContent = rows.length + " key" + (rows.length === 1 ? "" : "s");
+
+    for (const row of rows) {
+      const wrap = document.createElement("div");
+      wrap.className = "row";
+      wrap.style.cssText = "flex-direction:column;align-items:stretch;gap:6px;margin-bottom:18px";
+
+      const label = document.createElement("strong");
+      label.textContent = row.key;
+      wrap.appendChild(label);
+
+      if (row.notes) {
+        const notes = document.createElement("p");
+        notes.className = "hint";
+        notes.style.margin = "0";
+        notes.textContent = row.notes;
+        wrap.appendChild(notes);
+      }
+
+      const controls = document.createElement("div");
+      controls.className = "row";
+      const input = configInputFor(row.key, row.value);
+      const save = document.createElement("button");
+      save.textContent = "save";
+      save.addEventListener("click", async () => {
+        save.disabled = true;
+        const original = save.textContent;
+        save.textContent = "saving\u2026";
+        try {
+          const value = configValueFrom(row.key, input);
+          await callFunction("admin-config-set", { key: row.key, value });
+          setResult(configLog, row.key + " \u2192 " + JSON.stringify(value), false);
+          await refreshConfig();
+        } catch (e) {
+          setResult(configLog, row.key + ": " + e.message, true);
+          save.disabled = false;
+          save.textContent = original;
+        }
+      });
+      controls.appendChild(input);
+      controls.appendChild(save);
+      wrap.appendChild(controls);
+
+      configList.appendChild(wrap);
+    }
+  }
+
+  async function refreshConfig() {
+    configSummary.textContent = "loading\u2026";
+    try {
+      const data = await callFunction("admin-config-list");
+      renderConfig(data.config || []);
+    } catch (e) {
+      configSummary.textContent = "error loading config";
+      setResult(configLog, e.message, true);
+    }
+  }
+
+  configRefreshBtn.addEventListener("click", refreshConfig);
 
   // --- Reported posts ---
 
