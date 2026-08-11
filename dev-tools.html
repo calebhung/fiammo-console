@@ -304,93 +304,135 @@
   #log-live-btn.paused { background: var(--border); border-color: var(--border); color: var(--muted); }
   #log-live-btn.paused #log-live-dot { background: var(--muted); animation: none; }
 
-  /* The stream reads as one continuous console rather than a table of rows:
-     columns are padded in JS with real spaces (see fit()) and held in
-     alignment by the monospace font, exactly as a log file on disk would be.
-     Tall and scrolled vertically so the page itself doesn't grow without
-     bound.
+  /* The console is a dark editor panel dropped into a parchment page, so it
+     keeps its own palette rather than inheriting the page's. Warm-toned
+     (browns, not blues) so it still reads as part of this app. */
+  #activity-log-card {
+    --log-bg: #17120D;
+    --log-head: #221A13;
+    --log-rule: rgba(255, 253, 248, 0.07);
+    --log-text: #E9DFD1;
+    --log-dim: #8C7B69;
+  }
 
-     Deliberately no horizontal scroll: a line too long for the column is
-     clipped with an ellipsis and read in full by clicking it open. Letting it
-     scroll sideways instead meant every row background stopped at whatever
-     width that row happened to be, so scrolling right left ragged untinted
-     gaps across the error lines — and the tail of a path isn't worth that. */
-  #log-list {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
-    height: 60vh;
-    min-height: 420px;
+  /* The one section that breaks the page's 720px column: a log table crammed
+     into it truncated the detail on nearly every row. Centred on the viewport
+     regardless of where the column sits, and never wider than the window. */
+  #activity-log-card {
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(1280px, calc(100vw - 32px));
+  }
+
+  /* The scroll container, and the thing that looks like a table: rows are a
+     grid (see .log-line) under a header that stays put while the history
+     scrolls past it.
+
+     Deliberately no horizontal scroll: a value too long for its column is
+     clipped with an ellipsis and read in full by clicking the row open.
+     Letting it scroll sideways instead meant every row background stopped at
+     whatever width that row happened to be, so scrolling right left ragged
+     untinted gaps across the error lines. */
+  #log-console {
+    border: 1px solid #2C2219;
+    border-radius: 10px;
+    background: var(--log-bg);
+    height: 72vh;
+    min-height: 520px;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 10px 0;
     font-family: 'JetBrains Mono', 'SF Mono', monospace;
-    font-size: 0.72rem;
-    line-height: 1.75;
+    font-size: 0.74rem;
+    line-height: 2.05;
+    color: var(--log-text);
+    scrollbar-color: #4A3B2D var(--log-bg);
   }
-  #log-list:empty { display: none; }
 
-  /* Tints sit on the line rather than the row so they land on the same box
-     that carries the hover state. */
+  /* Shared by the header and every row, so a column is one width in one place
+     and the two can't drift apart. Widths are in ch of the monospace font and
+     sized to the longest real value: "12:00:00.000", "DEBUG", "devtools",
+     "devtools.auth_failed", "200", "15021ms" — detail takes the rest. */
+  #log-head, .log-line {
+    display: grid;
+    grid-template-columns: 13ch 6ch 9ch 23ch 6ch 8ch minmax(0, 1fr);
+    gap: 0 12px;
+    padding: 0 16px;
+  }
 
-  /* A button rather than a div so a line is keyboard-reachable; the base
-     button styling in this file is all-accent, so most of it gets unset here.
-     white-space: pre is what preserves the padding into columns. */
+  #log-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--log-head);
+    border-bottom: 1px solid var(--log-rule);
+    color: var(--log-dim);
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    line-height: 2.6;
+  }
+
+  /* A button rather than a div so a row is keyboard-reachable; the base button
+     styling in this file is all-accent, so most of it gets unset here. */
   .log-line {
-    display: block;
     width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding: 0 14px;
     text-align: left;
     background: none;
     border: none;
+    border-top: 1px solid var(--log-rule);
     border-radius: 0;
-    color: var(--text);
+    color: inherit;
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
-    white-space: pre;
     cursor: pointer;
   }
-  .log-row.lvl-error .log-line { background: rgba(179, 38, 30, 0.06); }
-  .log-row.lvl-warn  .log-line { background: rgba(184, 115, 26, 0.06); }
+  /* Every cell clips rather than wraps, so one long path can't make its row
+     two lines tall and break the table's rhythm. */
+  .log-line > span {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .log-row.lvl-error .log-line { background: rgba(179, 38, 30, 0.16); }
+  .log-row.lvl-warn  .log-line { background: rgba(184, 115, 26, 0.14); }
   /* Last, and matching the tints' specificity, so hover still reads on an
      error or warning line. */
-  .log-row .log-line:hover { background: var(--card); }
+  .log-row .log-line:hover { background: #241C15; }
 
-  .log-time { color: #B0A08D; }
-  .log-src.src-ios      { color: #2F6F4F; }
-  .log-src.src-edge     { color: #3B6FA0; }
-  .log-src.src-devtools { color: #8B5210; }
-  .log-row.lvl-error .log-lvl { color: #B3261E; font-weight: 500; }
-  .log-row.lvl-warn  .log-lvl { color: var(--gold); font-weight: 500; }
-  .log-row.lvl-info  .log-lvl { color: var(--muted); }
-  .log-row.lvl-debug .log-lvl { color: #B0A08D; }
-  .log-event { color: var(--ink); }
-  .log-detail { color: var(--muted); }
-  .log-status.s-ok   { color: #2F6F4F; }
-  .log-status.s-warn { color: var(--gold); }
-  .log-status.s-err  { color: #B3261E; }
-  .log-dur { color: #B0A08D; }
+  .log-time { color: var(--log-dim); }
+  .log-src.src-ios      { color: #7FBE96; }
+  .log-src.src-edge     { color: #7FA8D8; }
+  .log-src.src-devtools { color: #E0A05C; }
+  .log-row.lvl-error .log-lvl { color: #F0827A; font-weight: 500; }
+  .log-row.lvl-warn  .log-lvl { color: #E8B45C; font-weight: 500; }
+  .log-row.lvl-info  .log-lvl { color: var(--log-dim); }
+  .log-row.lvl-debug .log-lvl { color: #6B5C4C; }
+  .log-event { color: var(--log-text); }
+  .log-detail { color: #A2937F; }
+  .log-status.s-ok   { color: #7FBE96; }
+  .log-status.s-warn { color: #E8B45C; }
+  .log-status.s-err  { color: #F0827A; }
+  .log-dur { color: var(--log-dim); }
 
-  /* Indented under its line like a stack trace under a log entry, rather than
+  /* Indented under its row like a stack trace under a log entry, rather than
      boxed off as a separate panel. */
   .log-meta {
     display: none;
-    margin: 2px 14px 10px;
-    padding: 10px 12px;
-    background: var(--card);
-    border-left: 2px solid var(--border);
+    margin: 0;
+    padding: 10px 16px 12px 28px;
+    background: #1D1710;
+    border-left: 2px solid #4A3B2D;
     font-family: inherit;
     font-size: inherit;
-    line-height: 1.6;
+    line-height: 1.7;
     white-space: pre-wrap;
     word-break: break-word;
-    color: var(--text);
+    color: #C9BCAB;
   }
   .log-row.open .log-meta { display: block; }
-  .log-row.open .log-line { background: var(--card); }
+  .log-row.open .log-line { background: #241C15; }
 
   .log-footer {
     display: flex;
@@ -441,7 +483,21 @@
         <label class="log-chip on"><input type="checkbox" data-level="error" checked>error</label>
       </div>
       <p class="stats" id="log-summary"></p>
-      <div id="log-list"></div>
+      <!-- The console scrolls, not the list: the header has to stay put above
+           the rows it labels, and logCursor() reads the first/last child of
+           #log-list, so nothing but rows may live in there. -->
+      <div id="log-console">
+        <div id="log-head">
+          <span>time</span>
+          <span>level</span>
+          <span>source</span>
+          <span>event</span>
+          <span>status</span>
+          <span>took</span>
+          <span>detail</span>
+        </div>
+        <div id="log-list"></div>
+      </div>
       <div class="log-footer">
         <button id="log-more-btn" style="display:none">load older</button>
         <span class="stats" id="log-note" style="margin-top:0"></span>
@@ -541,6 +597,20 @@
       </div>
     </section>
 
+    <section class="tool card" data-tool="prompts">
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">daily prompts</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
+      <p class="hint">the prompt library the app and the daily push both read. editing text is safe and takes effect on the day that position comes up. adding appends to the end, which only affects days past the current wrap. positions are identities, not ordering to tidy — renumbering an existing row silently reschedules every day after it. switching one off falls through to the next active prompt for that day and leaves every other day alone.</p>
+      <div class="row">
+        <button id="prompts-refresh-btn">refresh</button>
+        <button id="prompts-add-btn">add prompt</button>
+        <span id="prompts-summary" class="stats"></span>
+      </div>
+      <pre class="result" id="prompts-log"></pre>
+      <div id="prompts-list"></div>
+      </div>
+    </section>
+
     <section class="tool card" data-tool="reports">
       <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">reported posts</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
@@ -598,6 +668,7 @@
     tools.style.display = "block";
     refreshCircleSmsStatus();
     refreshConfig();
+    refreshPrompts();
     refreshDiagnosticsHistory();
     refreshReports();
     startActivityLog();
@@ -1101,6 +1172,130 @@
   }
 
   configRefreshBtn.addEventListener("click", refreshConfig);
+
+  // --- Daily prompts ---
+
+  const promptsList = document.getElementById("prompts-list");
+  const promptsSummary = document.getElementById("prompts-summary");
+  const promptsLog = document.getElementById("prompts-log");
+  const promptsRefreshBtn = document.getElementById("prompts-refresh-btn");
+  const promptsAddBtn = document.getElementById("prompts-add-btn");
+
+  function promptRow(row, livePosition) {
+    const wrap = document.createElement("div");
+    wrap.className = "row";
+    wrap.style.cssText = "flex-direction:column;align-items:stretch;gap:6px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)";
+
+    const head = document.createElement("div");
+    head.className = "row";
+    const pos = document.createElement("strong");
+    pos.textContent = "#" + row.position;
+    head.appendChild(pos);
+    if (row.position === livePosition) {
+      const live = document.createElement("span");
+      live.className = "badge";
+      live.textContent = "live today";
+      head.appendChild(live);
+    }
+    if (!row.active) {
+      const off = document.createElement("span");
+      off.className = "badge";
+      off.textContent = "inactive";
+      head.appendChild(off);
+    }
+    wrap.appendChild(head);
+
+    const text = document.createElement("input");
+    text.type = "text";
+    text.value = row.text;
+    text.style.width = "100%";
+    wrap.appendChild(text);
+
+    // Pipe-separated rather than comma: poll options are written in the app's
+    // own voice and several of them already contain commas.
+    const polls = document.createElement("input");
+    polls.type = "text";
+    polls.placeholder = "poll options separated by |  \u2014  leave empty for a write prompt";
+    polls.value = (row.poll_options || []).join(" | ");
+    polls.style.width = "100%";
+    wrap.appendChild(polls);
+
+    const controls = document.createElement("div");
+    controls.className = "row";
+
+    const activeLabel = document.createElement("label");
+    activeLabel.style.cssText = "display:flex;align-items:center;gap:6px";
+    const activeBox = document.createElement("input");
+    activeBox.type = "checkbox";
+    activeBox.checked = row.active;
+    activeLabel.appendChild(activeBox);
+    activeLabel.appendChild(document.createTextNode("active"));
+    controls.appendChild(activeLabel);
+
+    const save = document.createElement("button");
+    save.textContent = "save";
+    save.addEventListener("click", async () => {
+      save.disabled = true;
+      save.textContent = "saving\u2026";
+      try {
+        await callFunction("admin-prompts-set", {
+          position: row.position,
+          text: text.value,
+          poll_options: polls.value.split("|").map((x) => x.trim()).filter(Boolean),
+          active: activeBox.checked,
+        });
+        setResult(promptsLog, "saved #" + row.position, false);
+        await refreshPrompts();
+      } catch (e) {
+        setResult(promptsLog, "#" + row.position + ": " + e.message, true);
+        save.disabled = false;
+        save.textContent = "save";
+      }
+    });
+    controls.appendChild(save);
+    wrap.appendChild(controls);
+
+    return wrap;
+  }
+
+  function renderPrompts(data) {
+    const rows = data.prompts || [];
+    promptsList.innerHTML = "";
+    const activeCount = rows.filter((r) => r.active).length;
+    promptsSummary.textContent =
+      rows.length + " prompt" + (rows.length === 1 ? "" : "s") +
+      (activeCount === rows.length ? "" : " (" + activeCount + " active)") +
+      " \u00b7 day " + data.dayNumber;
+    for (const row of rows) promptsList.appendChild(promptRow(row, data.livePosition));
+  }
+
+  async function refreshPrompts() {
+    promptsSummary.textContent = "loading\u2026";
+    try {
+      renderPrompts(await callFunction("admin-prompts-list"));
+    } catch (e) {
+      promptsSummary.textContent = "error loading prompts";
+      setResult(promptsLog, e.message, true);
+    }
+  }
+
+  promptsRefreshBtn.addEventListener("click", refreshPrompts);
+
+  promptsAddBtn.addEventListener("click", async () => {
+    const text = window.prompt("prompt text");
+    if (!text || !text.trim()) return;
+    const pollsRaw = window.prompt("poll options separated by |  \u2014  leave empty for a write prompt") || "";
+    const poll_options = pollsRaw.split("|").map((x) => x.trim()).filter(Boolean);
+    try {
+      // No position sent: admin-prompts-set appends after the highest existing
+      // one, which is the only safe way to add without moving other days.
+      const created = await callFunction("admin-prompts-set", { text: text.trim(), poll_options });
+      setResult(promptsLog, "added #" + created.position, false);
+      await refreshPrompts();
+    } catch (e) {
+      setResult(promptsLog, e.message, true);
+    }
+  });
 
   // --- Reported posts ---
 
