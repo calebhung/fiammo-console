@@ -607,7 +607,7 @@
     <section class="tool card" data-tool="refresh-prompt">
       <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">refresh today's prompt</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
-      <p class="hint">rotates the daily prompt shown to all users to the next one in the library, effective immediately.</p>
+      <p class="hint">gives today a different prompt, effective immediately. it does this by <strong>swapping</strong> today's prompt with one about six months out — today shows that one, and today's original moves to that day. it does not skip forward: skipping made today borrow tomorrow's prompt, so the same prompt then appeared two days running. no other day changes, and the swap is permanent rather than a one-day override.</p>
       <button id="refresh-prompt-btn">refresh prompt</button>
       <pre class="result" id="refresh-prompt-result"></pre>
       </div>
@@ -1020,7 +1020,17 @@
     btn.disabled = true;
     try {
       const data = await callFunction("admin-refresh-prompt");
-      setResult(result, data, false);
+      // Reported as the swap it is, not as a raw payload — "why did the prompt
+      // change" should be answerable from this page without opening the table.
+      const [a, b] = data.swapped || [];
+      setResult(result, [
+        "swapped #" + a + " \u21c4 #" + b,
+        "",
+        "today now:  " + data.todayNow,
+        "moved to #" + (data.movedTo && data.movedTo.position) + ":  " + (data.movedTo && data.movedTo.text),
+      ].join("\n"), false);
+      // The prompts panel above is now stale for two rows.
+      if (typeof refreshPrompts === "function") await refreshPrompts();
     } catch (e) {
       setResult(result, e.message, true);
     } finally {
