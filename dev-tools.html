@@ -267,9 +267,7 @@
   }
   .log-controls .filter-label + .log-chip { margin-left: -2px; }
 
-  /* Narrower than the page's default 320px text input so live/search/refresh/
-     clear all sit on one line inside the 720px column. */
-  #log-search { max-width: 196px; margin-right: 0; }
+  #log-search { max-width: 320px; margin-right: 0; }
 
   .log-chip {
     display: inline-flex;
@@ -464,7 +462,7 @@
     <section class="tool card" id="activity-log-card" data-tool="activity-log">
       <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">activity log</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
-      <p class="hint">everything happening across all three surfaces, newest first — every HTTP call the iOS app makes to supabase, every edge function invocation with its status and duration, and every action taken on this page. click a row for the full record. history goes back 30 days; request and response bodies are never recorded, only their sizes.</p>
+      <p class="hint">everything happening across all three surfaces, newest first — every HTTP call the iOS app makes to supabase, every edge function invocation with its status and duration, and every action taken on this page. click a row for the full record, and keep scrolling to pull in older history — it goes back 30 days. request and response bodies are never recorded, only their sizes.</p>
       <div class="row">
         <button id="log-live-btn"><span id="log-live-dot"></span><span id="log-live-label">live</span></button>
         <input type="text" id="log-search" placeholder="search event, message, or path">
@@ -1503,6 +1501,7 @@
   // (or a refresh), so nothing is actually lost by dropping them from view.
   const LOG_MAX_ROWS = 1000;
 
+  const logConsole = document.getElementById("log-console");
   const logList = document.getElementById("log-list");
   const logSummary = document.getElementById("log-summary");
   const logNote = document.getElementById("log-note");
@@ -1521,6 +1520,8 @@
   let logErrors24h = null;
   let logFilterDebounce = null;
   let logLoadInFlight = false;
+  let logOlderInFlight = false;
+  let logHasMore = false;
   // Bumped by every load. A response that comes back carrying a stale token
   // belongs to filters the user has already moved on from, and appending it
   // would paint old rows over the new view — which is exactly what happened
@@ -1584,24 +1585,6 @@
     return node ? { id: Number(node.dataset.rowId) } : null;
   }
 
-  // Column widths in characters. The line is assembled with real spaces rather
-  // than CSS boxes so it stays a genuine block of text — copy a line out of the
-  // page and it pastes as the same aligned log line it looked like.
-  // Each is one wider than the longest real value: "ERROR" (5), "devtools" (8),
-  // "devtools.auth_failed" (20), "200" (3), "15021ms" (7) — the extra column
-  // being the separating space.
-  const LOG_COLS = { level: 6, source: 9, event: 21, status: 4, dur: 9 };
-
-  // Pads short values and truncates long ones, so a column is always exactly
-  // its stated width. Padding alone isn't enough: one overlong value would
-  // shove the rest of its line right and break the alignment that makes the
-  // stream scannable in the first place.
-  function fit(value, width) {
-    const s = String(value ?? "");
-    if (s.length > width - 1) return s.slice(0, width - 2) + "… ";
-    return s + " ".repeat(width - s.length);
-  }
-
   function logRowNode(row) {
     const node = document.createElement("div");
     node.className = `log-row lvl-${row.level}`;
@@ -1619,18 +1602,28 @@
       : row.status >= 400 ? "s-warn"
       : "s-ok";
 
-    // Padding is applied before escaping: escapeHtml turns one character into
-    // several (& -> &amp;), so measuring afterwards would misalign the column.
+    // One span per column, laid out by the same grid as the header — no
+    // hand-padding, so a value that overruns its column is clipped by CSS
+    // instead of shoving the rest of the row out of alignment. Built as nodes
+    // rather than an innerHTML string: cells carry the value in a title so a
+    // clipped one can be read on hover, and escapeHtml doesn't escape quotes,
+    // which makes it the wrong tool for an attribute.
     const line = document.createElement("button");
     line.className = "log-line";
-    line.innerHTML =
-      `<span class="log-time">${escapeHtml(time)}</span>  ` +
-      `<span class="log-lvl">${escapeHtml(fit(row.level.toUpperCase(), LOG_COLS.level))}</span>` +
-      `<span class="log-src src-${escapeHtml(row.source)}">${escapeHtml(fit(row.source, LOG_COLS.source))}</span>` +
-      `<span class="log-event">${escapeHtml(fit(row.event, LOG_COLS.event))}</span>` +
-      `<span class="log-status ${statusClass}">${escapeHtml(fit(row.status ?? "", LOG_COLS.status))}</span>` +
-      `<span class="log-dur">${escapeHtml(fit(row.duration_ms == null ? "" : row.duration_ms + "ms", LOG_COLS.dur))}</span>` +
-      `<span class="log-detail">${escapeHtml(detail)}</span>`;
+    const cell = (cls, text, tip) => {
+      const span = document.createElement("span");
+      span.className = cls;
+      span.textContent = text;
+      if (tip && text) span.title = text;
+      line.appendChild(span);
+    };
+    cell("log-time", time);
+    cell("log-lvl", row.level.toUpperCase());
+    cell(`log-src src-${row.source}`, row.source);
+    cell("log-event", row.event, true);
+    cell(`log-status ${statusClass}`, row.status == null ? "" : String(row.status));
+    cell("log-dur", row.duration_ms == null ? "" : row.duration_ms + "ms");
+    cell("log-detail", detail, true);
     line.addEventListener("click", () => node.classList.toggle("open"));
 
     const meta = document.createElement("pre");
@@ -1658,6 +1651,10 @@
   }
 
   function logTrim() {
+    // Not while the user is scrolled into the history: the rows this drops are
+    // the oldest ones, which is exactly where they're reading. It resumes the
+    // moment they're back at the top, and the ceiling holds from there.
+    if (logConsole.scrollTop > 0) return;
     while (logRowCount > LOG_MAX_ROWS && logList.lastElementChild) {
       logList.removeChild(logList.lastElementChild);
       logRowCount--;
@@ -1680,8 +1677,10 @@
     const filters = logFilters();
     logList.innerHTML = "";
     logRowCount = 0;
+    logHasMore = false;
     logMoreBtn.style.display = "none";
     logNote.textContent = "";
+    logConsole.scrollTop = 0;
 
     // Every box unticked is a genuine "show me nothing", but an empty array on
     // the wire is indistinguishable from "don't filter" — so it's answered here
@@ -1700,9 +1699,12 @@
       if (data.errors_last_24h !== null && data.errors_last_24h !== undefined) {
         logErrors24h = data.errors_last_24h;
       }
-      logMoreBtn.style.display = data.has_more ? "" : "none";
+      setLogHasMore(!!data.has_more);
       if (!logRowCount) logNote.textContent = "nothing logged yet for these filters";
       updateLogSummary();
+      // A first page shorter than the console is a scrollbar that never
+      // appears, so the scroll handler would never fire to fetch page two.
+      fillLogConsole();
     } catch (e) {
       if (token !== logLoadToken) return;
       logSummary.textContent = `couldn't load: ${e.message}`;
@@ -1711,10 +1713,16 @@
     }
   }
 
+  function setLogHasMore(hasMore) {
+    logHasMore = hasMore;
+    logMoreBtn.style.display = hasMore ? "" : "none";
+  }
+
   async function loadOlderLogs() {
     const token = logLoadToken;
     const before = logCursor(logList.lastElementChild);
-    if (!before) return;
+    if (!before || logOlderInFlight) return;
+    logOlderInFlight = true;
     logMoreBtn.disabled = true;
     try {
       const data = await callFunction("admin-logs-list", { ...logFilters(), before });
@@ -1722,15 +1730,41 @@
       // wrong ones to append to what's now on screen.
       if (token !== logLoadToken) return;
       for (const row of data.logs || []) logAppend(row);
-      logMoreBtn.style.display = data.has_more ? "" : "none";
+      setLogHasMore(!!data.has_more);
       updateLogSummary();
     } catch (e) {
       if (token !== logLoadToken) return;
       logNote.textContent = `couldn't load older rows: ${e.message}`;
     } finally {
+      logOlderInFlight = false;
       logMoreBtn.disabled = false;
     }
   }
+
+  /// Scrolling down IS the way back through history: nearing the bottom pulls
+  /// the next page in, and the button below the console is only the fallback
+  /// for when that's already been exhausted or has failed.
+  function nearLogBottom() {
+    return logConsole.scrollHeight - logConsole.scrollTop - logConsole.clientHeight < 240;
+  }
+
+  function maybeLoadOlderLogs() {
+    if (!logHasMore || logOlderInFlight || logLoadInFlight) return;
+    if (nearLogBottom()) loadOlderLogs();
+  }
+
+  // Keeps pulling pages until the console actually overflows, so a run of
+  // filtered-out rows can't leave a short, unscrollable view sitting on top of
+  // thousands more matching rows.
+  async function fillLogConsole() {
+    let guard = 0;
+    while (logHasMore && !logOlderInFlight && guard++ < 5 &&
+           logConsole.scrollHeight <= logConsole.clientHeight) {
+      await loadOlderLogs();
+    }
+  }
+
+  logConsole.addEventListener("scroll", maybeLoadOlderLogs, { passive: true });
 
   async function tickLogTail() {
     if (!logTailing || logRequestInFlight || document.hidden) return;
@@ -1757,7 +1791,18 @@
       if (!rows.length) return;
       // Server order is newest-first; prepending oldest-first leaves the newest
       // on top, where the tail belongs.
+      //
+      // Anchored: rows arriving above the viewport would otherwise push what
+      // the user is reading downwards, so mid-history scrollback drifted every
+      // two seconds. At the top there's nothing to anchor and the new rows
+      // should be visible, so it's left alone there.
+      const anchored = logConsole.scrollTop > 0;
+      const heightBefore = logConsole.scrollHeight;
       for (const row of [...rows].reverse()) logPrepend(row);
+      // Measured before the trim, which takes rows off the bottom: those don't
+      // move anything above them, and folding them into the delta would leave
+      // the anchor short by exactly their height.
+      if (anchored) logConsole.scrollTop += logConsole.scrollHeight - heightBefore;
       logTrim();
       logNote.textContent = "";
       updateLogSummary();
