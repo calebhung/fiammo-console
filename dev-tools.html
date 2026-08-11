@@ -206,6 +206,67 @@
   .check-detail { margin-top: 2px; color: var(--muted); }
   .check-detail.err { color: #B3261E; }
 
+  .prompt-cycler { gap: 8px; flex-wrap: wrap; }
+  .prompt-cycler button { padding: 8px 12px; }
+  .prompt-cycler input[type="date"] {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.85rem;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+  }
+
+  .prompt-card {
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+  }
+  .prompt-card .row { gap: 8px; flex-wrap: wrap; }
+  .prompt-text {
+    font-family: 'Lora', Georgia, serif;
+    font-size: 1.05rem;
+    margin: 12px 0 10px;
+    line-height: 1.45;
+  }
+  .prompt-opts {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .prompt-opts li {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem;
+    padding: 5px 9px;
+    border-radius: 6px;
+    background: var(--border);
+    color: var(--text);
+  }
+
+  .prompt-hit {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .prompt-hit:last-child { border-bottom: none; }
+  .prompt-hit .row { gap: 8px; flex-wrap: wrap; }
+
+  .prompt-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .prompt-edit .row { gap: 8px; flex-wrap: wrap; }
+  /* the page-wide 320px cap on text inputs truncates a prompt mid-sentence */
+  .prompt-edit input[type="text"] { max-width: none; }
+
+
   .report-row {
     padding: 10px 12px;
     border: 1px solid var(--border);
@@ -607,14 +668,25 @@
     <section class="tool card" data-tool="prompts">
       <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">daily prompts</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
-      <p class="hint">the prompt library the app and the daily push both read. editing text is safe and takes effect on the day that position comes up. adding appends to the end, which only affects days past the current wrap. positions are identities, not ordering to tidy — renumbering an existing row silently reschedules every day after it. switching one off falls through to the next active prompt for that day and leaves every other day alone.</p>
-      <div class="row">
-        <button id="prompts-refresh-btn">refresh</button>
-        <button id="prompts-add-btn">add prompt</button>
-        <span id="prompts-summary" class="stats"></span>
+      <p class="hint">what the app and the daily push will both show on a given day. step through dates to see what's coming — selection is pure arithmetic, so any date resolves, however far out. editing text is safe. <strong>pin to date</strong> takes over that one day and moves nothing else; adding to the rotation shifts every day including today, so it's for deliberate bulk changes only.</p>
+
+      <div class="row prompt-cycler">
+        <button id="prompt-prev" title="previous day">◀</button>
+        <input type="date" id="prompt-date">
+        <button id="prompt-next" title="next day">▶</button>
+        <button id="prompt-today">today</button>
+        <span id="prompt-daynum" class="stats"></span>
       </div>
-      <pre class="result" id="prompts-log"></pre>
+
+      <div id="prompt-day"></div>
+
+      <div class="row" style="margin-top:18px">
+        <input type="text" id="prompt-search" placeholder="search the library">
+        <button id="prompts-add-btn">add to rotation</button>
+      </div>
+      <p class="stats" id="prompts-summary"></p>
       <div id="prompts-list"></div>
+      <pre class="result" id="prompts-log"></pre>
       </div>
     </section>
 
@@ -1181,50 +1253,46 @@
   configRefreshBtn.addEventListener("click", refreshConfig);
 
   // --- Daily prompts ---
+  //
+  // A day cycler rather than a list: the library is 365 rows, and rendering all
+  // of them buried every other tool on the page. What you actually want to know
+  // is "what will people see on this date" — which is answerable for ANY date,
+  // because selection is arithmetic on the day number rather than a stored
+  // schedule. The full library is only ever reachable through search.
 
   const promptsList = document.getElementById("prompts-list");
   const promptsSummary = document.getElementById("prompts-summary");
   const promptsLog = document.getElementById("prompts-log");
-  const promptsRefreshBtn = document.getElementById("prompts-refresh-btn");
   const promptsAddBtn = document.getElementById("prompts-add-btn");
+  const promptDay = document.getElementById("prompt-day");
+  const promptDate = document.getElementById("prompt-date");
+  const promptDayNum = document.getElementById("prompt-daynum");
+  const promptSearch = document.getElementById("prompt-search");
 
-  function promptRow(row, livePosition) {
+  // Mirrors appDayNumber in supabase/functions/_shared/appday.ts: days since
+  // epoch counted in calendar dates, so it has to be built from UTC parts and
+  // not from a local-midnight Date, which drifts by one either side of the
+  // international date line.
+  const dayFromDate = (s) => { const [y,m,d] = s.split("-").map(Number);
+    return Math.floor(Date.UTC(y, m-1, d) / 86400000); };
+  const dateFromDay = (n) => new Date(n * 86400000).toISOString().slice(0,10);
+
+  let promptState = { day: null, today: null, prompts: [] };
+
+  function promptEditor(row, pinDay) {
     const wrap = document.createElement("div");
-    wrap.className = "row";
-    wrap.style.cssText = "flex-direction:column;align-items:stretch;gap:6px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)";
-
-    const head = document.createElement("div");
-    head.className = "row";
-    const pos = document.createElement("strong");
-    pos.textContent = "#" + row.position;
-    head.appendChild(pos);
-    if (row.position === livePosition) {
-      const live = document.createElement("span");
-      live.className = "badge";
-      live.textContent = "live today";
-      head.appendChild(live);
-    }
-    if (!row.active) {
-      const off = document.createElement("span");
-      off.className = "badge";
-      off.textContent = "inactive";
-      head.appendChild(off);
-    }
-    wrap.appendChild(head);
+    wrap.className = "prompt-edit";
 
     const text = document.createElement("input");
-    text.type = "text";
-    text.value = row.text;
-    text.style.width = "100%";
+    text.type = "text"; text.value = row.text; text.style.width = "100%";
     wrap.appendChild(text);
 
-    // Pipe-separated rather than comma: poll options are written in the app's
-    // own voice and several of them already contain commas.
+    // Pipe-separated rather than comma: the options are written in the app's own
+    // voice and plenty of them contain commas.
     const polls = document.createElement("input");
-    polls.type = "text";
-    polls.placeholder = "poll options separated by |  \u2014  leave empty for a write prompt";
+    polls.type = "text"; polls.style.width = "100%";
+    polls.placeholder = "poll options separated by |  —  empty means a writing prompt";
     polls.value = (row.poll_options || []).join(" | ");
-    polls.style.width = "100%";
     wrap.appendChild(polls);
 
     const controls = document.createElement("div");
@@ -1233,76 +1301,209 @@
     const activeLabel = document.createElement("label");
     activeLabel.style.cssText = "display:flex;align-items:center;gap:6px";
     const activeBox = document.createElement("input");
-    activeBox.type = "checkbox";
-    activeBox.checked = row.active;
+    activeBox.type = "checkbox"; activeBox.checked = row.active !== false;
     activeLabel.appendChild(activeBox);
     activeLabel.appendChild(document.createTextNode("active"));
     controls.appendChild(activeLabel);
 
-    const save = document.createElement("button");
-    save.textContent = "save";
-    save.addEventListener("click", async () => {
-      save.disabled = true;
-      save.textContent = "saving\u2026";
+    async function save(extra, btn, label) {
+      btn.disabled = true; const old = btn.textContent; btn.textContent = "saving…";
       try {
-        await callFunction("admin-prompts-set", {
+        await callFunction("admin-prompts-set", Object.assign({
           position: row.position,
           text: text.value,
-          poll_options: polls.value.split("|").map((x) => x.trim()).filter(Boolean),
+          poll_options: polls.value.split("|").map(x => x.trim()).filter(Boolean),
           active: activeBox.checked,
-        });
-        setResult(promptsLog, "saved #" + row.position, false);
-        await refreshPrompts();
+        }, extra || {}));
+        setResult(promptsLog, label + " #" + row.position, false);
+        await loadDay(promptState.day);
+        if (promptSearch.value.trim()) runSearch();
       } catch (e) {
         setResult(promptsLog, "#" + row.position + ": " + e.message, true);
-        save.disabled = false;
-        save.textContent = "save";
+        btn.disabled = false; btn.textContent = old;
       }
-    });
-    controls.appendChild(save);
-    wrap.appendChild(controls);
+    }
 
+    const saveBtn = document.createElement("button");
+    saveBtn.textContent = "save";
+    saveBtn.addEventListener("click", () => save(null, saveBtn, "saved"));
+    controls.appendChild(saveBtn);
+
+    // Only offered from the day card. Pinning is the safe way to change one
+    // day — a pinned row leaves the rotation's modulus alone, so no other date
+    // moves. Unpinning does move everything, hence the separate warning.
+    if (pinDay != null && row.scheduled_day == null) {
+      const pin = document.createElement("button");
+      pin.textContent = "pin to " + dateFromDay(pinDay);
+      pin.title = "takes over this date only; every other day stays where it is";
+      pin.addEventListener("click", () => save({ scheduled_day: pinDay }, pin, "pinned"));
+      controls.appendChild(pin);
+    }
+    if (row.scheduled_day != null) {
+      const unpin = document.createElement("button");
+      unpin.className = "danger";
+      unpin.textContent = "return to rotation";
+      unpin.addEventListener("click", () => {
+        if (!confirm("Return this prompt to the rotation?\n\nThat grows the rotation by one, which re-points EVERY day including today. Only do this as part of a deliberate bulk change.")) return;
+        save({ scheduled_day: null }, unpin, "unpinned");
+      });
+      controls.appendChild(unpin);
+    }
+
+    wrap.appendChild(controls);
     return wrap;
   }
 
-  function renderPrompts(data) {
-    const rows = data.prompts || [];
-    promptsList.innerHTML = "";
-    const activeCount = rows.filter((r) => r.active).length;
-    promptsSummary.textContent =
-      rows.length + " prompt" + (rows.length === 1 ? "" : "s") +
-      (activeCount === rows.length ? "" : " (" + activeCount + " active)") +
-      " \u00b7 day " + data.dayNumber;
-    for (const row of rows) promptsList.appendChild(promptRow(row, data.livePosition));
+  function renderDayCard(cell) {
+    promptDay.innerHTML = "";
+    if (!cell || cell.position == null) {
+      promptDay.innerHTML = '<p class="stats">nothing resolves for this day — the library may be empty or all inactive</p>';
+      return;
+    }
+    const card = document.createElement("div");
+    card.className = "prompt-card";
+
+    const head = document.createElement("div");
+    head.className = "row";
+    const src = document.createElement("span");
+    src.className = "badge" + (cell.source === "scheduled" ? " on" : "");
+    src.textContent = cell.source === "scheduled" ? "pinned to this date" : "rotation";
+    head.appendChild(src);
+    if (cell.isToday) {
+      const t = document.createElement("span");
+      t.className = "badge"; t.textContent = "live now";
+      head.appendChild(t);
+    }
+    if (cell.refreshed) {
+      const r = document.createElement("span");
+      r.className = "badge"; r.textContent = "refreshed today";
+      head.appendChild(r);
+    }
+    const pos = document.createElement("span");
+    pos.className = "stats"; pos.style.marginTop = "0";
+    pos.textContent = "#" + cell.position;
+    head.appendChild(pos);
+    card.appendChild(head);
+
+    const q = document.createElement("p");
+    q.className = "prompt-text";
+    q.textContent = cell.text;
+    card.appendChild(q);
+
+    if ((cell.poll_options || []).length) {
+      const ul = document.createElement("ul");
+      ul.className = "prompt-opts";
+      for (const o of cell.poll_options) {
+        const li = document.createElement("li"); li.textContent = o; ul.appendChild(li);
+      }
+      card.appendChild(ul);
+    } else {
+      const w = document.createElement("p");
+      w.className = "stats"; w.textContent = "writing prompt — no options";
+      card.appendChild(w);
+    }
+
+    const editBtn = document.createElement("button");
+    editBtn.textContent = "edit";
+    let open = false;
+    editBtn.addEventListener("click", () => {
+      if (open) { card.querySelector(".prompt-edit").remove(); editBtn.textContent = "edit"; open = false; return; }
+      const full = promptState.prompts.find(p => p.position === cell.position) || cell;
+      card.appendChild(promptEditor(full, promptState.day));
+      editBtn.textContent = "close"; open = true;
+    });
+    card.appendChild(editBtn);
+
+    promptDay.appendChild(card);
   }
 
-  async function refreshPrompts() {
-    promptsSummary.textContent = "loading\u2026";
+  async function loadDay(day) {
+    promptDayNum.textContent = "loading…";
     try {
-      renderPrompts(await callFunction("admin-prompts-list"));
+      const data = await callFunction("admin-prompts-list", { startDay: day, days: 1 });
+      promptState = { day: data.startDay, today: data.dayNumber, prompts: data.prompts || [] };
+      promptDate.value = dateFromDay(promptState.day);
+      const offset = promptState.day - promptState.today;
+      promptDayNum.textContent =
+        (offset === 0 ? "today" : offset > 0 ? "in " + offset + " day" + (offset === 1 ? "" : "s")
+                                             : Math.abs(offset) + " day" + (offset === -1 ? "" : "s") + " ago") +
+        " · " + data.ringCount + " in rotation" +
+        (data.scheduledCount ? " · " + data.scheduledCount + " pinned" : "") +
+        " · wraps in " + (data.ringCount - ((promptState.today % data.ringCount) + data.ringCount) % data.ringCount) + " days";
+      renderDayCard((data.calendar || [])[0]);
     } catch (e) {
-      promptsSummary.textContent = "error loading prompts";
+      promptDayNum.textContent = "error";
       setResult(promptsLog, e.message, true);
     }
   }
 
-  promptsRefreshBtn.addEventListener("click", refreshPrompts);
+  function runSearch() {
+    const q = promptSearch.value.trim().toLowerCase();
+    promptsList.innerHTML = "";
+    if (!q) { promptsSummary.textContent = ""; return; }
+    const hits = promptState.prompts.filter(p =>
+      p.text.toLowerCase().includes(q) ||
+      (p.poll_options || []).some(o => o.toLowerCase().includes(q)));
+    // Capped deliberately: this is a find-and-edit box, not a way to page the
+    // whole library back onto the screen.
+    const shown = hits.slice(0, 12);
+    promptsSummary.textContent = hits.length
+      ? hits.length + " match" + (hits.length === 1 ? "" : "es") + (hits.length > shown.length ? " (showing " + shown.length + ")" : "")
+      : "no matches";
+    for (const row of shown) {
+      const item = document.createElement("div");
+      item.className = "prompt-hit";
+      const head = document.createElement("div");
+      head.className = "row";
+      const pos = document.createElement("strong");
+      pos.textContent = "#" + row.position;
+      head.appendChild(pos);
+      if (row.scheduled_day != null) {
+        const b = document.createElement("span");
+        b.className = "badge on"; b.textContent = dateFromDay(row.scheduled_day);
+        head.appendChild(b);
+      }
+      if (!row.active) {
+        const b = document.createElement("span");
+        b.className = "badge"; b.textContent = "inactive";
+        head.appendChild(b);
+      }
+      const t = document.createElement("span");
+      t.className = "stats"; t.style.marginTop = "0";
+      t.textContent = row.text;
+      head.appendChild(t);
+      item.appendChild(head);
+      item.appendChild(promptEditor(row, null));
+      promptsList.appendChild(item);
+    }
+  }
+
+  document.getElementById("prompt-prev").addEventListener("click", () => loadDay(promptState.day - 1));
+  document.getElementById("prompt-next").addEventListener("click", () => loadDay(promptState.day + 1));
+  document.getElementById("prompt-today").addEventListener("click", () => loadDay(promptState.today));
+  promptDate.addEventListener("change", () => { if (promptDate.value) loadDay(dayFromDate(promptDate.value)); });
+
+  let searchTimer;
+  promptSearch.addEventListener("input", () => {
+    clearTimeout(searchTimer); searchTimer = setTimeout(runSearch, 150);
+  });
 
   promptsAddBtn.addEventListener("click", async () => {
+    if (!confirm("Add a prompt to the rotation?\n\nThe rotation's length is what picks the day's prompt, so growing it re-points EVERY day including today — the app can swap out the live prompt hours after the morning push announced the old one.\n\nTo change one day only, step to that date and use \"pin to date\" instead.")) return;
     const text = window.prompt("prompt text");
     if (!text || !text.trim()) return;
-    const pollsRaw = window.prompt("poll options separated by |  \u2014  leave empty for a write prompt") || "";
-    const poll_options = pollsRaw.split("|").map((x) => x.trim()).filter(Boolean);
+    const pollsRaw = window.prompt("poll options separated by |  —  leave empty for a writing prompt") || "";
+    const poll_options = pollsRaw.split("|").map(x => x.trim()).filter(Boolean);
     try {
-      // No position sent: admin-prompts-set appends after the highest existing
-      // one, which is the only safe way to add without moving other days.
       const created = await callFunction("admin-prompts-set", { text: text.trim(), poll_options });
       setResult(promptsLog, "added #" + created.position, false);
-      await refreshPrompts();
+      await loadDay(promptState.day);
     } catch (e) {
       setResult(promptsLog, e.message, true);
     }
   });
+
+  function refreshPrompts() { return loadDay(promptState.day); }
 
   // --- Reported posts ---
 
