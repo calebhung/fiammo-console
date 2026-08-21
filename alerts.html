@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Fiammo — Alerts</title>
+<link rel="icon" href="flame.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<style>
+  .wrap { max-width: 720px; }
+
+  header.site nav.tools-nav { display: flex; align-items: center; gap: 18px; }
+  header.site nav.tools-nav a {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  header.site nav.tools-nav a:hover,
+  header.site nav.tools-nav a.active { color: var(--accent-strong); }
+
+  #gate {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 16px; text-align: center; padding: 56px 32px;
+  }
+  #gate input {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.95rem; padding: 10px 14px; width: 100%; max-width: 280px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg); color: var(--text);
+  }
+  #gate .error {
+    color: #B3261E; font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.8rem; min-height: 1em;
+  }
+
+  #board { display: none; }
+
+  button {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.85rem; padding: 10px 18px; border-radius: 8px;
+    border: 1px solid var(--accent-strong); background: var(--accent);
+    color: #FFFDF8; cursor: pointer;
+  }
+  button:hover { background: var(--accent-strong); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.quiet {
+    background: transparent; color: var(--muted); border-color: var(--border);
+  }
+  button.quiet:hover { background: var(--border); color: var(--text); }
+  button.small { padding: 5px 10px; font-size: 0.72rem; }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  .mono {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.78rem; color: var(--muted);
+  }
+
+  /* --- headline --- */
+
+  #headline { margin-bottom: 22px; }
+  #headline h1 { margin: 0 0 6px; }
+  #headline h1.clear { color: var(--accent-strong); }
+  #headline h1.trouble { color: #B3261E; }
+  #headline .sub { margin: 0; }
+
+  #controls { margin-top: 18px; gap: 8px; }
+  .seg {
+    display: inline-flex; border: 1px solid var(--border);
+    border-radius: 999px; overflow: hidden; background: var(--bg);
+  }
+  .seg button {
+    border: none; border-radius: 0; background: transparent;
+    color: var(--muted); padding: 6px 13px; font-size: 0.72rem;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .seg button.on { background: var(--accent); color: #FFFDF8; }
+  .seg button:hover:not(.on) { background: var(--border); color: var(--text); }
+
+  /* --- alert rows --- */
+
+  #alerts { margin-top: 8px; }
+
+  .alert {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 10px;
+    background: var(--bg);
+    padding: 14px 16px;
+    margin-top: 10px;
+  }
+  .alert.critical { border-left-color: #B3261E; }
+  .alert.warning  { border-left-color: var(--gold); }
+  .alert.info     { border-left-color: var(--muted); }
+  .alert.acked    { opacity: 0.5; }
+
+  .alert-head {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  }
+  .alert-sev {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px;
+    background: var(--border); color: var(--muted); flex-shrink: 0;
+  }
+  .alert.critical .alert-sev { background: #B3261E; color: #FFFDF8; }
+  .alert.warning  .alert-sev { background: var(--gold); color: #FFFDF8; }
+
+  .alert-title {
+    font-family: 'Lora', Georgia, serif; font-weight: 600;
+    font-size: 1.02rem; color: var(--ink); flex: 1; min-width: 200px;
+  }
+  .alert-when {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.72rem; color: var(--muted); flex-shrink: 0;
+  }
+  .alert-detail { margin: 7px 0 0; font-size: 0.92rem; line-height: 1.5; }
+  .alert-foot { margin-top: 11px; gap: 8px; }
+  .alert-foot a {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.72rem; text-decoration: none;
+  }
+
+  .alert details { margin-top: 10px; }
+  .alert summary {
+    cursor: pointer;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.72rem; color: var(--muted);
+  }
+  .alert details pre {
+    margin: 8px 0 0; padding: 10px; border-radius: 8px;
+    background: var(--card); border: 1px solid var(--border);
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.7rem; white-space: pre-wrap; word-break: break-word;
+    max-height: 260px; overflow: auto;
+  }
+
+  /* --- health strip --- */
+
+  #health { margin-top: 26px; }
+  #health h2 { margin: 0 0 4px; font-size: 1rem; }
+  .health-grid { margin-top: 12px; }
+  .health-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 0; border-bottom: 1px solid var(--border);
+    font-family: 'JetBrains Mono', 'SF Mono', monospace; font-size: 0.76rem;
+  }
+  .health-row:last-child { border-bottom: none; }
+  .health-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted); flex-shrink: 0;
+  }
+  .health-dot.up { background: #2E7D32; }
+  .health-dot.down { background: #B3261E; }
+  .health-dot.odd { background: var(--gold); }
+  .health-name { flex: 1; color: var(--text); }
+  .health-note { color: var(--muted); }
+  .health-ms { color: var(--muted); width: 5.5ch; text-align: right; }
+
+  #acked-wrap { margin-top: 26px; }
+  #acked-wrap summary {
+    cursor: pointer; font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.76rem; color: var(--muted);
+  }
+
+  .notice {
+    margin-top: 16px; padding: 11px 13px; border-radius: 8px;
+    border: 1px solid var(--gold); background: var(--bg);
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.74rem; color: var(--accent-strong);
+  }
+  .notice.bad { border-color: #B3261E; color: #B3261E; }
+
+  .empty {
+    margin-top: 16px; padding: 26px; text-align: center;
+    border: 1px dashed var(--border); border-radius: 10px; color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <a class="wordmark" href="/">
+      <img class="mark" src="flame.svg" alt="">
+      <span class="word"><span class="initial">f</span><span class="i">i</span>ammo</span>
+    </a>
+    <nav class="tools-nav">
+      <a href="dev-tools.html">dev tools</a>
+      <a href="alerts.html" class="active">alerts</a>
+    </nav>
+  </header>
+
+  <section id="gate" class="card">
+    <h1 style="margin:0">alerts</h1>
+    <p style="margin:0; color: var(--muted)">enter the admin password to continue</p>
+    <input type="password" id="gate-password" placeholder="password" autocomplete="off">
+    <button id="gate-submit">enter</button>
+    <div class="error" id="gate-error"></div>
+  </section>
+
+  <main id="board">
+    <section id="headline">
+      <h1 id="headline-title">checking…</h1>
+      <p class="sub mono" id="headline-sub">reading the activity log, reports, diagnostics history, and live service health</p>
+      <div class="row" id="controls">
+        <div class="seg" id="window-seg">
+          <button data-window="1h">1h</button>
+          <button data-window="24h" class="on">24h</button>
+          <button data-window="7d">7d</button>
+        </div>
+        <button id="refresh-btn" class="quiet small">refresh</button>
+        <button id="probe-btn" class="quiet small">run health check</button>
+        <button id="ack-all-btn" class="quiet small">acknowledge all</button>
+        <span class="mono" id="last-checked"></span>
+      </div>
+      <div id="notices"></div>
+    </section>
+
+    <section id="alerts"></section>
+
+    <details id="acked-wrap">
+      <summary id="acked-summary">acknowledged (0)</summary>
+      <div id="acked"></div>
+    </details>
+
+    <section id="health" class="card">
+      <h2>service health</h2>
+      <p class="mono" style="margin:0">
+        a POST that every one of these rejects before it touches anything, so it proves the
+        function boots and its handler runs without changing a thing. it cannot see past the
+        auth check — a working function calling a broken vendor still shows up above, from the log,
+        not here.
+      </p>
+      <div class="health-grid" id="health-grid">
+        <p class="mono" style="margin:0">not probed yet — press "run health check"</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site">
+    <span>fiammo — alerts</span>
+    <a href="dev-tools.html">dev tools →</a>
+  </footer>
+</div>
+
+<script src="alerts.js"></script>
+<script>
+  // Same origin and the same sessionStorage key as dev-tools.html, so walking
+  // between the two pages doesn't ask for the password twice.
+  const SUPABASE_URL = "https://syqqxogkqmuojchbglle.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
+  const SESSION_KEY = "fiammo_devtools_pw";
+  const DEVTOOLS_SESSION_ID = crypto.randomUUID();
+
+  const gate = document.getElementById("gate");
+  const board = document.getElementById("board");
+  const gatePassword = document.getElementById("gate-password");
+  const gateSubmit = document.getElementById("gate-submit");
+  const gateError = document.getElementById("gate-error");
+
+  function getPassword() { return sessionStorage.getItem(SESSION_KEY) || ""; }
+
+  // Mirrors dev-tools.html's callFunction, minus the self-logging: this page
+  // polls on a timer, and a page whose job is to notice noise must not be a
+  // source of it. admin-logs-list is unlogged by design on the server side
+  // anyway; the other two reads here would otherwise append a row per minute.
+  async function callFunction(name, body) {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "apikey": SUPABASE_ANON_KEY,
+        "x-admin-password": getPassword(),
+      },
+      body: JSON.stringify({ ...(body || {}), _requestId: crypto.randomUUID(), _sessionId: DEVTOOLS_SESSION_ID }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      sessionStorage.removeItem(SESSION_KEY);
+      gate.style.display = "flex";
+      board.style.display = "none";
+      gateError.textContent = "session expired — re-enter the password";
+      throw new Error("unauthorized");
+    }
+    if (!res.ok) throw new Error(data.error || `request failed (${res.status})`);
+    return data;
+  }
+
+  async function tryPassword(pw) {
+    if (!pw) return;
+    gateSubmit.disabled = true;
+    gateError.textContent = "";
+    sessionStorage.setItem(SESSION_KEY, pw);
+    try {
+      await callFunction("admin-check-password");
+      gate.style.display = "none";
+      board.style.display = "block";
+      start();
+    } catch (e) {
+      sessionStorage.removeItem(SESSION_KEY);
+      gateError.textContent = "incorrect password";
+    } finally {
+      gateSubmit.disabled = false;
+    }
+  }
+
+  gateSubmit.addEventListener("click", () => tryPassword(gatePassword.value));
+  gatePassword.addEventListener("keydown", e => { if (e.key === "Enter") tryPassword(gatePassword.value); });
+  if (getPassword()) tryPassword(getPassword());
+
+  /* ── rendering ──────────────────────────────────────────────────────────── */
+
+  const alertsEl = document.getElementById("alerts");
+  const ackedEl = document.getElementById("acked");
+  const ackedSummary = document.getElementById("acked-summary");
+  const headlineTitle = document.getElementById("headline-title");
+  const headlineSub = document.getElementById("headline-sub");
+  const lastChecked = document.getElementById("last-checked");
+  const noticesEl = document.getElementById("notices");
+  const healthGrid = document.getElementById("health-grid");
+  const refreshBtn = document.getElementById("refresh-btn");
+  const probeBtn = document.getElementById("probe-btn");
+  const ackAllBtn = document.getElementById("ack-all-btn");
+
+  const REFRESH_MS = 60000;
+  let currentWindow = "24h";
+  let lastResult = null;
+  let refreshTimer = null;
+  let inFlight = false;
+  // Probe results survive a plain refresh so the health panel doesn't blank
+  // itself every minute; only "run health check" issues new requests.
+  let lastHealth = [];
+
+  function escapeHtml(s) {
+    const d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+  }
+
+  function ago(iso) {
+    if (!iso) return "never";
+    const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
+    if (s < 60) return `${s}s ago`;
+    if (s < 3600) return `${Math.round(s / 60)}m ago`;
+    if (s < 86400) return `${Math.round(s / 3600)}h ago`;
+    return `${Math.round(s / 86400)}d ago`;
+  }
+
+  function sampleText(samples) {
+    return samples.map(r => {
+      const t = new Date(r.created_at).toLocaleTimeString();
+      const bits = [t, (r.level || "").toUpperCase(), r.source, r.event, r.status, r.message]
+        .filter(v => v !== null && v !== undefined && v !== "");
+      return bits.join("  ");
+    }).join("\n");
+  }
+
+  function alertNode(alert, acked) {
+    const el = document.createElement("div");
+    el.className = `alert ${alert.severity}${acked ? " acked" : ""}`;
+
+    const head = document.createElement("div");
+    head.className = "alert-head";
+    head.innerHTML =
+      `<span class="alert-sev">${escapeHtml(alert.severity)}</span>` +
+      `<span class="alert-title">${escapeHtml(alert.title)}</span>` +
+      `<span class="alert-when">${escapeHtml(ago(alert.latestAt))}</span>`;
+    el.appendChild(head);
+
+    const detail = document.createElement("p");
+    detail.className = "alert-detail";
+    detail.textContent = alert.detail;
+    el.appendChild(detail);
+
+    if (alert.samples && alert.samples.length) {
+      const det = document.createElement("details");
+      const sum = document.createElement("summary");
+      sum.textContent = `${alert.count} occurrence${alert.count === 1 ? "" : "s"} — show the rows`;
+      det.appendChild(sum);
+      const pre = document.createElement("pre");
+      pre.textContent = sampleText(alert.samples);
+      det.appendChild(pre);
+      el.appendChild(det);
+    }
+
+    const foot = document.createElement("div");
+    foot.className = "row alert-foot";
+    const btn = document.createElement("button");
+    btn.className = "quiet small";
+    btn.textContent = acked ? "unacknowledge" : "acknowledge";
+    btn.addEventListener("click", () => {
+      if (acked) FiammoAlerts.unack(alert); else FiammoAlerts.ack(alert);
+      render(lastResult);
+    });
+    foot.appendChild(btn);
+    if (alert.action) {
+      const a = document.createElement("a");
+      a.href = alert.action.href;
+      a.textContent = `${alert.action.label} →`;
+      foot.appendChild(a);
+    }
+    el.appendChild(foot);
+    return el;
+  }
+
+  function renderHealth(results) {
+    if (!results || !results.length) return;
+    healthGrid.innerHTML = "";
+    for (const r of results) {
+      const row = document.createElement("div");
+      row.className = "health-row";
+      const state = r.down ? "down" : r.unexpected ? "odd" : "up";
+      row.innerHTML =
+        `<span class="health-dot ${state}"></span>` +
+        `<span class="health-name">${escapeHtml(r.target.name)}</span>` +
+        `<span class="health-note">${escapeHtml(r.status === null ? "unreachable" : r.status)}</span>` +
+        `<span class="health-ms">${r.ms}ms</span>`;
+      healthGrid.appendChild(row);
+    }
+  }
+
+  function render(result) {
+    if (!result) return;
+    lastResult = result;
+
+    const acks = FiammoAlerts.readAcks();
+    const live = [];
+    const acked = [];
+    for (const a of result.alerts) {
+      (FiammoAlerts.isAcked(a, acks) ? acked : live).push(a);
+    }
+
+    const criticals = live.filter(a => a.severity === "critical").length;
+
+    // Three distinct states, and conflating any two of them makes the headline
+    // lie. "All clear" is a claim about the world; it is only allowed when
+    // every source answered and none of them found anything. Acknowledged
+    // alerts are still true — an acked outage is an outage you have seen, not
+    // one that stopped — so they get "nothing new", never "all clear". And a
+    // source that failed to answer means we simply do not know.
+    if (live.length > 0) {
+      headlineTitle.textContent = `${live.length} thing${live.length === 1 ? "" : "s"} need${live.length === 1 ? "s" : ""} attention`;
+      headlineTitle.className = "trouble";
+      headlineSub.textContent = `${criticals} critical, ${live.length - criticals} lower priority — last ${currentWindow}`;
+    } else if (result.failures.length) {
+      headlineTitle.textContent = "checked what it could";
+      headlineTitle.className = "trouble";
+      headlineSub.textContent = `${result.failures.length} source${result.failures.length === 1 ? "" : "s"} unreachable — nothing found in the rest`;
+    } else if (acked.length) {
+      const stillCritical = acked.filter(a => a.severity === "critical").length;
+      headlineTitle.textContent = "nothing new";
+      headlineTitle.className = "clear";
+      headlineSub.textContent = `${acked.length} acknowledged and still open` +
+        (stillCritical ? `, ${stillCritical} of them critical` : "") +
+        ` — last ${currentWindow}`;
+    } else {
+      headlineTitle.textContent = "all clear";
+      headlineTitle.className = "clear";
+      headlineSub.textContent = `nothing failing in the last ${currentWindow}, no unreviewed reports, diagnostics green`;
+    }
+
+    lastChecked.textContent = `checked ${result.checkedAt.toLocaleTimeString()}`;
+
+    noticesEl.innerHTML = "";
+    for (const f of result.failures) {
+      const n = document.createElement("div");
+      n.className = "notice bad";
+      n.textContent = `couldn't check ${f.source}: ${f.error} — treat "all clear" as incomplete`;
+      noticesEl.appendChild(n);
+    }
+    if (result.truncated) {
+      const n = document.createElement("div");
+      n.className = "notice";
+      n.textContent = "the log page filled up, so counts below are floors, not totals — narrow the window for exact numbers";
+      noticesEl.appendChild(n);
+    }
+
+    alertsEl.innerHTML = "";
+    if (!live.length) {
+      const e = document.createElement("div");
+      e.className = "empty";
+      e.textContent = acked.length
+        ? "nothing new — everything currently detected has been acknowledged"
+        : "nothing to report";
+      alertsEl.appendChild(e);
+    } else {
+      live.forEach(a => alertsEl.appendChild(alertNode(a, false)));
+    }
+
+    ackedSummary.textContent = `acknowledged (${acked.length})`;
+    ackedEl.innerHTML = "";
+    acked.forEach(a => ackedEl.appendChild(alertNode(a, true)));
+
+    renderHealth(result.health && result.health.length ? result.health : lastHealth);
+  }
+
+  async function refresh(withProbe) {
+    if (inFlight) return;
+    inFlight = true;
+    refreshBtn.disabled = true;
+    probeBtn.disabled = true;
+    try {
+      const result = await FiammoAlerts.collect({
+        call: callFunction,
+        cfg: { supabaseUrl: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY, password: getPassword() },
+        windowMs: FiammoAlerts.WINDOWS[currentWindow],
+        probe: !!withProbe,
+      });
+      if (withProbe && result.health.length) lastHealth = result.health;
+      // A refresh that skipped the probes must not drop the health alerts the
+      // last probe raised — those are still true until something re-probes.
+      if (!withProbe && lastHealth.length) {
+        const stale = lastResult ? lastResult.alerts.filter(a => a.source === "health") : [];
+        result.alerts.push(...stale);
+        result.health = lastHealth;
+      }
+      render(result);
+    } catch (e) {
+      headlineTitle.textContent = "couldn't check";
+      headlineTitle.className = "trouble";
+      headlineSub.textContent = String(e.message || e);
+    } finally {
+      inFlight = false;
+      refreshBtn.disabled = false;
+      probeBtn.disabled = false;
+    }
+  }
+
+  document.getElementById("window-seg").addEventListener("click", e => {
+    const btn = e.target.closest("button[data-window]");
+    if (!btn) return;
+    currentWindow = btn.dataset.window;
+    [...e.currentTarget.querySelectorAll("button")].forEach(b => b.classList.toggle("on", b === btn));
+    refresh(false);
+  });
+
+  refreshBtn.addEventListener("click", () => refresh(false));
+  probeBtn.addEventListener("click", () => refresh(true));
+  ackAllBtn.addEventListener("click", () => {
+    if (!lastResult) return;
+    FiammoAlerts.ackAll(lastResult.alerts);
+    render(lastResult);
+  });
+
+  function start() {
+    // Probes run on the first load — arriving at this page is exactly when you
+    // want to know whether anything is down — then only when asked, because
+    // each one is a real request against a real function.
+    refresh(true);
+    if (refreshTimer) clearInterval(refreshTimer);
+    refreshTimer = setInterval(() => {
+      if (document.visibilityState === "visible") refresh(false);
+    }, REFRESH_MS);
+  }
+</script>
+</body>
+</html>

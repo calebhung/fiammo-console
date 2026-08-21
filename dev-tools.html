@@ -38,6 +38,28 @@
 
   #tools { display: none; }
 
+  header.site nav.tools-nav { display: flex; align-items: center; gap: 18px; }
+  header.site nav.tools-nav a {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  header.site nav.tools-nav a:hover,
+  header.site nav.tools-nav a.active { color: var(--accent-strong); }
+  #alerts-badge {
+    display: none;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: #B3261E;
+    color: #FFFDF8;
+    letter-spacing: 0;
+  }
+  #alerts-badge.show { display: inline-block; }
+
   .tool {
     margin-bottom: 24px;
   }
@@ -512,7 +534,10 @@
       <img class="mark" src="flame.svg" alt="">
       <span class="word"><span class="initial">f</span><span class="i">i</span>ammo</span>
     </a>
-    <span class="tagline">dev tools</span>
+    <nav class="tools-nav">
+      <a href="dev-tools.html" class="active">dev tools</a>
+      <a href="alerts.html">alerts<span id="alerts-badge"></span></a>
+    </nav>
   </header>
 
   <section id="gate" class="card">
@@ -690,7 +715,7 @@
       </div>
     </section>
 
-    <section class="tool card" data-tool="reports">
+    <section class="tool card" id="reports" data-tool="reports">
       <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">reported posts</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
       <p class="hint">posts reported from the app, newest first. reporting hides the post for that reporter only — it's still live for everyone else unless you delete it or delete the author above. content shown is the live post, or a snapshot taken at report time if it's since been deleted.</p>
@@ -702,7 +727,7 @@
       </div>
     </section>
 
-    <section class="tool card" data-tool="diagnostics">
+    <section class="tool card" id="diagnostics" data-tool="diagnostics">
       <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">run full diagnostics</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
       <p class="hint">runs an end-to-end sweep of every backend-dependent feature (auth, circles, posts, echoes, DMs, blocking & reporting, notifications, push, schema drift) against two persistent diagnostic accounts, then cleans up everything it created. no real SMS/push reaches a device — pipelines are verified without contacting real phones. takes roughly 30–60s.</p>
@@ -724,6 +749,7 @@
   </footer>
 </div>
 
+<script src="alerts.js"></script>
 <script>
   const SUPABASE_URL = "https://syqqxogkqmuojchbglle.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
@@ -751,7 +777,39 @@
     refreshDiagnosticsHistory();
     refreshReports();
     startActivityLog();
+    revealHashTarget();
+    refreshAlertBadge();
   }
+
+  // Counts what alerts.html would show, using the same detectors, so the two
+  // can't disagree. Probes are off: they are real requests against real
+  // functions, and merely opening dev tools shouldn't fire them — the alerts
+  // page runs them when you actually go there to look.
+  const ALERT_BADGE_MS = 60000;
+
+  async function refreshAlertBadge() {
+    const badge = document.getElementById("alerts-badge");
+    if (!badge || !window.FiammoAlerts) return;
+    try {
+      const result = await FiammoAlerts.collect({
+        call: (name, body) => callFunction(name, body, { quiet: true }),
+        windowMs: FiammoAlerts.WINDOWS["24h"],
+        probe: false,
+      });
+      const acks = FiammoAlerts.readAcks();
+      const unacked = result.alerts.filter(a => !FiammoAlerts.isAcked(a, acks));
+      badge.textContent = unacked.length;
+      badge.classList.toggle("show", unacked.length > 0);
+    } catch (e) {
+      // A badge that can't be computed says nothing rather than zero — zero
+      // reads as "all clear", which is the one thing it must never imply.
+      badge.classList.remove("show");
+    }
+  }
+
+  setInterval(() => {
+    if (document.visibilityState === "visible" && tools.style.display !== "none") refreshAlertBadge();
+  }, ALERT_BADGE_MS);
 
   // --- Collapsible tool sections ---
   // Persisted in localStorage (unlike the admin password above, which is
@@ -852,6 +910,19 @@
   initCollapsibleTools();
   initReorderableTools();
 
+  // Arriving from an alert's "→ reported posts" link should show the section,
+  // not the collapsed header the last visit left behind.
+  function revealHashTarget() {
+    const id = location.hash.slice(1);
+    if (!id) return;
+    const section = document.getElementById(id);
+    if (!section || !section.classList.contains("tool")) return;
+    section.classList.remove("collapsed");
+    setToolCollapsed(section.dataset.tool, false);
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  window.addEventListener("hashchange", revealHashTarget);
+
   function getPassword() {
     return sessionStorage.getItem(SESSION_KEY) || "";
   }
@@ -861,7 +932,11 @@
   // can be read and bury the actual activity under "someone looked at the logs".
   const LOG_SILENT_FUNCTIONS = new Set(["admin-logs-list"]);
 
-  async function callFunction(name, body) {
+  // opts.quiet suppresses the activity-log row this call would otherwise
+  // write. Used only by the alert badge below, which polls three read-only
+  // endpoints in the background: a page that logs its own background polling
+  // buries the activity it exists to show.
+  async function callFunction(name, body, opts) {
     // Sent as headers so the edge side can stamp the same ids on its own row
     // (see supabase/functions/_shared/logging.ts) — that's what lets a click
     // here and the invocation it caused be lined up in the log.
@@ -886,7 +961,7 @@
       body: JSON.stringify({ ...(body || {}), _requestId: requestId, _sessionId: DEVTOOLS_SESSION_ID }),
     });
 
-    if (!LOG_SILENT_FUNCTIONS.has(name)) {
+    if (!LOG_SILENT_FUNCTIONS.has(name) && !(opts && opts.quiet)) {
       // Not awaited: the log write must never sit between a click and its
       // result. logDevtoolsEvent swallows its own failures.
       logDevtoolsEvent({
