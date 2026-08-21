@@ -233,7 +233,9 @@
         a POST that every one of these rejects before it touches anything, so it proves the
         function boots and its handler runs without changing a thing. it cannot see past the
         auth check — a working function calling a broken vendor still shows up above, from the log,
-        not here.
+        not here. a request that never comes back reads as unreachable, not down: from a browser a
+        blocked preflight and a dead isolate are the same event. scheduled functions aren't probed
+        at all — they're judged on whether they actually ran, above.
       </p>
       <div class="health-grid" id="health-grid">
         <p class="mono" style="margin:0">not probed yet — press "run health check"</p>

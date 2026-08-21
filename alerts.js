@@ -367,7 +367,16 @@
    * gate, and their service-role client, and it is the one endpoint in the set
    * that exists purely to be called with no effect.
    *
-   * What this cannot see: anything downstream of the auth check. ai-themes
+   * Also excluded: send-daily-notifications. pg_cron reaches it server-side with
+ * an x-cron-secret header, so it was never given OPTIONS handling or CORS
+ * headers — which means a browser's preflight is answered with a bare 401 and
+ * the real request is never sent. It is unreachable from this page by
+ * construction and always will be, and probing it only ever produced a false
+ * "down" for a function that answers 401 correctly to anything that can
+ * actually reach it. Scheduled functions are judged on whether they ran, not on
+ * whether they answer the door: see CRON_TARGETS.
+ *
+ * What this cannot see: anything downstream of the auth check. ai-themes
    * answering the probe only proves ai-themes is up — the Groq call is past the
    * point a probe reaches, and a retired model still surfaces as 5xx rows in
    * the log detector above, not here.
@@ -376,7 +385,6 @@
     { name: "ai-themes", expect: [401], note: "constellation themes and insight" },
     { name: "send-push-notification", expect: [401], note: "one-off push delivery" },
     { name: "notify-friends-on-post", expect: [400], note: "push fan-out on a new post" },
-    { name: "send-daily-notifications", expect: [401], note: "the daily prompt cron" },
     { name: "admin-check-password", expect: [200, 401], note: "dev tools + service role", withPassword: true },
   ];
 
@@ -406,9 +414,20 @@
         unexpected: !target.expect.includes(res.status) && res.status < 500,
       };
     } catch (e) {
-      // Network-level failure: DNS, TLS, CORS, or the function failing to boot
-      // at all. Indistinguishable from here, and all of them mean unreachable.
-      return { target, status: null, ms: Math.round(performance.now() - started), down: true, error: String(e.message || e) };
+      // DNS, TLS, a blocked preflight, a dropped wifi connection, or the
+      // function genuinely failing to boot — from inside a browser these are
+      // one indistinguishable failure, and the browser will not say which.
+      // "Unreachable" is therefore the honest verdict and "down" is not:
+      // claiming an outage on the strength of a request that never left the
+      // laptop is how a monitor teaches you to ignore it.
+      return {
+        target,
+        status: null,
+        ms: Math.round(performance.now() - started),
+        down: false,
+        unreachable: true,
+        error: String(e.message || e),
+      };
     }
   }
 
@@ -417,22 +436,150 @@
   }
 
   function detectFromHealth(results) {
-    return results.filter(r => r.down).map(r => ({
-      key: `health:${r.target.name}`,
-      severity: "critical",
-      source: "health",
-      title: `${r.target.name} is down`,
-      detail: r.status
-        ? `The health probe got ${r.status} where it expected ${r.target.expect.join(" or ")}. This is ${r.target.note}.`
-        : `The health probe couldn't reach it at all (${r.error}). This is ${r.target.note}.`,
-      count: 1,
-      latestAt: new Date().toISOString(),
-      // Not time-based: acking a service that is down should keep it quiet
-      // while it stays down, and speak up again if it recovers and re-breaks.
-      fingerprint: `down:${r.status || "unreachable"}`,
-      samples: [],
-      action: null,
-    }));
+    if (!results.length) return [];
+
+    // Every target failing at once is one fact about this browser, not five
+    // facts about the backend. Five "X is unreachable" rows when the wifi drops
+    // is precisely the noise that makes a person stop reading the page.
+    const unreachable = results.filter(r => r.unreachable);
+    if (unreachable.length === results.length) {
+      return [{
+        key: "health:all-unreachable",
+        severity: "warning",
+        source: "health",
+        title: "couldn't reach any function",
+        detail: "Every health probe failed to get a response. With all of them failing together this is almost certainly this browser's connection rather than the backend — the activity log above still shows what the app and the server were doing.",
+        count: results.length,
+        latestAt: new Date().toISOString(),
+        fingerprint: "all-unreachable",
+        samples: [],
+        action: null,
+      }];
+    }
+
+    const alerts = [];
+
+    // A 5xx is the one case where the server actually answered and the answer
+    // was "I am broken". That is the only thing worth calling down.
+    for (const r of results.filter(x => x.down)) {
+      alerts.push({
+        key: `health:${r.target.name}`,
+        severity: "critical",
+        source: "health",
+        title: `${r.target.name} is down`,
+        detail: `The health probe got ${r.status} where it expected ${r.target.expect.join(" or ")}. This is ${r.target.note}.`,
+        count: 1,
+        // Not time-based: acking a service that is down keeps it quiet while it
+        // stays down, and it speaks up again if it recovers and re-breaks.
+        fingerprint: `down:${r.status}`,
+        latestAt: new Date().toISOString(),
+        samples: [],
+        action: null,
+      });
+    }
+
+    for (const r of unreachable) {
+      alerts.push({
+        key: `health:unreachable:${r.target.name}`,
+        severity: "warning",
+        source: "health",
+        title: `couldn't reach ${r.target.name}`,
+        detail: `The request failed before any response came back (${r.error}), while other probes got through. That points at this one function — but a blocked preflight and a dead isolate look identical from a browser, so this is a prompt to check, not a confirmed outage. This is ${r.target.note}.`,
+        count: 1,
+        fingerprint: `unreachable:${r.error}`,
+        latestAt: new Date().toISOString(),
+        samples: [],
+        action: null,
+      });
+    }
+
+    return alerts;
+  }
+
+  /* ── Scheduled functions ─────────────────────────────────────────────────
+   *
+   * A cron endpoint's health is not "does it answer" — it is "did it run, and
+   * did it finish". Those are different questions, and only the log can answer
+   * the second. This also covers the failure a liveness probe structurally
+   * cannot see: a function that is up, reachable, and simply never being
+   * invoked because its schedule was disabled.
+   *
+   * maxGapHours is two missed cycles rather than one, so a single late or
+   * retried run doesn't raise an alert.
+   */
+  const CRON_TARGETS = [
+    {
+      name: "send-daily-notifications",
+      maxGapHours: 26,
+      note: "the daily prompt push (14:00 UTC) and the write reminder (01:00 UTC)",
+    },
+  ];
+
+  async function detectFromCron(call) {
+    const alerts = [];
+
+    for (const t of CRON_TARGETS) {
+      // Searched rather than level-filtered: a healthy run logs at info, so the
+      // warn+error page the other detectors read cannot see one by definition.
+      const data = await call("admin-logs-list", { search: t.name, limit: 25 });
+      const runs = (data.logs || []).filter(r =>
+        r.source === "edge" && !isProbeRow(r) && typeof r.status === "number"
+      );
+
+      if (!runs.length) {
+        alerts.push({
+          key: `cron-missing:${t.name}`,
+          severity: "warning",
+          source: "cron",
+          title: `no record of ${t.name} running`,
+          detail: `Nothing in the retained log shows it being invoked at all. This is ${t.note}.`,
+          count: 0, latestAt: null, fingerprint: "no-runs", samples: [], action: null,
+        });
+        continue;
+      }
+
+      const lastFailure = runs.find(r => r.status >= 500);
+      const lastSuccess = runs.find(r => r.status >= 200 && r.status < 300);
+
+      if (lastFailure && (!lastSuccess || new Date(lastFailure.created_at) > new Date(lastSuccess.created_at))) {
+        alerts.push({
+          key: `cron-failed:${t.name}`,
+          severity: "critical",
+          source: "cron",
+          title: `${t.name} failed on its last run`,
+          detail: `It returned ${lastFailure.status} and hasn't succeeded since. This is ${t.note}.`,
+          count: 1,
+          latestAt: lastFailure.created_at,
+          fingerprint: String(lastFailure.id),
+          samples: runs.slice(0, 6),
+          action: { label: "activity log", href: "dev-tools.html#activity-log-card" },
+        });
+        continue;
+      }
+
+      const gapHours = lastSuccess
+        ? (Date.now() - new Date(lastSuccess.created_at).getTime()) / 3600000
+        : Infinity;
+
+      if (gapHours > t.maxGapHours) {
+        alerts.push({
+          key: `cron-stale:${t.name}`,
+          severity: "critical",
+          source: "cron",
+          title: `${t.name} hasn't run`,
+          detail: lastSuccess
+            ? `Last successful run was ${Math.round(gapHours)}h ago; it should run at least every ${t.maxGapHours}h. Check that its pg_cron job is still active. This is ${t.note}.`
+            : `No successful run in the retained log. This is ${t.note}.`,
+          count: 1,
+          latestAt: lastSuccess ? lastSuccess.created_at : null,
+          fingerprint: lastSuccess ? String(lastSuccess.id) : "never",
+          samples: runs.slice(0, 6),
+          action: { label: "activity log", href: "dev-tools.html#activity-log-card" },
+        });
+      }
+    }
+
+    return alerts;
   }
 
   /* ── Collection ─────────────────────────────────────────────────────────── */
@@ -482,6 +629,10 @@
         const data = await call("admin-diagnostics-history");
         alerts.push(...detectFromDiagnostics(data.runs || []));
       })().catch(e => failures.push({ source: "diagnostics", error: String(e.message || e) })),
+
+      (async () => {
+        alerts.push(...await detectFromCron(call));
+      })().catch(e => failures.push({ source: "scheduled functions", error: String(e.message || e) })),
     ];
 
     let health = [];
@@ -508,6 +659,7 @@
   window.FiammoAlerts = {
     WINDOWS,
     HEALTH_TARGETS,
+    CRON_TARGETS,
     collect,
     ack, unack, ackAll, isAcked, readAcks,
   };
