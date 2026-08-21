@@ -7,6 +7,21 @@
  * next to a page that lists 5 is worse than no badge at all.
  *
  * No build step in this repo, so this attaches to window rather than exporting.
+ *
+ * ── BUMP THE ?v= IN BOTH HTML FILES WHEN YOU CHANGE THIS FILE ──
+ *
+ * The host serves HTML with max-age=0 but every other asset with max-age=14400.
+ * So a deploy updates alerts.html and dev-tools.html at once while leaving this
+ * file four hours stale in every browser that had already loaded it — a page
+ * running detection logic that is not the logic that was deployed. That is not
+ * theoretical: it kept a fixed false positive on screen after the fix was live.
+ *
+ * A `_headers` rule would be the tidier fix and this host ignored it, so the
+ * cache key is versioned in the URL instead: alerts.js?v=N. Bump N here and in
+ * both script tags together.
+ *
+ *   v2 — unreachable/down split, CRON_TARGETS
+ *   v1 — initial
  */
 (function () {
   "use strict";
