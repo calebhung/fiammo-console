@@ -1,0 +1,21 @@
+# Cloudflare Pages header rules.
+#
+# Pages serves HTML with `max-age=0, must-revalidate` but every other asset with
+# `max-age=14400` — four hours. That default is right for a marketing site and
+# wrong for the console: dev-tools.html and alerts.html update the moment a
+# deploy lands, while the script that holds their actual logic does not, so for
+# up to four hours a freshly-deployed page runs against stale detectors. That is
+# how a fixed false-positive kept being reported after the fix shipped.
+#
+# max-age=0 does not mean "don't cache" — the browser still stores the file and
+# still gets a 304 on almost every load. It only means it must ask first, which
+# is one conditional request against a 20KB file, and buys the guarantee that
+# what the page is running is what was deployed.
+
+/alerts.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Same reasoning, milder stakes: a new page against four-hour-old styling looks
+# broken in a way that reads as a bug in the page.
+/style.css
+  Cache-Control: public, max-age=0, must-revalidate
