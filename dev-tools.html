@@ -155,6 +155,16 @@
     font-family: 'JetBrains Mono', 'SF Mono', monospace;
     font-size: 0.82rem;
   }
+  .choice-row {
+    display: flex;
+    gap: 14px;
+    margin: 10px 0 4px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 0.82rem;
+  }
+  .choice-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .choice-row input[type="radio"] { accent-color: #B3261E; width: 14px; height: 14px; }
+  .choice-row .meta { opacity: 0.55; }
   .confirm-row input[type="checkbox"] {
     margin-top: 2px;
     width: 16px;
@@ -645,6 +655,11 @@
       <input type="text" id="broadcast-title" placeholder="title" maxlength="120">
       <textarea id="broadcast-body" placeholder="body" rows="3" maxlength="500"></textarea>
       <p class="stats">preview: <span id="broadcast-preview">—</span></p>
+      <div class="choice-row" id="broadcast-env">
+        <label><input type="radio" name="broadcast-env" value="sandbox"> sandbox <span class="meta">(Xcode builds)</span></label>
+        <label><input type="radio" name="broadcast-env" value="production"> live <span class="meta">(TestFlight, App Store)</span></label>
+        <label><input type="radio" name="broadcast-env" value="all" checked> both</label>
+      </div>
       <label class="confirm-row">
         <input type="checkbox" id="broadcast-confirm-checkbox">
         <span>I've reviewed exactly what will be sent, to every user, right now.</span>
@@ -1129,6 +1144,11 @@
     broadcastCheckbox.checked = false;
     broadcastSendBtn.disabled = true;
   }
+  // The button names the audience so "send to all users" is never a surprise
+  const broadcastEnvLabels = { sandbox: "send to sandbox devices", production: "send to live devices", all: "send to all users" };
+  document.querySelectorAll('input[name="broadcast-env"]').forEach((r) => {
+    r.addEventListener("change", () => { broadcastSendBtn.textContent = broadcastEnvLabels[r.value]; });
+  });
   broadcastTitle.addEventListener("input", updateBroadcastPreview);
   broadcastBody.addEventListener("input", updateBroadcastPreview);
 
@@ -1142,6 +1162,7 @@
       const data = await callFunction("admin-send-push-broadcast", {
         title: broadcastTitle.value.trim(),
         body: broadcastBody.value.trim(),
+        environment: document.querySelector('input[name="broadcast-env"]:checked').value,
       });
       setResult(broadcastResult, data, false);
       broadcastTitle.value = "";
