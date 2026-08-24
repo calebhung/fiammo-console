@@ -742,6 +742,21 @@
       </div>
     </section>
 
+    <section class="tool card" id="auto-flags" data-tool="auto-flags">
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">auto-flagged content</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
+      <p class="hint">posts, comments, and messages that tripped the extreme-content keyword list (the auto_flag_terms table), newest first. flagging is report-only — nothing was hidden from anyone's feed or inbox. "mark reviewed" only clears the row from this list; deleting content or the author still happens through the tools above. if the author later edits the content and it still matches, the flag reopens.</p>
+      <div class="row">
+        <button id="auto-flags-refresh-btn">refresh</button>
+        <label style="display:flex; align-items:center; gap:6px; color:var(--muted)">
+          <input type="checkbox" id="auto-flags-show-reviewed"> show reviewed
+        </label>
+        <span id="auto-flags-summary" class="stats"></span>
+      </div>
+      <div id="auto-flags-list"></div>
+      </div>
+    </section>
+
     <section class="tool card" id="diagnostics" data-tool="diagnostics">
       <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">run full diagnostics</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
@@ -1678,6 +1693,96 @@
   }
 
   reportsRefreshBtn.addEventListener("click", refreshReports);
+
+  // --- Auto-flagged content ---
+
+  const autoFlagsRefreshBtn = document.getElementById("auto-flags-refresh-btn");
+  const autoFlagsShowReviewed = document.getElementById("auto-flags-show-reviewed");
+  const autoFlagsSummary = document.getElementById("auto-flags-summary");
+  const autoFlagsList = document.getElementById("auto-flags-list");
+
+  const AUTO_FLAG_TYPE_LABELS = {
+    post: "post",
+    comment: "comment",
+    message: "message",
+    echo_message: "echo",
+  };
+
+  function renderAutoFlags(flags) {
+    autoFlagsList.innerHTML = "";
+    autoFlagsSummary.textContent = `${flags.length} flag${flags.length === 1 ? "" : "s"}`;
+    if (!flags.length) {
+      autoFlagsList.textContent = "nothing auto-flagged";
+      return;
+    }
+    for (const f of flags) {
+      const row = document.createElement("div");
+      row.className = "report-row";
+
+      const authorHandle = f.author?.handle ? `@${f.author.handle}` : "unknown";
+      const when = new Date(f.flagged_at).toLocaleString();
+      const typeLabel = AUTO_FLAG_TYPE_LABELS[f.content_type] || f.content_type;
+      const terms = (f.matched_terms || []).map(t => `<span class="report-reason">${escapeHtml(t)}</span>`).join(" ");
+
+      let html = `<div class="report-top">`
+        + terms
+        + `<span class="badge">${escapeHtml(typeLabel)}</span>`
+        + `<span>by ${escapeHtml(authorHandle)}</span>`
+        + `<span>·</span><span>${escapeHtml(when)}</span>`;
+      if (f.reviewed_at) {
+        html += `<span class="badge on">reviewed</span>`;
+      }
+      html += `</div>`;
+      const content = f.content || {};
+      if (content.deleted) {
+        html += `<div class="report-content deleted">${content.content ? escapeHtml(content.content) : "(no content captured)"} — has since been deleted</div>`;
+      } else {
+        html += `<div class="report-content">${escapeHtml(content.content || "")}</div>`;
+      }
+      row.innerHTML = html;
+
+      if (!f.reviewed_at) {
+        const actions = document.createElement("div");
+        actions.className = "row";
+        actions.style.marginTop = "8px";
+        const btn = document.createElement("button");
+        btn.textContent = "mark reviewed";
+        btn.addEventListener("click", async () => {
+          btn.disabled = true;
+          try {
+            await callFunction("admin-resolve-auto-flag", { flagId: f.id });
+            row.remove();
+            const left = autoFlagsList.querySelectorAll(".report-row").length;
+            autoFlagsSummary.textContent = `${left} flag${left === 1 ? "" : "s"}`;
+            if (!left) autoFlagsList.textContent = "nothing auto-flagged";
+          } catch (e) {
+            btn.disabled = false;
+            btn.textContent = `failed: ${e.message}`;
+          }
+        });
+        actions.appendChild(btn);
+        row.appendChild(actions);
+      }
+      autoFlagsList.appendChild(row);
+    }
+  }
+
+  async function refreshAutoFlags() {
+    autoFlagsSummary.textContent = "loading…";
+    autoFlagsRefreshBtn.disabled = true;
+    try {
+      const data = await callFunction("admin-list-auto-flags", { includeReviewed: autoFlagsShowReviewed.checked });
+      renderAutoFlags(data.flags || []);
+    } catch (e) {
+      autoFlagsSummary.textContent = "";
+      autoFlagsList.textContent = `couldn't load auto-flags: ${e.message}`;
+    } finally {
+      autoFlagsRefreshBtn.disabled = false;
+    }
+  }
+
+  autoFlagsRefreshBtn.addEventListener("click", refreshAutoFlags);
+  autoFlagsShowReviewed.addEventListener("change", refreshAutoFlags);
 
   // --- Run full diagnostics ---
 
