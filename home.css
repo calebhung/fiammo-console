@@ -19,20 +19,29 @@
 
 .home header.site { margin-bottom: 0; }
 
-.nav-cta {
+ /* Scoped to beat `nav.legal-links a`, which is more specific than a bare
+    class and was painting the label muted grey on copper: about 1.9:1, which
+    read as an empty pill. The uppercase and tracking come from the same rule
+    and are wrong for a button, so both are reset here too.
+
+    Bronze rather than copper: at this size white on copper is about 3.4:1 and
+    fails AA, while bronze clears 6:1. The large buttons keep copper. */
+nav.legal-links a.nav-cta {
   font-family: var(--font-sans);
   font-weight: 500;
   font-size: 0.86rem;
   text-decoration: none;
+  text-transform: none;
+  letter-spacing: 0;
   color: var(--on-accent);
-  background: var(--accent);
+  background: var(--accent-strong);
   border: 1px solid var(--accent-strong);
   padding: 8px 18px;
   border-radius: 999px;
   margin-left: 20px;
 }
 
-.nav-cta:hover { background: var(--accent-strong); color: var(--on-accent); }
+nav.legal-links a.nav-cta:hover { background: var(--ink); border-color: var(--ink); color: var(--on-accent); }
 
 /* ---------- hero ---------- */
 
