@@ -129,7 +129,15 @@ header.site {
   margin-bottom: 16px;
 }
 
-.hero h1 { font-size: 2.2rem; }
+/* The hero h1 is the wordmark, not a page title, so it takes the wordmark's
+   face. Set in sans it read as a different word from the one in the header
+   six lines above it. Page titles on the legal pages stay sans. */
+.hero h1 {
+  font-family: 'Optima', var(--font-serif);
+  font-weight: 600;
+  font-size: 2.4rem;
+  letter-spacing: 0.02em;
+}
 
 .tagline.center {
   margin: 4px 0 28px;
