@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Fiammo — Confirm</title>
+<title>Fiammo · Confirm</title>
 <link rel="icon" href="flame.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 <style>
@@ -274,7 +274,7 @@
       const data = await res.json().catch(() => ({}));
 
       if (res.status === 403 && data.error === "phone_mismatch") {
-        fieldErrorEl.textContent = "those digits don't match — double check and try again.";
+        fieldErrorEl.textContent = "those digits don't match. Double check and try again.";
         setFormBusy(false);
         btnEl.textContent = originalLabel;
         inputEl.focus();
@@ -290,7 +290,7 @@
       const name = data.owner_name || "your friend";
       showTerminal("you're set", `you'll get a text from ${name} whenever they post to fiammo. reply STOP anytime to opt out.`, false);
     } catch (e) {
-      fieldErrorEl.textContent = "something went wrong — give it another try.";
+      fieldErrorEl.textContent = "something went wrong. Give it another try.";
       setFormBusy(false);
       btnEl.textContent = originalLabel;
     }
@@ -315,7 +315,7 @@
       }
       showTerminal("no problem", "you won't get any texts. ask them to add you again if you change your mind.", false);
     } catch (e) {
-      fieldErrorEl.textContent = "something went wrong — give it another try.";
+      fieldErrorEl.textContent = "something went wrong. Give it another try.";
       setFormBusy(false);
     }
   });
