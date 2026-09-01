@@ -285,3 +285,15 @@ footer.site a:hover { color: var(--accent-strong); }
 
   footer.site { font-size: 0.78rem; }
 }
+
+/* Deploys do not reach a browser that already has this file.
+ *
+ * Cloudflare Pages serves static assets with cache-control max-age=14400,
+ * so a stylesheet stays cached for four hours while the HTML that references
+ * it revalidates on every request. A redesign therefore ships to nobody who
+ * visited in the last four hours, which is the same trap that produced
+ * 2a6c05f and 211be48 for alerts.js.
+ *
+ * Every page links this file as style.css?v=N. Bump N in all of them, in the
+ * same commit as any change here, or the change is invisible.
+ */
