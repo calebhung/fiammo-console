@@ -1,0 +1,408 @@
+/* fiammo — homepage. Everything else on the site is a document in a card;
+ * this is the one page that has to show the product, so it gets its own
+ * components rather than bending .card into shapes it was not built for.
+ *
+ * The device mockups are CSS and SVG rather than screenshots on purpose. The
+ * App Store captures on disk predate the desk/two-tone bake-off, carry the old
+ * cream palette, and contain a real person's face and posts. Built from the
+ * same tokens as the rest of the site, these cannot go stale against the brand
+ * and contain nobody's data.
+ *
+ * Ink appears in exactly two places: the phone bezels and the constellation
+ * band. That is the palette's rule kept honestly. Ink is voice and inward
+ * space, never a reading surface, and never more than about a fifth of one.
+ */
+
+.home .wrap { max-width: 1040px; }
+
+/* ---------- header ---------- */
+
+.home header.site { margin-bottom: 0; }
+
+.nav-cta {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.86rem;
+  text-decoration: none;
+  color: var(--on-accent);
+  background: var(--accent);
+  border: 1px solid var(--accent-strong);
+  padding: 8px 18px;
+  border-radius: 999px;
+  margin-left: 20px;
+}
+
+.nav-cta:hover { background: var(--accent-strong); color: var(--on-accent); }
+
+/* ---------- hero ---------- */
+
+.hero-band {
+  text-align: center;
+  padding: 64px 0 8px;
+}
+
+.hero-band .hero-mark { height: 76px; margin-bottom: 18px; }
+
+.hero-band h1 {
+  font-family: 'Optima', var(--font-serif);
+  font-weight: 600;
+  font-size: clamp(3rem, 11vw, 4.6rem);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  margin: 0;
+  color: var(--ink);
+}
+
+.hero-band .tagline { margin: 14px 0 22px; }
+
+.hero-lede {
+  font-family: var(--font-serif);
+  font-size: 1.24rem;
+  line-height: 1.6;
+  max-width: 30ch;
+  margin: 0 auto 30px;
+  text-wrap: balance;
+}
+
+.store-note {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-top: 14px;
+}
+
+/* ---------- feature rows ---------- */
+
+.feature {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 64px;
+  padding: 88px 0;
+  border-top: 1px solid var(--border);
+}
+
+.feature:nth-child(even) .feature-text { order: 2; }
+
+.eyebrow {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.78rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+  margin: 0 0 10px;
+}
+
+.feature-text h2 {
+  margin-top: 0;
+  font-size: 1.75rem;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.feature-text p {
+  font-family: var(--font-serif);
+  font-size: 1.06rem;
+  max-width: 38ch;
+}
+
+.feature-art {
+  display: flex;
+  justify-content: center;
+}
+
+/* ---------- the phone ---------- */
+
+.phone {
+  width: 264px;
+  flex-shrink: 0;
+  background: var(--ink);
+  border-radius: 38px;
+  padding: 9px;
+  box-shadow: 0 2px 4px rgba(26, 21, 18, .06), 0 22px 50px rgba(26, 21, 18, .14);
+}
+
+.screen {
+  background: var(--bg);
+  border-radius: 30px;
+  height: 500px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.notch {
+  width: 78px;
+  height: 20px;
+  background: var(--ink);
+  border-radius: 999px;
+  margin: 8px auto 0;
+}
+
+.screen-body {
+  flex: 1;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.screen-day {
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+
+.screen-title {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--ink);
+  margin: -6px 0 2px;
+  letter-spacing: -0.01em;
+}
+
+.post {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 12px 13px;
+  box-shadow: 0 1px 2px rgba(26, 21, 18, .03);
+}
+
+.post-who {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.66rem;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.post-body {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.tabbar {
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-around;
+  padding: 9px 0 12px;
+  background: var(--bg);
+}
+
+.tabbar span {
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  background: var(--border);
+}
+
+.tabbar span.on { background: var(--accent); }
+
+/* ---------- write to read ---------- */
+
+.locked .post-body {
+  filter: blur(4px);
+  opacity: .5;
+  transition: filter .7s ease, opacity .7s ease;
+}
+
+.unlocked .post-body { filter: blur(0); opacity: 1; }
+
+.gate {
+  text-align: center;
+  padding: 6px 4px 0;
+}
+
+.gate p {
+  font-family: var(--font-serif);
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--muted);
+  margin: 0 0 10px;
+}
+
+.gate .write-btn {
+  display: block;
+  background: var(--ink);
+  color: var(--card);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.76rem;
+  border: 0;
+  border-radius: 9px;
+  padding: 10px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.gate .write-btn:hover { opacity: .9; }
+
+/* ---------- burn ---------- */
+
+.burning .post-body {
+  animation: burn 5s ease-in-out infinite;
+}
+
+@keyframes burn {
+  0%, 45%  { opacity: 1; filter: blur(0); }
+  75%, 92% { opacity: 0; filter: blur(3px); }
+  100%     { opacity: 1; filter: blur(0); }
+}
+
+.burn-clock {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--accent-strong);
+  letter-spacing: 0.04em;
+}
+
+/* ---------- echo ---------- */
+
+.echo-line {
+  background: linear-gradient(transparent 62%, rgba(201, 111, 59, .26) 62%);
+  padding-bottom: 1px;
+}
+
+.echo-chip {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: 0.62rem;
+  color: var(--accent-strong);
+  background: rgba(201, 111, 59, .09);
+  border-radius: 999px;
+  padding: 4px 9px;
+}
+
+/* ---------- circles ---------- */
+
+.circles-art {
+  position: relative;
+  width: 264px;
+  height: 264px;
+}
+
+.ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(26, 21, 18, .03), 0 8px 22px rgba(26, 21, 18, .05);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.74rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.ring.a { width: 152px; height: 152px; top: 0;    left: 0; }
+.ring.b { width: 128px; height: 128px; top: 96px; left: 118px; }
+.ring.c { width: 104px; height: 104px; top: 26px; left: 152px; }
+
+/* ---------- constellation: the one ink surface ---------- */
+
+.sky {
+  background: var(--ink);
+  border-radius: 24px;
+  padding: 60px 40px;
+  margin: 88px 0 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 56px;
+}
+
+.sky .eyebrow { color: var(--accent); }
+
+.sky h2, .sky .sky-quote { color: #F4F1EC; }
+
+.sky h2 { margin-top: 0; font-size: 1.75rem; line-height: 1.2; }
+
+.sky p {
+  font-family: var(--font-serif);
+  color: #C9C1B7;
+  font-size: 1.06rem;
+  max-width: 38ch;
+}
+
+.sky-quote {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.02rem;
+  border-left: 2px solid var(--accent);
+  padding-left: 14px;
+  margin-top: 22px;
+}
+
+.sky svg { width: 100%; height: auto; display: block; }
+
+.sky .link { stroke: var(--accent); stroke-width: 1.1; opacity: .55; }
+
+.sky .star { fill: #F4F1EC; }
+
+/* Stars settle in, then the lines find them. Held on the last frame rather
+   than looped: the app draws a constellation once a week, not on a carousel. */
+@media (prefers-reduced-motion: no-preference) {
+  .sky .star { animation: twinkle 4s ease-in-out infinite; }
+  .sky .link {
+    stroke-dasharray: 220;
+    stroke-dashoffset: 220;
+    animation: draw 2.4s ease forwards;
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: .55; }
+  50%      { opacity: 1; }
+}
+
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+/* ---------- closing ---------- */
+
+.closing {
+  text-align: center;
+  padding: 92px 0 24px;
+}
+
+.closing h2 {
+  font-family: 'Optima', var(--font-serif);
+  font-size: 2.2rem;
+  margin-bottom: 8px;
+}
+
+.closing p { font-family: var(--font-serif); font-size: 1.1rem; }
+
+/* ---------- phone ---------- */
+
+@media (max-width: 860px) {
+  .feature, .sky {
+    grid-template-columns: 1fr;
+    gap: 36px;
+    padding: 60px 0;
+  }
+
+  .feature .feature-text,
+  .feature:nth-child(even) .feature-text { order: 0; }
+
+  .sky { padding: 44px 26px; margin-top: 60px; }
+
+  .feature-text h2, .sky h2 { font-size: 1.5rem; }
+
+  .feature-text p, .sky p { max-width: none; }
+
+  .hero-band { padding: 40px 0 4px; }
+
+  .closing { padding: 64px 0 16px; }
+}
