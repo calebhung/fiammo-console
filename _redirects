@@ -8,4 +8,8 @@
 # the code client-side and forwards to the App Store on anything that isn't a
 # live post. 200 rewrite, not a redirect: the code has to stay in the URL for
 # the page to read it back out of location.pathname.
-/p/*  /p/index.html  200
+#
+# Destination is /p/ and not /p/index.html. Pages' clean-URL handling 308s
+# index.html to the directory, so a rewrite aimed at the file lands on a
+# redirect rather than an asset and falls through to the 404 page.
+/p/*  /p/  200
