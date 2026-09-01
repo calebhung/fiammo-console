@@ -1,25 +1,61 @@
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+/* fiammo — the web side of the app's design system.
+ *
+ * Two decisions from the app drive everything here, both settled in the app
+ * repo (cc58260) after bake-offs against real alternatives:
+ *
+ *   Paper is desk. A barely off-white ground with white cards lifting off it,
+ *   not the cream ground with darker parchment cards this site used to carry.
+ *
+ *   Type is two-tone. The serif is the writing and nothing else; the sans is
+ *   the phone around it. Titles, labels, nav, and footer are SF Pro. Lora is
+ *   for prose. The all-serif alternative lost, and so did tracked mono labels.
+ *
+ * Colour has one rule: paper is paper, ink is voice, copper is fire. Copper is
+ * an accent for warmth and action, rarely a large fill.
+ *
+ * Keep these values in step with ashpad/Extensions/Color+Fiammo.swift and
+ * Font+Fiammo.swift. They are the source of truth; this file is the echo.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..600&display=swap');
 
 :root {
-  --bg: #FFFDF8;
-  --text: #1C1009;
-  --ink: #120B04;
-  --muted: #8A7A6B;
-  --accent: #C96F3B;
-  --accent-strong: #8B5210;
-  --gold: #B8731A;
-  --border: #DDD0BB;
-  --card: #F8F3EB;
+  /* desk paper */
+  --bg: #F9F8F6;          /* fiammoBackground — barely off white */
+  --card: #FFFFFF;        /* fiammoCard — white, so it lifts off the ground */
+  --border: #E9E7E3;      /* fiammoBorder */
+  --text: #1A1512;        /* fiammoForeground — warm, never pure black */
+  --muted: #85807A;       /* fiammoSecondary */
+  --ink: #120B04;         /* fiammoInk — the user's own voice, used sparingly */
+
+  /* fire */
+  --accent: #C96F3B;        /* fiammoCopper */
+  --accent-strong: #8B5210; /* fiammoAccent — burnished bronze */
+  --gold: #B8731A;          /* fiammoSage — primary interactive */
+  --on-accent: #FFFFFF;     /* text sitting on a copper or gold fill */
+
+  /* Two-tone. The serif is the writing; the sans is the phone around it.
+   * Mono is not a label face any more: in the app it survives only for
+   * figures that must not jitter, so it is the system mono here rather than
+   * a second webfont nobody reads prose in. */
+  --font-serif: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  /* Cards lift off desk paper with a shadow, not a heavier border. */
+  --lift: 0 1px 2px rgba(26, 21, 18, .04), 0 8px 24px rgba(26, 21, 18, .05);
 }
 
 * { box-sizing: border-box; }
 
+/* Prose is the serif. Everything that is chrome overrides back to sans below. */
 body {
   margin: 0;
-  font-family: 'Lora', Georgia, 'Times New Roman', serif;
+  font-family: var(--font-serif);
   background: var(--bg);
   color: var(--text);
   line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
 }
 
 .wrap {
@@ -48,8 +84,12 @@ header.site {
   display: block;
 }
 
+/* The app sets the wordmark in Optima with a Zapfino initial. Optima carries
+ * over cleanly; Zapfino does not, at any size a header can hold, so the
+ * initial keeps the rotated italic it already had and falls back through the
+ * serif on anything that has neither face. */
 .wordmark .word {
-  font-family: 'Lora', Georgia, serif;
+  font-family: 'Optima', var(--font-serif);
   font-weight: 600;
   font-size: 1.25rem;
   color: var(--ink);
@@ -68,17 +108,20 @@ header.site {
   font-style: normal;
 }
 
+/* Former mono labels. The uppercase and the tracking are where the hierarchy
+ * actually lives, so they stay; only the face changes. Sizes are up ~15%
+ * because mixed-case SF reads smaller than mono caps at the same point size,
+ * which is the same correction fiammoMono makes in the app. */
 .tagline {
-  font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 0.68rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.78rem;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-.hero {
-  text-align: center;
-}
+.hero { text-align: center; }
 
 .hero-mark {
   height: 56px;
@@ -86,85 +129,75 @@ header.site {
   margin-bottom: 16px;
 }
 
-.hero h1 {
-  font-size: 2.2rem;
-}
+.hero h1 { font-size: 2.2rem; }
 
 .tagline.center {
   margin: 4px 0 28px;
   text-align: center;
 }
 
-.hero p:not(.tagline) {
-  text-align: left;
-}
+.hero p:not(.tagline) { text-align: left; }
 
 nav.legal-links a {
-  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-family: var(--font-sans);
+  font-weight: 500;
   color: var(--muted);
   text-decoration: none;
-  font-size: 0.78rem;
+  font-size: 0.86rem;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   margin-left: 20px;
 }
 
 nav.legal-links a.active,
-nav.legal-links a:hover {
-  color: var(--accent-strong);
-}
+nav.legal-links a:hover { color: var(--accent-strong); }
 
+/* Titles are sans in two-tone, and a notch lighter than their serif weights:
+ * SF at these sizes reads heavier, so bold becomes semibold. */
 h1 {
-  font-family: 'Lora', Georgia, serif;
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-weight: 600;
   font-size: 1.9rem;
   margin-bottom: 4px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 
 .updated {
-  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-family: var(--font-sans);
+  font-weight: 500;
   color: var(--muted);
-  font-size: 0.78rem;
-  letter-spacing: 0.02em;
+  font-size: 0.86rem;
+  letter-spacing: 0;
   margin-bottom: 40px;
 }
 
 h2 {
-  font-family: 'Lora', Georgia, serif;
+  font-family: var(--font-sans);
   font-weight: 600;
   font-size: 1.15rem;
   margin-top: 36px;
   margin-bottom: 10px;
+  letter-spacing: -0.01em;
   color: var(--ink);
 }
 
-p, li {
-  color: var(--text);
-}
+p, li { color: var(--text); }
 
-ul {
-  padding-left: 1.2em;
-}
+ul { padding-left: 1.2em; }
 
-li {
-  margin-bottom: 8px;
-}
+li { margin-bottom: 8px; }
 
-a {
-  color: var(--accent-strong);
-}
+a { color: var(--accent-strong); }
 
-a:hover {
-  color: var(--gold);
-}
+a:hover { color: var(--gold); }
 
 .card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 32px;
+  box-shadow: var(--lift);
 }
 
 footer.site {
@@ -172,18 +205,44 @@ footer.site {
   padding-top: 24px;
   border-top: 1px solid var(--border);
   color: var(--muted);
-  font-family: 'JetBrains Mono', 'SF Mono', monospace;
-  font-size: 0.75rem;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.82rem;
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-footer.site a {
+footer.site a { color: var(--muted); }
+
+footer.site a:hover { color: var(--accent-strong); }
+
+/* The one place copper is allowed to be a fill: a single primary action.
+   Defined here rather than per page so the front page and the invite page
+   cannot drift apart again. */
+.download-btn {
+  display: inline-block;
+  margin-top: 20px;
+  padding: 12px 28px;
+  border-radius: 10px;
+  border: 1px solid var(--accent-strong);
+  background: var(--accent);
+  color: var(--on-accent) !important;
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.download-btn:hover { background: var(--accent-strong); color: var(--on-accent); }
+
+.secondary {
+  margin-top: 20px;
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
   color: var(--muted);
 }
 
-footer.site a:hover {
-  color: var(--accent-strong);
-}
+.secondary a { color: var(--muted); }
+.secondary a:hover { color: var(--accent-strong); }
