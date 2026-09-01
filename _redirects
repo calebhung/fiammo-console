@@ -1,0 +1,11 @@
+# /download — a shareable link to the App Store. A real 302 rather than an HTML
+# page so link previews in Messages and Slack resolve to the store's own card
+# instead of a page that immediately leaves. No country segment: that resolves
+# to the visitor's own storefront, where the /us/ form dead-ends outside it.
+/download  https://apps.apple.com/app/id6791766677  302
+
+# /p/<code> — every post short link is served by the one page, which resolves
+# the code client-side and forwards to the App Store on anything that isn't a
+# live post. 200 rewrite, not a redirect: the code has to stay in the URL for
+# the page to read it back out of location.pathname.
+/p/*  /p/index.html  200

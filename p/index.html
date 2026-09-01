@@ -1,0 +1,158 @@
+<!doctype html>
+<!--
+  fiammo — /p/<code> short-link handler.
+
+  Belongs in the fiammo.co deploy (alongside accept.html), served for every
+  path under /p/. Not in the app repo: nothing here is built by Xcode.
+
+  Today every code lands here and is forwarded to the App Store, valid or not.
+  That is deliberate — see resolvePost() below. It means the page ships before
+  post short-codes exist in the database, and it never discloses whether a
+  given code is real, so the URL space can't be walked to find out which posts
+  exist.
+
+  Once com.apple.developer.associated-domains is on the app and this domain
+  serves an apple-app-site-association file, iOS opens the app directly for
+  anyone who has it installed and this page never runs for them. The page then
+  becomes purely the don't-have-the-app path, which is what it already is.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>fiammo</title>
+<meta name="robots" content="noindex">
+<!-- Belt and braces: if JS is off or blocked, the meta refresh still lands them. -->
+<noscript><meta http-equiv="refresh" content="0; url=https://apps.apple.com/app/id6791766677"></noscript>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #faf8f5;
+    --card:  #ffffff;
+    --ink:   #2b2724;
+    --muted: #6f6862;
+    --copper:#b4693a;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 36px 28px 30px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(43,39,36,.05), 0 8px 28px rgba(43,39,36,.07);
+  }
+  .mark {
+    font-family: Lora, Georgia, "Times New Roman", serif;
+    font-size: 30px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .line {
+    font-family: Lora, Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.5;
+    color: var(--ink);
+    margin: 0 0 22px;
+  }
+  .cta {
+    display: inline-block;
+    background: var(--copper);
+    color: #fff;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 13px 26px;
+    border-radius: 999px;
+  }
+  .foot {
+    margin: 18px 0 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+  <main class="card">
+    <p class="mark">fiammo</p>
+    <p class="line" id="line">Opening fiammo&hellip;</p>
+    <a class="cta" id="cta" href="https://apps.apple.com/app/id6791766677">Get fiammo</a>
+    <p class="foot">Posts burn after 24 hours. Open the app to read this one.</p>
+  </main>
+
+<script>
+(function () {
+  "use strict";
+
+  // No country segment: this resolves to the visitor's own storefront.
+  // The /us/ form dead-ends for anyone outside it.
+  var APP_STORE = "https://apps.apple.com/app/id6791766677";
+
+  // The publishable key, same one the app ships in Config.swift. Public by
+  // design. Note it is NOT a JWT: the newer sb_publishable_ keys go in the
+  // apikey header only. Sending it as "Authorization: Bearer" too makes the
+  // gateway reject the request 401 before the function is reached.
+  var SUPABASE_URL = "https://syqqxogkqmuojchbglle.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
+
+  // Anything slower than this and the visitor is staring at a stalled card,
+  // so the forward wins over a late answer.
+  var RESOLVE_TIMEOUT_MS = 2000;
+
+  var code = (location.pathname.replace(/\/+$/, "").split("/").pop() || "");
+
+  function toAppStore() { location.replace(APP_STORE); }
+
+  // Every failure path lands on the App Store: bad code, unknown code, burned
+  // post, HTTP error, timeout, offline. That is the whole point — a visitor
+  // never gets a different outcome for a real code than a made-up one unless
+  // the post is actually there and still alive, so the URL space says nothing
+  // about which posts exist.
+  function resolvePost(code, done) {
+    if (!/^[abcdefghjkmnpqrstuvwxyz23456789]{8}$/.test(code)) return done(null);
+
+    var settled = false;
+    function finish(v) { if (!settled) { settled = true; done(v); } }
+    setTimeout(function () { finish(null); }, RESOLVE_TIMEOUT_MS);
+
+    fetch(SUPABASE_URL + "/functions/v1/resolve-post-link", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({ code: code })
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { finish(d && d.ok ? d : null); })
+      .catch(function () { finish(null); });
+  }
+
+  resolvePost(code, function (post) {
+    if (!post || post.burned) return toAppStore();
+
+    document.getElementById("line").textContent =
+      post.author_first_name + " shared a new post.";
+    document.getElementById("cta").textContent = "Open fiammo";
+  });
+})();
+</script>
+</body>
+</html>
