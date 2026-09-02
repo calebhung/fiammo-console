@@ -283,9 +283,22 @@ nav.legal-links a.nav-cta:hover { background: var(--text); border-color: var(--t
 
 /* ---------- echo ---------- */
 
+/* Copper text with a dotted copper underline, which is what an echoed line
+   actually looks like in the app (SelectableBodyText.applyEchoDecorations).
+   It replaces a highlighter band that was also misaligned: a background
+   gradient on an inline span that wraps measures its colour stop against the
+   combined height of every line fragment, not each one, so the band sat at a
+   different height on each line and missed the short last line completely.
+   A text decoration follows each fragment on its own, so there is nothing
+   left to align. */
 .echo-line {
-  background: linear-gradient(transparent 62%, rgba(201, 111, 59, .26) 62%);
-  padding-bottom: 1px;
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
 }
 
 .echo-chip {
@@ -296,9 +309,9 @@ nav.legal-links a.nav-cta:hover { background: var(--text); border-color: var(--t
   font-family: var(--font-sans);
   font-size: 0.62rem;
   color: var(--accent-strong);
-  background: rgba(201, 111, 59, .09);
+  border: 1px solid rgba(201, 111, 59, .35);
   border-radius: 999px;
-  padding: 4px 9px;
+  padding: 3px 9px;
 }
 
 /* ---------- circles ---------- */
