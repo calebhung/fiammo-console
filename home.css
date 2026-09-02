@@ -386,7 +386,12 @@ nav.legal-links a.nav-cta:hover { background: var(--text); border-color: var(--t
 .prompt-bubble {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 4px 16px 16px 4px;
+  /* Evenly rounded, at the radius fiammoCard() uses in the app (12). The
+     mockup had borrowed MessageBubbleView's received-bubble shape, whose small
+     leading corners are a speech tail: legible against a run of chat bubbles,
+     lopsided on a lone bubble above a composer. The app was corrected the same
+     way, so this stays in step with it. */
+  border-radius: 12px;
   padding: 10px 12px;
   font-family: var(--font-serif);
   font-size: 0.8rem;
