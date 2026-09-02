@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>fiammo</title>
-<meta name="description" content="A private, text-first social app. Write something before you read theirs. Posts burn in 24 hours.">
+<meta name="description" content="A private, text-first social app. Everyone answers the same question each day. Write something before you read theirs. Posts burn in 24 hours.">
 <link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
 <link rel="stylesheet" href="style.css?v=5">
-<link rel="stylesheet" href="home.css?v=4">
+<link rel="stylesheet" href="home.css?v=13">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="fiammo">
 <meta property="og:title" content="fiammo">
@@ -31,32 +31,39 @@
     <img class="hero-mark" src="flame.svg?v=2" alt="">
     <h1>Write something before you read theirs</h1>
     <p class="tagline">write. share. let it burn.</p>
-    <p class="hero-lede">A small, private place to write to the people you actually know. Everything burns in 24 hours.</p>
+    <p class="hero-lede">A small, private place where you and the people you actually know write to each other. Everything burns in 24 hours.</p>
     <a class="download-btn" href="https://apps.apple.com/app/id6791766677">Get fiammo</a>
     <p class="store-note">Free on the App Store. iPhone.</p>
   </section>
 
   <!-- Write to read. The gate is the product, so it is the first thing shown,
-       and the mockup actually performs it rather than describing it. -->
-  <section class="feature">
+       and the mockup actually performs it rather than describing it: the posts
+       are genuinely blurred, the button genuinely types, and they unblur in a
+       stagger the way a feed fills in. -->
+  <section class="feature reveal">
     <div class="feature-text">
       <p class="eyebrow">Write to read</p>
       <h2>Honest goes both ways</h2>
-      <p>Someone in your circle wrote today. You see it once you have written something of your own. No lurking, no scrolling through other people's days while giving nothing back.</p>
+      <p>The people in your circle wrote today. You see them once you have written something of your own. No lurking, no scrolling through everyone else's day while giving nothing back.</p>
     </div>
     <div class="feature-art">
       <div class="phone">
         <div class="screen">
           <div class="notch"></div>
-          <div class="screen-body" id="gate-screen">
+          <div class="screen-body tight" id="gate-screen">
             <p class="screen-day">Monday, August 24</p>
             <p class="screen-title">Today</p>
-            <div class="post locked" id="gate-post">
-              <p class="post-who">Avery</p>
-              <p class="post-body">Walked the long way home to stretch the evening out. The jasmine on the corner is finally open and the whole street smells like it.</p>
+            <div class="post locked" data-unlock="0">
+              <p class="post-who"><span class="dot" data-who="A">A</span>Avery</p>
+              <p class="post-body">Walked the long way home.</p>
+            </div>
+            <div class="post locked" data-unlock="1">
+              <p class="post-who"><span class="dot" data-who="S">S</span>Sam</p>
+              <p class="post-body">Told my sister the thing I had been sitting on. She already knew.</p>
             </div>
             <div class="gate" id="gate-prompt">
-              <p>Avery has shared with you today. Write something of your own to see it.</p>
+              <p id="gate-copy">Avery and Sam wrote today.</p>
+              <div class="gate-field"><span id="gate-typed"></span><span class="caret"></span></div>
               <button class="write-btn" id="write-btn" type="button">Write something</button>
             </div>
           </div>
@@ -66,12 +73,45 @@
     </div>
   </section>
 
+  <!-- The daily prompt. Matches the composer in the app: the question sits in a
+       received bubble above what you write, so answering reads as a reply and
+       not as a blank page. -->
+  <section class="feature reveal">
+    <div class="feature-text">
+      <p class="eyebrow">Today's prompt</p>
+      <h2>A question, not a blank page</h2>
+      <p>Everyone gets the same question every day. It waits above what you write, the way a message from a friend would, and once you answer you can read how everyone else answered it.</p>
+    </div>
+    <div class="feature-art">
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="screen-body compose">
+            <p class="screen-eyebrow">Today's Prompt</p>
+            <div class="prompt-bubble">How long do you replay a conversation after it goes badly?</div>
+            <p class="reply" id="reply-line"><span id="reply-typed"></span><span class="caret"></span></p>
+            <div class="compose-spacer"></div>
+            <p class="reach">Everyone you're friends with will see this</p>
+            <div class="answered-row" id="answered-row">
+              <span class="dot" data-who="A">A</span>
+              <span class="dot" data-who="J">J</span>
+              <span class="dot" data-who="M">M</span>
+              <span class="dot" data-who="S">S</span>
+              <span class="answered-copy">4 friends answered today</span>
+            </div>
+          </div>
+          <div class="tabbar"><span></span><span></span><span class="on"></span><span></span><span></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Burn -->
-  <section class="feature">
+  <section class="feature reveal">
     <div class="feature-text">
       <p class="eyebrow">24 hours</p>
       <h2>Everything burns by tomorrow</h2>
-      <p>Posts disappear a day after you share them. Nothing accumulates into a profile you have to maintain, and nobody is reading last year's version of you.</p>
+      <p>Your posts and theirs disappear a day after they are shared. Nothing accumulates into a profile anyone has to maintain, and nobody is reading last year's version of you.</p>
     </div>
     <div class="feature-art">
       <div class="phone">
@@ -80,13 +120,17 @@
           <div class="screen-body">
             <p class="screen-day">Tuesday, August 25</p>
             <p class="screen-title">Today</p>
-            <div class="post burning">
-              <p class="post-who">Jordan <span class="burn-clock">· burns in 2h</span></p>
-              <p class="post-body">Finally got the darkroom set up in the spare room. Everything smells like fixer and I could not be happier about it.</p>
+            <div class="post burning mine">
+              <p class="post-who"><span class="dot you">Y</span>You <span class="burn-clock">· burns in 22h</span></p>
+              <p class="post-body">Slept with the window open.</p>
             </div>
-            <div class="post burning" style="animation-delay:1.4s">
-              <p class="post-who">Maya <span class="burn-clock">· burns in 9h</span></p>
-              <p class="post-body">Third attempt at the sourdough. This one actually rose.</p>
+            <div class="post burning" style="animation-delay:1.1s">
+              <p class="post-who"><span class="dot" data-who="J">J</span>Jordan <span class="burn-clock">· burns in 2h</span></p>
+              <p class="post-body">The darkroom finally works.</p>
+            </div>
+            <div class="post burning" style="animation-delay:2.2s">
+              <p class="post-who"><span class="dot" data-who="M">M</span>Maya <span class="burn-clock">· burns in 9h</span></p>
+              <p class="post-body">Third attempt at the sourdough. It rose.</p>
             </div>
           </div>
           <div class="tabbar"><span></span><span class="on"></span><span></span><span></span><span></span></div>
@@ -95,28 +139,60 @@
     </div>
   </section>
 
-  <!-- Circles -->
-  <section class="feature">
+  <!-- Circles. The art cycles through the three circles so you can see that
+       each one holds different people, which is the whole point of them and
+       the one thing a static drawing of three rings cannot say. -->
+  <section class="feature reveal">
     <div class="feature-text">
       <p class="eyebrow">Circles</p>
       <h2>Different people get different days</h2>
       <p>Make small groups of your own. Close friends, roommates, the people from home. You choose which circle a post goes to, and nothing is public by default.</p>
     </div>
     <div class="feature-art">
-      <div class="circles-art">
-        <div class="ring a">close friends</div>
-        <div class="ring b">roommates</div>
-        <div class="ring c">home</div>
+      <div class="circles-stage">
+        <div class="circles-art" id="circles-art">
+          <div class="ring a" data-circle="close friends" data-note="Avery, Jordan, Maya and you">
+            <span class="ring-name">close friends</span>
+            <span class="ring-people">
+              <span class="dot you">Y</span>
+              <span class="dot" data-who="A">A</span>
+              <span class="dot" data-who="J">J</span>
+              <span class="dot" data-who="M">M</span>
+            </span>
+          </div>
+          <div class="ring b" data-circle="roommates" data-note="Sam, Theo and you">
+            <span class="ring-name">roommates</span>
+            <span class="ring-people">
+              <span class="dot you">Y</span>
+              <span class="dot" data-who="S">S</span>
+              <span class="dot" data-who="T">T</span>
+            </span>
+          </div>
+          <div class="ring c" data-circle="home" data-note="Dani, Ruth, Nell and you">
+            <span class="ring-name">home</span>
+            <span class="ring-people">
+              <span class="dot you">Y</span>
+              <span class="dot" data-who="D">D</span>
+              <span class="dot" data-who="R">R</span>
+            </span>
+          </div>
+        </div>
+        <p class="circles-caption">
+          <span class="caption-lead">Tonight's post goes to</span>
+          <strong id="circle-name">close friends</strong>
+          <span class="caption-note" id="circle-note">Avery, Jordan, Maya and you</span>
+        </p>
       </div>
     </div>
   </section>
 
-  <!-- Echoes -->
-  <section class="feature">
+  <!-- Echoes. The highlight is drawn the way the app draws it: the phrase is
+       marked, not underlined. -->
+  <section class="feature reveal">
     <div class="feature-text">
       <p class="eyebrow">Echoes</p>
       <h2>Reply to a line, not a post</h2>
-      <p>An echo is a private response to the exact phrase that caught you. Only the writer sees who echoed. Everyone else just sees that something landed.</p>
+      <p>An echo is a private response to the exact phrase that caught you. The line stays marked so you can see what landed with everyone. Only the writer sees who echoed.</p>
     </div>
     <div class="feature-art">
       <div class="phone">
@@ -125,10 +201,21 @@
           <div class="screen-body">
             <p class="screen-day">Wednesday, August 26</p>
             <p class="screen-title">Today</p>
+            <div class="post" id="echo-post">
+              <p class="post-who"><span class="dot" data-who="A">A</span>Avery</p>
+              <p class="post-body">Slept badly and woke up early anyway. <span class="echo-line">Sat on the step with coffee until the street started up.</span> Some days that is all of it.</p>
+              <span class="echo-chip" id="echo-chip">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.6 2.2C2.9 3 1.9 4.4 1.9 6.2c0 1.6 1 2.7 2.3 2.7 1.1 0 1.9-.8 1.9-1.8 0-1-.7-1.7-1.7-1.7-.2 0-.4 0-.5.1.2-.8.9-1.6 1.9-2.1zM10 2.2C8.3 3 7.3 4.4 7.3 6.2c0 1.6 1 2.7 2.3 2.7 1.1 0 1.9-.8 1.9-1.8 0-1-.7-1.7-1.7-1.7-.2 0-.4 0-.5.1.2-.8.9-1.6 1.9-2.1z"/></svg>
+                <span id="echo-count">You and 3 others echoed</span>
+              </span>
+            </div>
             <div class="post">
-              <p class="post-who">Avery</p>
-              <p class="post-body">Slept badly and woke up early anyway. <span class="echo-line">Sat on the step with coffee until the street started up.</span> Some days that is the whole of it.</p>
-              <span class="echo-chip">echoed</span>
+              <p class="post-who"><span class="dot" data-who="J">J</span>Jordan</p>
+              <p class="post-body">Took the long shift again.</p>
+              <span class="echo-chip quiet">
+                <svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.6 2.2C2.9 3 1.9 4.4 1.9 6.2c0 1.6 1 2.7 2.3 2.7 1.1 0 1.9-.8 1.9-1.8 0-1-.7-1.7-1.7-1.7-.2 0-.4 0-.5.1.2-.8.9-1.6 1.9-2.1zM10 2.2C8.3 3 7.3 4.4 7.3 6.2c0 1.6 1 2.7 2.3 2.7 1.1 0 1.9-.8 1.9-1.8 0-1-.7-1.7-1.7-1.7-.2 0-.4 0-.5.1.2-.8.9-1.6 1.9-2.1z"/></svg>
+                <span>2 echoes</span>
+              </span>
             </div>
           </div>
           <div class="tabbar"><span></span><span class="on"></span><span></span><span></span><span></span></div>
@@ -139,11 +226,11 @@
 
   <!-- Constellation. Ink, because the app's own rule puts the constellation
        card and the sky on ink: it is the inward-facing surface. -->
-  <section class="sky">
+  <section class="sky reveal">
     <div>
       <p class="eyebrow">Constellation</p>
       <h2>What you keep coming back to</h2>
-      <p>Once a week, fiammo reads back your own writing and shows you the shapes in it. Only yours, only for you.</p>
+      <p>Once a week, fiammo reads back your own writing and shows you the shapes in it. Only yours, only for you. It is the one part of the app nobody else can see.</p>
       <p class="sky-quote">You wrote about leaving four times this month, and every time it was at night.</p>
     </div>
     <div>
@@ -193,28 +280,6 @@
 
 </div>
 
-<script>
-  // The write-to-read mockup performs the gate instead of captioning it: the
-  // post is genuinely blurred until the button is pressed. Reverts after a
-  // beat so a second visitor to the section sees the locked state too.
-  (function () {
-    var btn = document.getElementById("write-btn");
-    var post = document.getElementById("gate-post");
-    var prompt = document.getElementById("gate-prompt");
-    if (!btn || !post || !prompt) return;
-
-    btn.addEventListener("click", function () {
-      post.classList.remove("locked");
-      post.classList.add("unlocked");
-      prompt.style.transition = "opacity .4s ease";
-      prompt.style.opacity = "0";
-      setTimeout(function () {
-        post.classList.add("locked");
-        post.classList.remove("unlocked");
-        prompt.style.opacity = "1";
-      }, 4200);
-    });
-  })();
-</script>
+<script src="home.js?v=3"></script>
 </body>
 </html>
