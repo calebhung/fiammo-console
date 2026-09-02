@@ -627,6 +627,19 @@
       </div>
     </section>
 
+    <section class="tool card" data-tool="change-handle">
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">change a handle</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
+      <p class="hint">renames an account: the handle it has now, then the one it should have. sign-up's rules apply — 2–30 characters, lowercase letters, numbers and underscores — and a handle someone already holds is refused. so is one <strong>retired by an earlier rename</strong>: a freed handle stays blocked forever, so nobody inherits everyone's memory of who that was. the one exception is an account taking back a handle it retired itself — that's how you undo a typo.</p>
+      <div class="row">
+        <input type="text" id="change-handle-current" placeholder="@currenthandle">
+        <input type="text" id="change-handle-new" placeholder="@newhandle">
+        <button id="change-handle-btn">change handle</button>
+      </div>
+      <pre class="result" id="change-handle-result"></pre>
+      </div>
+    </section>
+
     <section class="tool card" data-tool="delete">
       <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">delete user</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
@@ -1091,6 +1104,45 @@
         copyDemoEmailBtn.style.display = "";
         copyDemoPasswordBtn.style.display = "";
       }
+    } catch (e) {
+      setResult(result, e.message, true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  document.getElementById("change-handle-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("change-handle-btn");
+    const result = document.getElementById("change-handle-result");
+    // The @ is how everyone writes a handle, and typing it here is the obvious
+    // thing to do — so strip it rather than making the endpoint refuse it.
+    const current = document.getElementById("change-handle-current").value.trim().replace(/^@+/, "");
+    const next = document.getElementById("change-handle-new").value.trim().replace(/^@+/, "");
+    if (!current || !next) {
+      setResult(result, "enter both the current handle and the new one", true);
+      return;
+    }
+    // Worth a confirm even though it's reversible: the old handle is retired
+    // the moment this runs, and sign-in by handle stops answering to it.
+    if (!confirm(`Rename @${current} to @${next}? @${current} is retired and can't be claimed by anyone else afterwards.`)) return;
+    btn.disabled = true;
+    try {
+      const data = await callFunction("admin-change-handle", {
+        current_handle: current,
+        new_handle: next,
+      });
+      const lines = [
+        `@${data.previous_handle} \u2192 @${data.new_handle}`,
+        "",
+        "user id:  " + data.user_id,
+        `@${data.previous_handle} is now retired \u2014 no other account can take it.`,
+      ];
+      // Only true on the undo path, where the rule was bent rather than
+      // enforced. Say so, so it doesn't look like retirement silently lapsed.
+      if (data.reclaimed) lines.push(`@${data.new_handle} was retired by this same account, and has been released back to it.`);
+      setResult(result, lines.join("\n"), false);
+      document.getElementById("change-handle-current").value = "";
+      document.getElementById("change-handle-new").value = "";
     } catch (e) {
       setResult(result, e.message, true);
     } finally {
