@@ -211,14 +211,18 @@ nav.legal-links a.nav-cta:hover { background: var(--text); border-color: var(--t
   background: var(--bg);
 }
 
+/* Suggestion of a tab bar, not a row of blocks. Square slabs at full border
+   contrast read as missing icons; rounded and lighter, they sit back where a
+   piece of scenery belongs. The active one keeps the app's copper. */
 .tabbar span {
-  width: 15px;
-  height: 15px;
-  border-radius: 4px;
+  width: 16px;
+  height: 5px;
+  border-radius: 999px;
   background: var(--border);
+  opacity: .85;
 }
 
-.tabbar span.on { background: var(--accent); }
+.tabbar span.on { background: var(--accent); opacity: 1; }
 
 /* ---------- write to read ---------- */
 
