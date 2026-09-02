@@ -148,6 +148,9 @@ header.site {
 
 .hero p:not(.tagline) { text-align: left; }
 
+/* The header nav is down to the one action worth taking on the home page —
+   support, privacy, and terms moved to the footer banner — so these rules
+   now dress a single link rather than a row of legal small print. */
 nav.legal-links a {
   font-family: var(--font-sans);
   font-weight: 500;
@@ -210,23 +213,109 @@ a:hover { color: var(--gold); }
   box-shadow: var(--lift);
 }
 
+/* Reading pages are articles, not cards.
+ *
+ * Privacy, terms, and support are long-form documents somebody reads top to
+ * bottom, and a card put a border and a shadow around 2,000 words of prose,
+ * which reads as a widget rather than as a page. They sit straight on the desk
+ * paper instead, with the measure and the spacing doing the containing. The
+ * card stays for what it is actually for: the short, transactional surfaces
+ * (invite, accept, 404), where the box is the whole content.
+ */
+.article { display: block; }
+
+/* The document pages run a slightly narrower measure than the rest of the
+   site, so the prose stays readable without a card holding it in. The wrap
+   carries it rather than the article, so the wordmark and the footer banner
+   line up with the text edge. */
+body.doc .wrap { max-width: 640px; }
+
+.article h1 {
+  font-size: 2.15rem;
+  line-height: 1.2;
+}
+
+/* A hairline under the masthead of the document, so the title has a foot to
+   stand on now that no card edge is drawing one. */
+.article .updated {
+  margin-bottom: 0;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.article .lede {
+  font-size: 1.12rem;
+  line-height: 1.7;
+  color: var(--text);
+  margin-top: 28px;
+}
+
+/* Longer measure wants more air between sections and a slightly larger,
+   looser serif than a card's worth of copy did. */
+.article h2 {
+  margin-top: 44px;
+  margin-bottom: 12px;
+}
+
+.article p,
+.article li {
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+
+.article > p:first-of-type ~ p { margin-bottom: 18px; }
+
+.article ul { margin: 16px 0; }
+
+.article li { margin-bottom: 12px; }
+
+/* The footer carries the navigation.
+ *
+ * Support, privacy, and terms used to hang off the top right of every page,
+ * which put the small print in the position a product's primary nav occupies.
+ * They belong where a reader goes looking for them: the bottom of the page,
+ * as a banner, next to contact. The header keeps the wordmark and, on the
+ * home page, the one action worth taking. */
 footer.site {
-  margin-top: 56px;
-  padding-top: 24px;
+  margin-top: 72px;
+  padding-top: 26px;
   border-top: 1px solid var(--border);
   color: var(--muted);
   font-family: var(--font-sans);
   font-weight: 500;
   font-size: 0.82rem;
   display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 20px;
 }
 
 footer.site a { color: var(--muted); }
 
 footer.site a:hover { color: var(--accent-strong); }
+
+.footer-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+}
+
+.footer-nav a {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  letter-spacing: 0.01em;
+}
+
+.footer-nav a.here { color: var(--accent-strong); }
+
+.footer-nav a:hover { color: var(--accent-strong); }
+
+.footer-base {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
 /* Ink, not copper. The app made this call already: routine actions sit on
    fiammoForeground and never on the accent, because a copper pill for an
@@ -272,12 +361,22 @@ footer.site a:hover { color: var(--accent-strong); }
     margin-bottom: 32px;
   }
 
-  nav.legal-links a {
+  /* The header nav is down to the one action worth taking on the home page —
+   support, privacy, and terms moved to the footer banner — so these rules
+   now dress a single link rather than a row of legal small print. */
+nav.legal-links a {
     margin-left: 0;
     margin-right: 18px;
   }
 
   .card { padding: 24px; }
+
+  .article h1 { font-size: 1.75rem; }
+
+  .article p,
+  .article li { font-size: 1rem; }
+
+  .footer-nav { gap: 8px 20px; }
 
   .hero h1 { font-size: 2rem; }
 

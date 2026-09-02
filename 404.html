@@ -7,7 +7,7 @@
 <meta name="description" content="Page not found on Fiammo.">
 <meta name="robots" content="noindex">
 <link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 <style>
   /* Every color here comes from style.css's variables — the page reads as the
      homepage with the hero swapped out, not as a separately styled screen. */
@@ -70,28 +70,8 @@
     color: var(--muted);
   }
 
-  .error-links {
-    margin-top: 30px;
-    padding-top: 22px;
-    border-top: 1px solid var(--border);
-    font-family: var(--font-sans);
-    font-weight: 500;
-    font-size: 0.9rem;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-  }
-
-  .error-links a {
-    color: var(--muted);
-    text-decoration: none;
-    margin: 0 10px;
-  }
-
-  .error-links a:hover { color: var(--accent-strong); }
-
   @media (max-width: 480px) {
     .error-code { font-size: 3.4rem; }
-    .error-links a { margin: 0 6px; }
   }
 </style>
 </head>
@@ -102,11 +82,6 @@
       <img class="mark" src="flame.svg?v=2" alt="">
       <span class="word"><span class="initial">f</span><span class="i">i</span>ammo</span>
     </a>
-    <nav class="legal-links">
-      <a href="/support.html">Support</a>
-      <a href="/privacy.html">Privacy</a>
-      <a href="/terms.html">Terms</a>
-    </nav>
   </header>
 
   <!-- Served by Cloudflare Pages for any path that doesn't match a file. Without
@@ -118,17 +93,20 @@
     <h1>this one burned</h1>
     <p class="tagline center">page not found</p>
     <p class="error-body">Nothing lives at this address. If you followed a confirmation link from a text, check that you copied the whole thing. They're long and easy to cut short.</p>
-    <p class="error-links">
+  </main>
+
+  <footer class="site">
+    <nav class="footer-nav">
       <a href="/">Home</a>
       <a href="/support.html">Support</a>
       <a href="/privacy.html">Privacy</a>
       <a href="/terms.html">Terms</a>
-    </p>
-  </main>
-
-  <footer class="site">
-    <span>&copy; 2026 Fiammo</span>
-    <span><a href="mailto:hello@fiammo.co">hello@fiammo.co</a></span>
+      <a href="https://apps.apple.com/app/id6791766677">Get the app</a>
+    </nav>
+    <div class="footer-base">
+      <span>&copy; 2026 fiammo</span>
+      <span><a href="mailto:hello@fiammo.co">hello@fiammo.co</a></span>
+    </div>
   </footer>
 </div>
 </body>
