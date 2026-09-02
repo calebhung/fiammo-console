@@ -228,16 +228,18 @@ footer.site a { color: var(--muted); }
 
 footer.site a:hover { color: var(--accent-strong); }
 
-/* The one place copper is allowed to be a fill: a single primary action.
-   Defined here rather than per page so the front page and the invite page
-   cannot drift apart again. */
+/* Ink, not copper. The app made this call already: routine actions sit on
+   fiammoForeground and never on the accent, because a copper pill for an
+   ordinary tap spends fire on something that isn't fire. It also matches the
+   ink "Write something" button inside the product itself, and clears contrast
+   at any size, which white on copper does not. */
 .download-btn {
   display: inline-block;
   margin-top: 20px;
-  padding: 12px 28px;
+  padding: 13px 30px;
   border-radius: 10px;
-  border: 1px solid var(--accent-strong);
-  background: var(--accent);
+  border: 1px solid var(--ink);
+  background: var(--ink);
   color: var(--on-accent) !important;
   font-family: var(--font-sans);
   font-weight: 500;
@@ -245,7 +247,7 @@ footer.site a:hover { color: var(--accent-strong); }
   text-decoration: none;
 }
 
-.download-btn:hover { background: var(--accent-strong); color: var(--on-accent); }
+.download-btn:hover { background: var(--text); border-color: var(--text); color: var(--on-accent); }
 
 .secondary {
   margin-top: 20px;

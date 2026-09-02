@@ -34,14 +34,14 @@ nav.legal-links a.nav-cta {
   text-transform: none;
   letter-spacing: 0;
   color: var(--on-accent);
-  background: var(--accent-strong);
-  border: 1px solid var(--accent-strong);
+  background: var(--ink);
+  border: 1px solid var(--ink);
   padding: 8px 18px;
   border-radius: 999px;
   margin-left: 20px;
 }
 
-nav.legal-links a.nav-cta:hover { background: var(--ink); border-color: var(--ink); color: var(--on-accent); }
+nav.legal-links a.nav-cta:hover { background: var(--text); border-color: var(--text); color: var(--on-accent); }
 
 /* ---------- hero ---------- */
 
@@ -52,13 +52,19 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); border-color: var(--in
 
 .hero-band .hero-mark { height: 76px; margin-bottom: 18px; }
 
+/* A headline, not the wordmark. Optima's flared stems read as a clean sans at
+   20px and almost as a serif at 74px, so the header mark and a giant hero mark
+   looked like two different fonts on one screen. The header carries the
+   wordmark; this says what the app is. */
 .hero-band h1 {
-  font-family: 'Optima', var(--font-serif);
+  font-family: var(--font-sans);
   font-weight: 600;
-  font-size: clamp(3rem, 11vw, 4.6rem);
-  letter-spacing: 0.02em;
-  line-height: 1;
-  margin: 0;
+  font-size: clamp(2.1rem, 6.4vw, 3.2rem);
+  letter-spacing: -0.025em;
+  line-height: 1.08;
+  margin: 0 auto;
+  max-width: 16ch;
+  text-wrap: balance;
   color: var(--ink);
 }
 
@@ -99,7 +105,7 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); border-color: var(--in
   font-size: 0.78rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--accent-strong);
+  color: var(--muted);
   margin: 0 0 10px;
 }
 
@@ -110,7 +116,7 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); border-color: var(--in
   text-wrap: balance;
 }
 
-.feature-text p {
+.feature-text p:not(.eyebrow) {
   font-family: var(--font-serif);
   font-size: 1.06rem;
   max-width: 38ch;
@@ -266,10 +272,9 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); border-color: var(--in
 }
 
 .burn-clock {
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 0.62rem;
   color: var(--accent-strong);
-  letter-spacing: 0.04em;
 }
 
 /* ---------- echo ---------- */
@@ -338,7 +343,7 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); border-color: var(--in
 
 .sky h2 { margin-top: 0; font-size: 1.75rem; line-height: 1.2; }
 
-.sky p {
+.sky p:not(.eyebrow) {
   font-family: var(--font-serif);
   color: #C9C1B7;
   font-size: 1.06rem;
