@@ -8,26 +8,82 @@
 <link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
 <link rel="stylesheet" href="style.css?v=5">
 <style>
+  /* Page-scoped on purpose: style.css is cached for four hours by Cloudflare
+     Pages, so anything added there ships to nobody who visited recently
+     unless every page's ?v= is bumped in the same commit. Only .download-btn
+     and .card are borrowed from the shared sheet. */
   .wrap { max-width: 480px; }
+
+  /* The SMS block is hidden with the `hidden` attribute, but .or and
+     #confirm-form both set display:flex, and an author rule beats the UA
+     sheet's [hidden]{display:none} at equal specificity. Without this the
+     "hidden" opt-in renders. */
+  [hidden] { display: none !important; }
 
   #state {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
     text-align: center;
-    padding: 56px 32px;
+    padding: 44px 32px 36px;
   }
-  #state h1 { margin: 0; }
+  /* The global h1 is sized for an article; this one is a greeting on a phone,
+     and at 2rem+ a two-word name pushed it to three loose lines. */
+  #state h1 {
+    margin: 0;
+    font-size: 1.65rem;
+    line-height: 1.2;
+    max-width: 340px;
+  }
   #state p { margin: 0; color: var(--muted); }
-  #state.err h1 { color: var(--accent); }
+  #state.err h1 { color: var(--accent-strong); }
+
+  /* The app is the primary path now, so it gets the one solid fill on the
+     page. Ink, not copper: an ordinary tap doesn't spend fire. Same call
+     .download-btn already makes on the home page. */
+  #app-cta { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  #app-cta .download-btn { margin-top: 8px; }
+
+  .store-note {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    color: var(--muted);
+    max-width: 320px;
+  }
+
+  /* A rule with a word in it, rather than a heading — the two paths are
+     alternatives of unequal weight, not two sections of a form. */
+  .or {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
+    margin: 20px 0 4px;
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .or::before,
+  .or::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
 
   #confirm-form {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
-    margin-top: 4px;
+  }
+  .form-lede {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    color: var(--text);
+    margin: 0 0 2px;
   }
 
   #phone-last4 {
@@ -42,10 +98,15 @@
     background: var(--bg);
     color: var(--text);
   }
+  #phone-last4:focus {
+    outline: none;
+    border-color: var(--ink);
+  }
   .field-label {
     font-family: var(--font-sans);
     font-size: 0.72rem;
     color: var(--muted);
+    max-width: 300px;
   }
   .field-error {
     color: #B3261E;
@@ -54,22 +115,24 @@
     min-height: 1em;
   }
 
+  /* Outlined ink rather than a second solid fill: the text path is a real
+     choice, but it shouldn't shout as loud as the app. */
   #confirm-btn {
-    margin-top: 4px;
-    padding: 12px 28px;
+    margin-top: 2px;
+    padding: 11px 24px;
     border-radius: 10px;
-    border: 1px solid var(--accent-strong);
-    background: var(--accent);
-    color: var(--on-accent);
+    border: 1px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
     font-family: var(--font-sans);
-    font-size: 0.95rem;
+    font-weight: 500;
+    font-size: 0.9rem;
     cursor: pointer;
   }
-  #confirm-btn:hover { background: var(--accent-strong); }
-  #confirm-btn:disabled { opacity: 0.5; cursor: default; }
+  #confirm-btn:hover:not(:disabled) { background: var(--ink); color: var(--on-accent); }
+  #confirm-btn:disabled { opacity: 0.4; cursor: default; }
 
   #decline-link {
-    margin-top: 2px;
     background: none;
     border: none;
     padding: 0;
@@ -79,12 +142,13 @@
     text-decoration: underline;
     cursor: pointer;
   }
-  #decline-link:hover { color: var(--accent-strong); }
+  #decline-link:hover { color: var(--text); }
 
   .disclosure {
-    margin-top: 4px;
+    margin-top: 10px;
     font-family: var(--font-sans);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
+    line-height: 1.6;
     color: var(--muted);
     max-width: 340px;
   }
@@ -93,6 +157,7 @@
 
   .secondary {
     margin-top: 24px;
+    text-align: center;
     font-family: var(--font-sans);
     font-size: 0.78rem;
     color: var(--muted);
@@ -110,18 +175,42 @@
     </a>
   </header>
 
-  <!-- The consent form and its disclosure are visible in the served HTML, not
-       revealed by script. Everything here used to start hidden and get switched
-       on once the token lookup resolved, which meant anything reading the page
-       without running JS — a compliance reviewer's capture tool, a carrier
-       audit, a preview crawler — saw "loading…" and no call to action at all.
-       Script now personalizes this copy for a real visitor and hides it on a
-       bad token (showTerminal), rather than being what makes it exist. -->
-  <section id="state" class="card">
-    <h1 id="state-title">confirm you want texts from fiammo</h1>
-    <p id="state-body">someone added you so you can get a text whenever they post. no app needed.</p>
+  <!-- Two shapes, one page, chosen by the server at load.
+       The invite text is composed inside the iOS app, so the token URL that
+       lands in someone's Messages is frozen until the next App Store release.
+       That makes this page the only part of the flow that can change, which is
+       why nothing here is hardcoded: preview-circle-invite returns sms_enabled
+       (the circle_sms_settings kill switch, flipped from dev-tools), and it
+       decides which shape renders.
 
-    <form id="confirm-form">
+         sms_enabled false → the app, and nothing else. Confirming an opt-in
+           for texts that can't be sent would be a promise broken on the spot.
+         sms_enabled true  → the consent form, its disclosure and the "or"
+           divider come back, exactly as before.
+
+       The SMS block below is therefore hidden in the served HTML and revealed
+       by script. Worth knowing what that costs: a compliance capture that
+       doesn't run JS won't see the opt-in. That's the right trade while the
+       switch is off — there's nothing to review — but if a carrier or Twilio
+       campaign review is pending, serve it unhidden for the duration.
+
+       Either way the invite itself is unaffected: the contact is in the circle
+       from the moment the host adds them, and installing resolves the rest
+       (074_link_circle_contacts_on_signup) with no text ever involved. -->
+  <section id="state" class="card">
+    <img class="hero-mark" src="flame.svg?v=2" alt="">
+    <h1 id="state-title">someone added you to their circle</h1>
+    <p id="state-body">download now to find them.</p>
+
+    <div id="app-cta">
+      <a class="download-btn" href="https://apps.apple.com/app/id6791766677">get fiammo</a>
+      <p class="store-note">Free on the App Store. Sign up with this same phone number and you'll land straight in their circle, with their request waiting.</p>
+    </div>
+
+    <div class="or" id="or-divider" hidden><span>or</span></div>
+
+    <form id="confirm-form" hidden>
+      <p class="form-lede">stay on text</p>
       <label class="field-label" for="phone-last4">confirm the last 4 digits of the phone number that got this text</label>
       <input type="tel" id="phone-last4" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000">
       <div class="field-error" id="field-error"></div>
@@ -129,7 +218,7 @@
       <button id="decline-link" type="button">no thanks</button>
     </form>
 
-    <p class="disclosure" id="disclosure">
+    <p class="disclosure" id="disclosure" hidden>
       you'll get a text each time they post. message &amp; data rates may apply.
       reply HELP for help, STOP at any time to opt out.
       by confirming you agree to fiammo's
@@ -148,7 +237,6 @@
     </div>
   </footer>
 </div>
-
 <script>
   const SUPABASE_URL = "https://syqqxogkqmuojchbglle.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
@@ -158,6 +246,7 @@
   const stateEl = document.getElementById("state");
   const secondaryEl = document.getElementById("secondary");
   const formEl = document.getElementById("confirm-form");
+  const orEl = document.getElementById("or-divider");
   const inputEl = document.getElementById("phone-last4");
   const fieldErrorEl = document.getElementById("field-error");
   const btnEl = document.getElementById("confirm-btn");
@@ -171,6 +260,12 @@
   // calls, so nothing expires, gets consumed, or touches real invite data.
   const SAMPLE_TOKEN = "sample-review";
   const isSample = token === SAMPLE_TOKEN;
+
+  // Set from preview-circle-invite's sms_enabled on every load. Starts false
+  // and stays false on any failure — an unreachable server, a bad token, no
+  // token at all — so the page can only ever fall back to offering the app,
+  // never to advertising texts it can't send.
+  let smsOptInEnabled = false;
 
   function callEdge(name, body) {
     return fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
@@ -187,19 +282,35 @@
   // Full-page terminal state (invalid link, expired, declined, success).
   // Distinct from fieldErrorEl, which reports a wrong-digits guess without
   // hiding the form so the visitor can just try again.
+  //
+  // The app CTA deliberately survives every one of these: an expired link or
+  // a declined text invite is exactly the moment installing is still worth
+  // offering, and it's the only path left once the SMS one is closed.
   function showTerminal(title, body, isError) {
     titleEl.textContent = title;
     bodyEl.textContent = body;
     stateEl.classList.toggle("err", !!isError);
-    formEl.style.display = "none";
-    disclosureEl.style.display = "none";
+    formEl.hidden = true;
+    orEl.hidden = true;
+    disclosureEl.hidden = true;
     secondaryEl.style.display = "block";
+  }
+
+  function showInvite(ownerName) {
+    titleEl.textContent = `${ownerName} added you to their circle`;
+    bodyEl.textContent = smsOptInEnabled
+      ? "get their posts in the app, or as a text. no account needed for texts."
+      : "download now to find them.";
+    if (!smsOptInEnabled) return;
+    formEl.hidden = false;
+    orEl.hidden = false;
+    disclosureEl.hidden = false;
   }
 
   function errorMessageFor(errCode) {
     switch (errCode) {
-      case "expired": return ["this link has expired", "ask them to add you again for a fresh one."];
-      case "declined": return ["you've already said no thanks", "you won't get any texts. ask them to add you again if you change your mind."];
+      case "expired": return ["this link has expired", "get the app anyway — sign up with this number and they'll find you."];
+      case "declined": return ["you've already said no thanks", "you won't get any texts. the app is still there if you change your mind."];
       case "too_many_attempts": return ["too many attempts", "wait about 15 minutes and try again."];
       default: return ["this link isn't valid", "check that you copied the whole link from the text."];
     }
@@ -212,10 +323,11 @@
       return;
     }
     if (isSample) {
-      titleEl.textContent = `Jordan wants to text you`;
-      bodyEl.textContent = `they added you so you can get a text whenever they post. no app needed.`;
-      formEl.style.display = "flex";
-      disclosureEl.style.display = "block";
+      // The sample exists to show a reviewer the opt-in page, so it renders
+      // that shape whatever the live switch says — it makes no network call
+      // by design, so it has no switch to read.
+      smsOptInEnabled = true;
+      showInvite("Jordan");
       return;
     }
     try {
@@ -228,15 +340,15 @@
         return;
       }
 
+      // already_confirmed can only come from a row someone opted into before
+      // this page went download-only, so it still says what's true for them.
       if (data.already_confirmed) {
         showTerminal("you're already set", `you're getting texts from ${data.owner_name} whenever they post. reply STOP anytime to opt out.`, false);
         return;
       }
 
-      titleEl.textContent = `${data.owner_name} wants to text you`;
-      bodyEl.textContent = `they added you so you can get a text whenever they post. no app needed.`;
-      formEl.style.display = "flex";
-      disclosureEl.style.display = "block";
+      smsOptInEnabled = data.sms_enabled === true;
+      showInvite(data.owner_name);
     } catch (e) {
       const [title, body] = errorMessageFor(null);
       showTerminal(title, body, true);
