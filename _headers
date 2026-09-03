@@ -1,0 +1,5 @@
+# The association file has no extension, so Pages would otherwise serve it as
+# application/octet-stream and iOS would refuse it. Apple requires JSON, and
+# the file must be reachable at exactly this path over https with no redirect.
+/.well-known/apple-app-site-association
+  Content-Type: application/json

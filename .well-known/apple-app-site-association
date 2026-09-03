@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["BXP7FGLHSU.forthepeople.fiammo"],
+        "components": [
+          {
+            "/": "/u/*",
+            "comment": "Scanned profile codes open the person's profile in the app."
+          }
+        ]
+      }
+    ]
+  }
+}
