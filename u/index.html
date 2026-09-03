@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile · Fiammo</title>
+<meta name="description" content="Someone shared their fiammo profile.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="../flame.svg?v=2" type="image/svg+xml">
+<link rel="stylesheet" href="../style.css?v=5">
+<style>
+  /* Same shape as /p/: the homepage's card with the hero swapped out, so a
+     scanned link lands somewhere that reads as fiammo rather than as a
+     separately styled screen. */
+  .profile-hero {
+    text-align: center;
+    padding-top: 40px;
+    padding-bottom: 38px;
+  }
+
+  .flame-splash {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  .flame-splash::before {
+    content: "";
+    position: absolute;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201, 111, 59, 0.20) 0%, rgba(201, 111, 59, 0.07) 45%, rgba(201, 111, 59, 0) 70%);
+  }
+
+  .flame-splash img { position: relative; height: 58px; width: auto; }
+
+  .profile-hero h1 { font-size: 1.55rem; margin: 0; }
+
+  .profile-hero .handle {
+    font-family: var(--font-mono);
+    font-size: .9rem;
+    color: var(--gold);
+    margin: 8px 0 0;
+  }
+
+  .profile-hero p.body {
+    text-align: center;
+    max-width: 420px;
+    margin: 18px auto 24px;
+    color: var(--muted);
+  }
+
+  .cta {
+    display: inline-block;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: .95rem;
+    color: var(--on-accent);
+    background: var(--gold);
+    padding: 12px 26px;
+    border-radius: 999px;
+    text-decoration: none;
+  }
+
+  /* The name only appears once it has actually resolved, so the page never
+     flashes a placeholder name at somebody. */
+  .pending .named { visibility: hidden; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <a class="wordmark" href="/">
+      <img class="mark" src="../flame.svg?v=2" alt="">
+      <span class="word"><span class="initial">f</span><span class="i">i</span>ammo</span>
+    </a>
+  </header>
+
+  <main class="card profile-hero pending" id="hero">
+    <span class="flame-splash"><img src="../flame.svg?v=2" alt=""></span>
+    <h1 class="named" id="line">on fiammo</h1>
+    <p class="handle named" id="handle"></p>
+    <p class="body">Posts here burn after a day. Get the app to read what they wrote.</p>
+    <a class="cta" id="cta" href="https://apps.apple.com/app/id6791766677">Download fiammo</a>
+  </main>
+
+  <footer class="site">
+    <nav class="footer-nav">
+      <a href="/">Home</a>
+      <a href="/support.html">Support</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="https://apps.apple.com/app/id6791766677">Get the app</a>
+    </nav>
+    <div class="footer-base">
+      <span>&copy; 2026 fiammo</span>
+      <span><a href="mailto:hello@fiammo.co">hello@fiammo.co</a></span>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var APP_STORE = "https://apps.apple.com/app/id6791766677";
+
+  // The publishable key, same one the app ships in Config.swift. Public by
+  // design, and NOT a JWT: the sb_publishable_ keys go in the apikey header
+  // only. Sending it as Authorization too makes the gateway 401 before the
+  // function is reached.
+  var SUPABASE_URL = "https://syqqxogkqmuojchbglle.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
+
+  var RESOLVE_TIMEOUT_MS = 2000;
+
+  var id = (location.pathname.replace(/\/+$/, "").split("/").pop() || "").toLowerCase();
+
+  // Every failure path lands on the same page state: bad id, unknown id, HTTP
+  // error, timeout, offline. A visitor never gets a different outcome for a
+  // real id than a made-up one, so the URL space says nothing about which
+  // accounts exist. Unlike /p/ this does not bounce to the App Store on a
+  // miss, because a scanned code that silently redirects reads as broken —
+  // it just stays generic.
+  function resolveProfile(done) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) {
+      return done(null);
+    }
+
+    var settled = false;
+    function finish(v) { if (!settled) { settled = true; done(v); } }
+    setTimeout(function () { finish(null); }, RESOLVE_TIMEOUT_MS);
+
+    fetch(SUPABASE_URL + "/functions/v1/resolve-profile-link", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON_KEY },
+      body: JSON.stringify({ id: id })
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { finish(d && d.ok ? d : null); })
+      .catch(function () { finish(null); });
+  }
+
+  resolveProfile(function (profile) {
+    var hero = document.getElementById("hero");
+    if (!profile) {
+      document.getElementById("line").textContent = "Someone shared their fiammo";
+      hero.classList.remove("pending");
+      return;
+    }
+    document.getElementById("line").textContent = profile.first_name + " is on fiammo";
+    document.getElementById("handle").textContent = "@" + profile.handle;
+    hero.classList.remove("pending");
+  });
+})();
+</script>
+</body>
+</html>

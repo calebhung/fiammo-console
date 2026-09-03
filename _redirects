@@ -13,3 +13,10 @@
 # index.html to the directory, so a rewrite aimed at the file lands on a
 # redirect rather than an asset and falls through to the 404 page.
 /p/*  /p/  200
+
+# /u/<id> — a scanned profile code. Same 200-rewrite shape as /p/ and for the
+# same reason: the id has to stay in the URL for the page to read it back out
+# of location.pathname. Keyed on the user id rather than the handle because
+# migration 076 made a freed handle reclaimable, so a printed code keyed on a
+# handle could resolve to a different person later.
+/u/*  /u/  200

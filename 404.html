@@ -13,65 +13,84 @@
      homepage with the hero swapped out, not as a separately styled screen. */
   .error-hero {
     text-align: center;
-    padding-top: 44px;
-    padding-bottom: 40px;
+    padding-top: 46px;
+    padding-bottom: 42px;
   }
 
-  /* The splash: the mark sitting in a warm copper glow, which is the one place
-     this page is allowed to be louder than the rest of the site. */
+  /* An unlit mark, not a glowing one. The old splash put the flame in a warm
+     copper halo, which made a routing miss look like an event. Nothing
+     happened here, so the mark sits cold in a thin ring instead: the shape is
+     present, the fire is not. */
   .flame-splash {
     position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 22px;
-  }
-
-  .flame-splash::before {
-    content: "";
-    position: absolute;
-    width: 150px;
-    height: 150px;
+    width: 118px;
+    height: 118px;
+    margin-bottom: 24px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(201, 111, 59, 0.20) 0%, rgba(201, 111, 59, 0.07) 45%, rgba(201, 111, 59, 0) 70%);
+    border: 1px solid var(--border);
   }
 
   .flame-splash img {
     position: relative;
-    height: 60px;
+    height: 52px;
     width: auto;
+    filter: grayscale(1);
+    opacity: .28;
   }
 
+  /* The sentence is the hero, not the numeral. 404 is what the server calls
+     it; it is not what the reader came to find out. */
   .error-code {
-    font-family: var(--font-sans);
-    font-weight: 700;
-    font-size: 4.2rem;
-    line-height: 1;
-    letter-spacing: -0.03em;
-    color: var(--accent);
-    margin: 0;
+    font-family: var(--font-mono);
+    font-size: .82rem;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin: 0 0 10px;
   }
 
   .error-hero h1 {
     font-size: 1.55rem;
-    margin: 14px 0 0;
+    margin: 0;
   }
 
-  .error-hero .tagline {
-    margin: 10px 0 22px;
-  }
-
-  /* .hero left-aligns its body copy, which is right for the homepage's longer
-     paragraph and wrong for two lines of apology. */
   .error-hero p.error-body {
     text-align: center;
-    max-width: 420px;
-    margin: 0 auto;
+    max-width: 430px;
+    margin: 16px auto 0;
     color: var(--muted);
   }
 
-  @media (max-width: 480px) {
-    .error-code { font-size: 3.4rem; }
+  /* Two ways out rather than none. The old page left the footer nav as the
+     only exit, which is a lot to ask of someone who arrived by mistake. */
+  .error-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 26px;
+  }
+
+  .error-actions a {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    font-size: .92rem;
+    padding: 11px 24px;
+    border-radius: 999px;
+    text-decoration: none;
+  }
+
+  .error-actions .primary {
+    color: var(--on-accent);
+    background: var(--gold);
+  }
+
+  .error-actions .secondary {
+    color: var(--text);
+    background: var(--card);
+    border: 1px solid var(--border);
   }
 </style>
 </head>
@@ -86,13 +105,21 @@
 
   <!-- Served by Cloudflare Pages for any path that doesn't match a file. Without
        it, Pages falls back to index.html with a 200, so every typo'd or stale
-       URL rendered as a page that looked like it had worked. -->
+       URL rendered as a page that looked like it had worked.
+
+       The copy deliberately does not say the page burned. Burning is a real
+       thing in this product with a specific meaning, and telling someone who
+       mistyped a URL that their content expired is both wrong and alarming.
+       Nothing was ever at this address, and that is what it should say. -->
   <main class="card error-hero">
     <span class="flame-splash"><img src="flame.svg?v=2" alt=""></span>
     <p class="error-code">404</p>
-    <h1>this one burned</h1>
-    <p class="tagline center">page not found</p>
-    <p class="error-body">Nothing lives at this address. If you followed a confirmation link from a text, check that you copied the whole thing. They're long and easy to cut short.</p>
+    <h1>Nothing at this address</h1>
+    <p class="error-body">This link doesn't lead anywhere on fiammo. If you followed it from a message, check that the whole thing came through. They're long and easy to cut short.</p>
+    <div class="error-actions">
+      <a class="primary" href="https://apps.apple.com/app/id6791766677">Get fiammo</a>
+      <a class="secondary" href="/support.html">Get help</a>
+    </div>
   </main>
 
   <footer class="site">
