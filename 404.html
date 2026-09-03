@@ -63,35 +63,13 @@
     color: var(--muted);
   }
 
-  /* Two ways out rather than none. The old page left the footer nav as the
-     only exit, which is a lot to ask of someone who arrived by mistake. */
-  .error-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-    margin-top: 26px;
-  }
-
-  .error-actions a {
-    font-family: var(--font-sans);
-    font-weight: 600;
-    font-size: .92rem;
-    padding: 11px 24px;
-    border-radius: 999px;
-    text-decoration: none;
-  }
-
-  .error-actions .primary {
-    color: var(--on-accent);
-    background: var(--gold);
-  }
-
-  .error-actions .secondary {
-    color: var(--text);
-    background: var(--card);
-    border: 1px solid var(--border);
-  }
+  /* A way out, rather than leaving the footer nav as the only exit. The solid
+     button is .download-btn from style.css and the muted line under it is
+     .secondary, which is the pairing invite and accept already use. Rolling a
+     custom button here would lose its label on tap: the global
+     `a:hover { color: var(--gold) }` outranks a plain class, and .download-btn
+     is the thing that already guards against that. */
+  .error-hero .secondary { text-align: center; }
 </style>
 </head>
 <body>
@@ -116,10 +94,8 @@
     <p class="error-code">404</p>
     <h1>Nothing at this address</h1>
     <p class="error-body">This link doesn't lead anywhere on fiammo. If you followed it from a message, check that the whole thing came through. They're long and easy to cut short.</p>
-    <div class="error-actions">
-      <a class="primary" href="https://apps.apple.com/app/id6791766677">Get fiammo</a>
-      <a class="secondary" href="/support.html">Get help</a>
-    </div>
+    <a class="download-btn" href="https://apps.apple.com/app/id6791766677">get fiammo</a>
+    <p class="secondary">Still stuck? <a href="/support.html">Get help</a>.</p>
   </main>
 
   <footer class="site">

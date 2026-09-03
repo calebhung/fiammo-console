@@ -49,21 +49,14 @@
   .profile-hero p.body {
     text-align: center;
     max-width: 420px;
-    margin: 18px auto 24px;
+    margin: 18px auto 0;
     color: var(--muted);
   }
 
-  .cta {
-    display: inline-block;
-    font-family: var(--font-sans);
-    font-weight: 600;
-    font-size: .95rem;
-    color: var(--on-accent);
-    background: var(--gold);
-    padding: 12px 26px;
-    border-radius: 999px;
-    text-decoration: none;
-  }
+  /* The button is .download-btn from style.css, same as invite and accept.
+     Worth not reinventing: the global `a:hover { color: var(--gold) }` is more
+     specific than a plain class, so a hand-rolled CTA loses its text colour on
+     tap and the label disappears. .download-btn already guards that. */
 
   /* The name only appears once it has actually resolved, so the page never
      flashes a placeholder name at somebody. */
@@ -84,7 +77,7 @@
     <h1 class="named" id="line">on fiammo</h1>
     <p class="handle named" id="handle"></p>
     <p class="body">Posts here burn after a day. Get the app to read what they wrote.</p>
-    <a class="cta" id="cta" href="https://apps.apple.com/app/id6791766677">Download fiammo</a>
+    <a class="download-btn" id="cta" href="https://apps.apple.com/app/id6791766677">get fiammo</a>
   </main>
 
   <footer class="site">
