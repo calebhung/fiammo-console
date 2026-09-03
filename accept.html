@@ -6,6 +6,8 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Fiammo · Confirm</title>
 <link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
+<link rel="preconnect" href="https://syqqxogkqmuojchbglle.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://syqqxogkqmuojchbglle.supabase.co">
 <link rel="stylesheet" href="style.css?v=5">
 <style>
   /* Page-scoped on purpose: style.css is cached for four hours by Cloudflare
@@ -28,7 +30,7 @@
   #state.loading #state-body { opacity: 0; }
 
   #state-title,
-  #state-body { transition: opacity .22s ease; }
+  #state-body { transition: opacity .12s ease; }
 
   /* Someone who asked not to be moved gets the swap without the fade. */
   @media (prefers-reduced-motion: reduce) {
@@ -275,21 +277,42 @@
   const declineBtnEl = document.getElementById("decline-link");
   const disclosureEl = document.getElementById("disclosure");
 
-  // Applied before the first paint rather than in loadPreview(), which runs
-  // after the rest of this script is parsed — late enough to flash.
-  stateEl.classList.add("loading");
+  // Ends the held greeting, however it ends: name resolved, or terminal state.
+  let revealAnyway = 0;
   function settled() {
     clearTimeout(revealAnyway);
     stateEl.classList.remove("loading");
   }
 
-  // A lookup that never comes back must not leave a card with no heading in
-  // it. After a beat the generic copy is shown as served — "someone" is a
-  // worse greeting than a name, but it beats blank, and the button under it
-  // works either way.
-  const revealAnyway = setTimeout(() => stateEl.classList.remove("loading"), 2500);
+  const params = new URLSearchParams(location.search);
+  const token = params.get("token");
 
-  const token = new URLSearchParams(location.search).get("token");
+  // The inviter's name, when send-circle-invite put it in the link. Anyone can
+  // type whatever they like into a query string, so this is display text only
+  // and is scrubbed to plain name characters before it ever reaches the DOM.
+  // It grants nothing: the token is still what decides whether this invite is
+  // real, and the lookup's answer overwrites this the moment it lands.
+  function safeName(raw) {
+    if (!raw) return "";
+    const cleaned = raw.replace(/[^\p{L}\p{M}'’\- ]/gu, "").trim().replace(/\s+/g, " ");
+    return cleaned.slice(0, 24);
+  }
+  const nameFromLink = safeName(params.get("from"));
+
+  // Only hold the greeting when we have nothing to greet with. A link
+  // carrying ?from paints the real name in the served markup's place before
+  // the first frame, so there is no fade and no round trip to sit through —
+  // which is the entire point of putting the name in the link.
+  if (nameFromLink) {
+    titleEl.textContent = `${nameFromLink} added you to their circle`;
+  } else {
+    stateEl.classList.add("loading");
+    // Links minted before ?from existed still have to make the round trip.
+    // When it runs long, waiting beats nothing but not by much: the generic
+    // copy is shown as served and the name swaps in whenever it arrives. The
+    // button under it was tappable throughout either way.
+    revealAnyway = setTimeout(() => stateEl.classList.remove("loading"), 600);
+  }
 
   // Reserved token for compliance reviewers (e.g. Twilio campaign review).
   // Renders the real opt-in UI and copy with mock data — no edge function
