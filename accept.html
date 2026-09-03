@@ -14,6 +14,28 @@
      and .card are borrowed from the shared sheet. */
   .wrap { max-width: 480px; }
 
+  /* Who invited you is the one thing on this page the server has to tell us,
+     so the served HTML says "someone" and script replaces it a moment later.
+     Showing that placeholder and then swapping it read as a glitch — the name
+     visibly changed under you. The two personalized lines are therefore held
+     at zero opacity until the lookup settles, and faded in together.
+
+     Opacity, not display: the placeholder still occupies its lines, so nothing
+     reflows when the real name lands. And the class is added by script, so a
+     visitor with no JS never enters the loading state and reads the generic
+     copy as served. */
+  #state.loading #state-title,
+  #state.loading #state-body { opacity: 0; }
+
+  #state-title,
+  #state-body { transition: opacity .22s ease; }
+
+  /* Someone who asked not to be moved gets the swap without the fade. */
+  @media (prefers-reduced-motion: reduce) {
+    #state-title,
+    #state-body { transition: none; }
+  }
+
   /* The SMS block is hidden with the `hidden` attribute, but .or and
      #confirm-form both set display:flex, and an author rule beats the UA
      sheet's [hidden]{display:none} at equal specificity. Without this the
@@ -253,6 +275,20 @@
   const declineBtnEl = document.getElementById("decline-link");
   const disclosureEl = document.getElementById("disclosure");
 
+  // Applied before the first paint rather than in loadPreview(), which runs
+  // after the rest of this script is parsed — late enough to flash.
+  stateEl.classList.add("loading");
+  function settled() {
+    clearTimeout(revealAnyway);
+    stateEl.classList.remove("loading");
+  }
+
+  // A lookup that never comes back must not leave a card with no heading in
+  // it. After a beat the generic copy is shown as served — "someone" is a
+  // worse greeting than a name, but it beats blank, and the button under it
+  // works either way.
+  const revealAnyway = setTimeout(() => stateEl.classList.remove("loading"), 2500);
+
   const token = new URLSearchParams(location.search).get("token");
 
   // Reserved token for compliance reviewers (e.g. Twilio campaign review).
@@ -290,6 +326,7 @@
     titleEl.textContent = title;
     bodyEl.textContent = body;
     stateEl.classList.toggle("err", !!isError);
+    settled();
     formEl.hidden = true;
     orEl.hidden = true;
     disclosureEl.hidden = true;
@@ -301,6 +338,7 @@
     bodyEl.textContent = smsOptInEnabled
       ? "get their posts in the app, or as a text. no account needed for texts."
       : "download now to find them.";
+    settled();
     if (!smsOptInEnabled) return;
     formEl.hidden = false;
     orEl.hidden = false;
