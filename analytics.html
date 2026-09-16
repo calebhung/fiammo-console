@@ -1,0 +1,1825 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Fiammo · Analytics</title>
+<link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=5">
+<style>
+  /* Chart colours come from the data-viz reference palette rather than the
+     brand: copper, bronze and gold are one hue family and can't tell three
+     series apart, least of all for a colour-blind reader. Slots 1 to 3 were
+     run through the palette validator against the white card (all pairs
+     pass; aqua sits under 3:1, so every chart that uses it carries a legend
+     and a table). Copper stays where it already is on these pages: on the
+     buttons. */
+  :root {
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --deemph: #c3c2b7;
+    --grid: #e9e7e3;
+    --axis: #c3c2b7;
+    --tick: #898781;
+    --seq-0: #f1efeb;
+    --seq-1: #cde2fb;
+    --seq-2: #9ec5f4;
+    --seq-3: #6da7ec;
+    --seq-4: #3987e5;
+    --seq-5: #256abf;
+    --seq-6: #184f95;
+  }
+
+  .wrap { max-width: 1120px; }
+
+  header.site nav.tools-nav { display: flex; align-items: center; gap: 18px; }
+  header.site nav.tools-nav a {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+  }
+  header.site nav.tools-nav a:hover,
+  header.site nav.tools-nav a.active { color: var(--accent-strong); }
+
+  #gate {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 16px; text-align: center; padding: 56px 32px;
+    max-width: 720px; margin: 0 auto;
+  }
+  #gate input {
+    font-family: var(--font-mono);
+    font-size: 0.95rem; padding: 10px 14px; width: 100%; max-width: 280px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--bg); color: var(--text);
+  }
+  #gate .error {
+    color: #B3261E; font-family: var(--font-mono);
+    font-size: 0.8rem; min-height: 1em;
+  }
+
+  #board { display: none; }
+  #board.loading .card, #board.loading .kpis { opacity: 0.5; transition: opacity 0.2s; }
+
+  button {
+    font-family: var(--font-mono);
+    font-size: 0.85rem; padding: 10px 18px; border-radius: 8px;
+    border: 1px solid var(--accent-strong); background: var(--accent);
+    color: var(--on-accent); cursor: pointer;
+  }
+  button:hover { background: var(--accent-strong); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  button.quiet {
+    background: transparent; color: var(--muted); border-color: var(--border);
+  }
+  button.quiet:hover { background: var(--border); color: var(--text); }
+  button.small { padding: 5px 10px; font-size: 0.72rem; }
+
+  .mono { font-family: var(--font-mono); font-size: 0.74rem; color: var(--muted); }
+
+  #headline h1 { margin: 0 0 6px; }
+  #headline .sub { margin: 0; max-width: 760px; font-family: var(--font-sans); font-size: 0.9rem; line-height: 1.55; color: var(--muted); }
+
+  /* One filter row above everything it scopes, and it stays put while the
+     page scrolls under it, so the range in force is always in view. */
+  .controls {
+    position: sticky; top: 0; z-index: 10;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+    margin: 18px 0 18px; padding: 10px 0;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .seg {
+    display: inline-flex; border: 1px solid var(--border);
+    border-radius: 999px; overflow: hidden; background: var(--card);
+  }
+  .seg button {
+    border: none; border-radius: 0; background: transparent;
+    color: var(--muted); padding: 6px 12px; font-size: 0.72rem;
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .seg button.on { background: var(--accent); color: var(--on-accent); }
+  .seg button:hover:not(.on) { background: var(--border); color: var(--text); }
+  .control {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-sans); font-size: 0.8rem; color: var(--muted);
+  }
+  .control select {
+    font-family: var(--font-sans); font-size: 0.8rem;
+    padding: 5px 8px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--card); color: var(--text);
+  }
+  .control input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
+  #data-note { margin-left: auto; }
+  /* On a phone the wrapped row is a sixth of the screen; let it scroll away. */
+  @media (max-width: 640px) { .controls { position: static; } }
+
+  .section-title {
+    font-family: var(--font-sans); font-weight: 600;
+    font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--muted); margin: 34px 0 10px;
+  }
+  #board .card { padding: 22px 24px; margin-bottom: 16px; min-width: 0; }
+  #board .card h2 { margin: 0 0 4px; font-size: 1rem; }
+  .hint {
+    font-family: var(--font-sans); font-size: 0.82rem; line-height: 1.5;
+    color: var(--muted); margin: 0 0 14px;
+  }
+  .grid {
+    display: grid; gap: 16px; margin-bottom: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+  }
+  .grid > .card { margin-bottom: 0 !important; }
+
+  .notice {
+    margin: 0 0 16px; padding: 11px 13px; border-radius: 8px;
+    border: 1px solid #B3261E; background: var(--card);
+    font-family: var(--font-sans); font-size: 0.84rem; color: #B3261E;
+  }
+  .empty {
+    padding: 22px; text-align: center;
+    border: 1px dashed var(--border); border-radius: 10px;
+    font-family: var(--font-sans); font-size: 0.84rem; color: var(--muted);
+  }
+
+  /* --- stat tiles --- */
+  .kpis { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 640px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 1040px) { .kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+  .tile {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 14px 16px; box-shadow: var(--lift);
+  }
+  .tile .label { font-family: var(--font-sans); font-size: 0.78rem; color: var(--muted); }
+  .tile .value {
+    font-family: var(--font-sans); font-weight: 600; font-size: 1.85rem;
+    line-height: 1.15; letter-spacing: -0.02em; color: var(--ink); margin-top: 4px;
+  }
+  .tile .sub { font-family: var(--font-sans); font-size: 0.76rem; line-height: 1.4; color: var(--muted); margin-top: 3px; }
+
+  /* --- charts --- */
+  svg.chart { display: block; font-family: var(--font-sans); overflow: visible; }
+  svg.chart .grid { stroke: var(--grid); stroke-width: 1; }
+  svg.chart .axis { stroke: var(--axis); stroke-width: 1; }
+  svg.chart .tick { fill: var(--tick); font-size: 10px; font-variant-numeric: tabular-nums; }
+  svg.chart .label { fill: var(--text); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+  svg.chart .cross { stroke: var(--axis); stroke-width: 1; }
+  svg.chart .hot { opacity: 0.75; }
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 8px;
+    font-family: var(--font-sans); font-size: 0.78rem; color: var(--text);
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { display: inline-block; width: 14px; height: 2px; border-radius: 1px; }
+  .legend i.box { width: 10px; height: 10px; border-radius: 3px; }
+  .legend .ramp { display: inline-flex; gap: 3px; }
+
+  .multiples {
+    display: grid; gap: 18px 22px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  }
+  .multiple h3 {
+    display: flex; justify-content: space-between; gap: 8px;
+    margin: 0 0 2px; font-family: var(--font-sans); font-size: 0.8rem; font-weight: 600; color: var(--ink);
+  }
+  .multiple h3 span { font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .subhead { margin: 18px 0 6px; font-family: var(--font-sans); font-size: 0.8rem; font-weight: 600; color: var(--ink); }
+
+  #tip {
+    position: fixed; z-index: 50; pointer-events: none;
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(26, 21, 18, 0.12);
+    padding: 8px 10px; max-width: 280px;
+    font-family: var(--font-sans); font-size: 0.76rem; color: var(--text);
+  }
+  #tip .head { color: var(--muted); margin-bottom: 3px; }
+  #tip .line { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  #tip .line i { width: 12px; height: 2px; border-radius: 1px; flex-shrink: 0; }
+  #tip .line strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+  #tip .line span { color: var(--muted); white-space: normal; }
+
+  /* --- bar rows (funnel, adoption, drop-off) --- */
+  .bars { display: flex; flex-direction: column; gap: 12px; }
+  .bar-row {
+    display: grid; align-items: center; gap: 3px 12px;
+    grid-template-columns: minmax(120px, 210px) minmax(60px, 1fr) auto;
+    grid-template-areas: "name track val" ". detail detail";
+    font-family: var(--font-sans); font-size: 0.84rem;
+  }
+  .bar-row .name { grid-area: name; color: var(--ink); }
+  .bar-row .name small { display: block; color: var(--muted); font-size: 0.74rem; }
+  .bar-row .track { grid-area: track; height: 10px; border-radius: 5px; background: var(--seq-0); }
+  .bar-row .fill { height: 100%; border-radius: 5px; background: var(--series-1); min-width: 2px; }
+  .bar-row .fill.none { min-width: 0; }
+  .bar-row .val { grid-area: val; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .bar-row .val span { color: var(--muted); }
+  .bar-row .detail { grid-area: detail; color: var(--muted); font-size: 0.76rem; line-height: 1.45; }
+  .bar-row .detail b { font-weight: 500; color: #B3261E; }
+  @media (max-width: 560px) {
+    .bar-row {
+      grid-template-columns: 1fr auto;
+      grid-template-areas: "name val" "track track" "detail detail";
+    }
+  }
+
+  /* --- journeys tree --- */
+  .tree { display: flex; flex-direction: column; gap: 2px; font-family: var(--font-sans); font-size: 0.82rem; }
+  .node {
+    display: grid; align-items: center; gap: 10px;
+    grid-template-columns: minmax(0, 1fr) minmax(50px, 30%) 5.5em;
+    padding: 3px 0;
+  }
+  .node .nm { padding-left: calc(var(--depth) * 18px); color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .node .nm::before { content: "↳ "; color: var(--deemph); }
+  .node.root .nm::before { content: ""; }
+  .node.stop .nm { color: var(--muted); font-style: italic; }
+  .node .track { height: 8px; border-radius: 4px; background: var(--seq-0); }
+  .node .fill { height: 100%; border-radius: 4px; background: var(--series-1); min-width: 2px; }
+  .node.stop .fill { background: var(--deemph); }
+  .node .ct { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+  /* --- tables --- */
+  details.tv { margin-top: 10px; }
+  details.tv summary { cursor: pointer; font-family: var(--font-sans); font-size: 0.76rem; color: var(--muted); }
+  .table-wrap {
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--border); border-radius: 10px; margin-top: 8px;
+  }
+  table.data {
+    border-collapse: separate; border-spacing: 0; width: 100%;
+    font-family: var(--font-sans); font-size: 0.78rem; font-variant-numeric: tabular-nums;
+  }
+  table.data th, table.data td {
+    padding: 7px 10px; text-align: right; white-space: nowrap;
+    border-bottom: 1px solid var(--border); background: var(--card); color: var(--text);
+  }
+  table.data tbody tr:last-child td { border-bottom: none; }
+  table.data th { font-weight: 600; font-size: 0.72rem; color: var(--muted); }
+  table.data .txt { text-align: left; }
+  table.data td.zero { color: var(--deemph); }
+  table.data th.sortable { cursor: pointer; user-select: none; }
+  table.data th.sortable:hover, table.data th.sorted { color: var(--ink); }
+  table.data tr.group th {
+    text-align: left; font-size: 0.64rem; letter-spacing: 0.12em; text-transform: uppercase;
+    border-bottom: none; padding-bottom: 0; color: var(--tick);
+  }
+  table.data tr.group th + th:not(.plain) { border-left: 1px solid var(--border); }
+  table.data .sticky { position: sticky; left: 0; z-index: 1; box-shadow: inset -1px 0 0 var(--border); }
+  table.data tr.person { cursor: pointer; }
+  table.data tr.person:hover td { background: var(--bg); }
+  table.data tr.person.open td { background: var(--bg); }
+  table.data tr.detail td { text-align: left; white-space: normal; background: var(--bg); padding: 14px 0 18px; }
+  .detail-inner { position: sticky; left: 0; padding: 0 16px; box-sizing: border-box; }
+  table.cohort td.cell { text-align: center; min-width: 46px; }
+
+  .tag {
+    display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px;
+    background: var(--border); color: var(--muted); font-size: 0.66rem; vertical-align: 1px;
+  }
+  .status { display: inline-flex; align-items: center; gap: 6px; }
+  .status i { width: 8px; height: 8px; border-radius: 50%; background: var(--deemph); flex-shrink: 0; }
+  .status.new i { background: var(--series-1); }
+  .status.active i { background: #0ca30c; }
+  .status.cooling i { background: #fab219; }
+  .status.dormant i { background: #d03b3b; }
+  .status.never i { background: transparent; box-shadow: inset 0 0 0 1.5px var(--tick); }
+
+  .person-detail { display: grid; gap: 18px 28px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+  .person-detail h4 { margin: 0 0 8px; font-family: var(--font-sans); font-size: 0.74rem; font-weight: 600; color: var(--muted); }
+  .firsts { list-style: none; padding: 0; margin: 0; font-family: var(--font-sans); font-size: 0.8rem; }
+  .firsts li { display: grid; grid-template-columns: 4.5em 1fr; gap: 8px; margin: 0 0 4px; color: var(--text); }
+  .firsts li span { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+
+  .footnote { font-family: var(--font-sans); font-size: 0.8rem; line-height: 1.55; color: var(--muted); }
+  .footnote li { color: var(--muted); margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <a class="wordmark" href="/">
+      <img class="mark" src="flame.svg?v=2" alt="">
+      <span class="word"><span class="initial">f</span><span class="i">i</span>ammo</span>
+    </a>
+    <nav class="tools-nav">
+      <a href="dev-tools.html">dev tools</a>
+      <a href="alerts.html">alerts</a>
+      <a href="analytics.html" class="active">analytics</a>
+    </nav>
+  </header>
+
+  <section id="gate" class="card">
+    <h1 style="margin:0">analytics</h1>
+    <p style="margin:0; color: var(--muted)">enter the admin password to continue</p>
+    <input type="password" id="gate-password" placeholder="password" autocomplete="off">
+    <button id="gate-submit">enter</button>
+    <div class="error" id="gate-error"></div>
+  </section>
+
+  <main id="board">
+    <section id="headline">
+      <h1>how fiammo is doing</h1>
+      <p class="sub">Read from what the database keeps: accounts, friends, posts, journal entries, echoes, messages, groups and invites. It can't see app opens or screens, so being active here means doing something that leaves a row. Counts and sizes only; no post or message text reaches this page.</p>
+    </section>
+
+    <div class="controls" role="toolbar" aria-label="filters">
+      <div class="seg" id="range-seg">
+        <button data-range="7">7 days</button>
+        <button data-range="30">30 days</button>
+        <button data-range="90">90 days</button>
+        <button data-range="all">all time</button>
+      </div>
+      <label class="control">active means
+        <select id="active-select">
+          <option value="any">did anything</option>
+          <option value="wrote">wrote</option>
+          <option value="messaged">messaged</option>
+          <option value="echoed">echoed</option>
+        </select>
+      </label>
+      <div class="seg" id="zone-seg">
+        <button data-zone="app" title="midnight Pacific, the app's own day">pacific days</button>
+        <button data-zone="local" id="zone-local">my time</button>
+      </div>
+      <label class="control"><input type="checkbox" id="test-toggle"> test accounts</label>
+      <button id="refresh-btn" class="quiet small">refresh</button>
+      <span class="mono" id="data-note"></span>
+    </div>
+
+    <div id="load-error"></div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <h2 class="section-title">active people</h2>
+    <section class="card">
+      <h2>daily, weekly and monthly active</h2>
+      <p class="hint">How many people were active on each day, in the 7 days up to it, and in the 30 days up to it.</p>
+      <div id="active-chart"></div>
+    </section>
+    <div class="grid">
+      <section class="card">
+        <h2>lifecycle</h2>
+        <p class="hint">Each week: who joined, who stayed active from the week before, who came back after a quiet week, and who went quiet (below the line). The last week is still going.</p>
+        <div id="lifecycle-chart"></div>
+      </section>
+      <section class="card">
+        <h2>how often people show up</h2>
+        <p class="hint" id="frequency-hint">People by the number of days they were active in the range.</p>
+        <div id="frequency-chart"></div>
+      </section>
+    </div>
+
+    <h2 class="section-title">activation and drop-off</h2>
+    <section class="card">
+      <h2>activation funnel</h2>
+      <p class="hint" id="funnel-hint">People who joined in the range, and how far each got. Each step counts only people who also reached every step above it. Names under a step are the people who stopped there.</p>
+      <div id="funnel"></div>
+    </section>
+    <div class="grid">
+      <section class="card">
+        <h2>setting up</h2>
+        <p class="hint">Of the people who joined in the range.</p>
+        <div id="setup"></div>
+      </section>
+      <section class="card">
+        <h2>where people go quiet</h2>
+        <p class="hint">People who joined in the range, joined at least 14 days ago and haven't been active in the last 14, grouped by the last thing they did.</p>
+        <div id="quiet"></div>
+      </section>
+    </div>
+
+    <h2 class="section-title">retention</h2>
+    <div class="grid">
+      <section class="card">
+        <h2>came back after</h2>
+        <p class="hint">Of the people who joined in the range and have been around long enough, the share active again on or after day N.</p>
+        <div id="retention-days"></div>
+      </section>
+      <section class="card">
+        <h2>weekly cohorts</h2>
+        <p class="hint">People grouped by the week they joined, and the share active in each week after. Week 0 is their first seven days; joining alone doesn't count.</p>
+        <div id="cohorts"></div>
+      </section>
+    </div>
+
+    <h2 class="section-title">journeys</h2>
+    <div class="grid">
+      <section class="card">
+        <h2>first steps</h2>
+        <p class="hint">What people who joined in the range did first, second and third, counting each kind of thing once. Setting up (age, notifications) is left out.</p>
+        <div id="paths"></div>
+      </section>
+      <section class="card">
+        <h2>time to first</h2>
+        <p class="hint">How many people who joined in the range ever did each thing, and how long after joining they first did it.</p>
+        <div id="firsts"></div>
+      </section>
+    </div>
+
+    <h2 class="section-title">engagement</h2>
+    <section class="card">
+      <h2>feature adoption</h2>
+      <p class="hint" id="adoption-hint">Of the people who did anything in the range, how many used each part of the app.</p>
+      <div id="adoption"></div>
+    </section>
+    <section class="card">
+      <h2>activity by day</h2>
+      <p class="hint">Each chart has its own scale; compare shapes, not heights.</p>
+      <div id="daily"></div>
+    </section>
+    <div class="grid">
+      <section class="card">
+        <h2>when people write and message</h2>
+        <p class="hint" id="when-hint">Posts, taps and journal entries, and direct and group messages, by weekday and hour.</p>
+        <div id="when"></div>
+      </section>
+      <section class="card">
+        <h2>writing</h2>
+        <p class="hint">Words split on spaces; characters leave spaces out, the way Constellation counts them, so writing without spaces between words still measures.</p>
+        <div id="writing"></div>
+      </section>
+    </div>
+
+    <h2 class="section-title">social</h2>
+    <div class="grid">
+      <section class="card">
+        <h2>invites</h2>
+        <p class="hint">Invites sent from the app and who joined through them. Only the earliest inviter of a number is credited.</p>
+        <div id="invites"></div>
+      </section>
+      <section class="card">
+        <h2>group chats</h2>
+        <p class="hint">Groups are numbered in the order they were made; names stay out of this page. Members don't count hidden test accounts; messages are in the range, of all time.</p>
+        <div id="groups"></div>
+      </section>
+    </div>
+
+    <h2 class="section-title">people</h2>
+    <section class="card">
+      <h2>everyone</h2>
+      <p class="hint">Counts are for the range; friends is who they're friends with now. Click a column to sort and a person to see their journey.</p>
+      <div id="people"></div>
+    </section>
+
+    <h2 class="section-title">what this can't see</h2>
+    <ul class="footnote">
+      <li>Opening the app, reading the feed, or looking at a profile. Release builds send no events, so someone who reads every day but never posts looks inactive here.</li>
+      <li>Anything deleted. A deleted post or message leaves its table; a burned post stays and counts.</li>
+      <li>When a friend request was accepted, where its notification is gone. The request time stands in.</li>
+    </ul>
+  </main>
+
+  <footer class="site">
+    <div class="footer-base">
+      <span>fiammo · analytics</span>
+      <a href="dev-tools.html">dev tools &rarr;</a>
+    </div>
+  </footer>
+</div>
+
+<div id="tip" hidden></div>
+
+<script>
+  // Same origin and the same sessionStorage key as dev-tools.html and
+  // alerts.html, so walking between them doesn't ask for the password again.
+  const SUPABASE_URL = "https://syqqxogkqmuojchbglle.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
+  const SESSION_KEY = "fiammo_devtools_pw";
+  const DEVTOOLS_SESSION_ID = crypto.randomUUID();
+
+  const gate = document.getElementById("gate");
+  const board = document.getElementById("board");
+  const gatePassword = document.getElementById("gate-password");
+  const gateSubmit = document.getElementById("gate-submit");
+  const gateError = document.getElementById("gate-error");
+
+  function getPassword() { return sessionStorage.getItem(SESSION_KEY) || ""; }
+
+  // Mirrors alerts.html's callFunction. No self-logging: admin-analytics is
+  // wrapped in withLogging, so each load already leaves its own row.
+  async function callFunction(name, body) {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "apikey": SUPABASE_ANON_KEY,
+        "x-admin-password": getPassword(),
+      },
+      body: JSON.stringify({ ...(body || {}), _requestId: crypto.randomUUID(), _sessionId: DEVTOOLS_SESSION_ID }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) {
+      sessionStorage.removeItem(SESSION_KEY);
+      gate.style.display = "flex";
+      board.style.display = "none";
+      gateError.textContent = "session expired, re-enter the password";
+      throw new Error("unauthorized");
+    }
+    if (!res.ok) throw new Error(data.error || data.message || `request failed (${res.status})`);
+    return data;
+  }
+
+  async function tryPassword(pw) {
+    if (!pw) return;
+    gateSubmit.disabled = true;
+    gateError.textContent = "";
+    sessionStorage.setItem(SESSION_KEY, pw);
+    try {
+      await callFunction("admin-check-password");
+      gate.style.display = "none";
+      board.style.display = "block";
+      start();
+    } catch (e) {
+      sessionStorage.removeItem(SESSION_KEY);
+      gateError.textContent = "incorrect password";
+    } finally {
+      gateSubmit.disabled = false;
+    }
+  }
+
+  gateSubmit.addEventListener("click", () => tryPassword(gatePassword.value));
+  gatePassword.addEventListener("keydown", e => { if (e.key === "Enter") tryPassword(gatePassword.value); });
+  if (getPassword()) tryPassword(getPassword());
+
+  /* ── definitions ─────────────────────────────────────────────────────────── */
+
+  // Every event type admin_analytics_events() (migration 163) emits. A type
+  // this page doesn't know yet still shows, under its raw name.
+  const TYPES = {
+    joined: "joined",
+    age_ok: "confirmed their age",
+    push_on: "turned on notifications",
+    post: "posted",
+    tap: "tapped a prompt",
+    journal: "wrote in their journal",
+    friend_req: "sent a friend request",
+    friend: "made a friend",
+    circle: "made a circle",
+    invite: "invited someone",
+    invite_joined: "someone they invited joined",
+    echo: "echoed a post",
+    echoed: "got an echo",
+    comment: "commented",
+    dm: "sent a message",
+    dm_in: "got a message",
+    group_new: "started a group",
+    group_join: "was added to a group",
+    group_msg: "messaged a group",
+    react: "reacted to a message",
+    catchup_add: "added someone to catch up",
+    catchup_log: "logged a catch up",
+    reading: "got a constellation reading",
+  };
+  const typeLabel = t => TYPES[t] || t;
+
+  // What counts as being active, per the "active means" control. Only things
+  // a person chose to do: getting an echo, a message or a reading happens to
+  // you, and joining or accepting a request is counted where it matters.
+  const ACTIVE = {
+    any: ["post", "tap", "journal", "friend_req", "circle", "invite", "echo", "comment", "dm", "group_new", "group_msg", "react", "catchup_add", "catchup_log"],
+    wrote: ["post", "tap", "journal"],
+    messaged: ["dm", "group_msg"],
+    echoed: ["echo"],
+  };
+  const ACTIVE_NAMES = { any: "did anything", wrote: "wrote", messaged: "messaged", echoed: "echoed a post" };
+  const WRITE = new Set(["post", "tap", "journal"]);
+  const MESSAGE = new Set(["dm", "group_msg"]);
+  const JOURNEY_SKIP = new Set(["joined", "age_ok", "push_on", "reading"]);
+
+  const APP_TZ = "America/Los_Angeles";
+  const LOCAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || APP_TZ;
+  const DAY = 86400;
+
+  /* ── state ───────────────────────────────────────────────────────────────── */
+
+  const PREFS_KEY = "fiammo_analytics_prefs";
+  const state = {
+    raw: null,
+    range: "30",
+    zone: "app",
+    includeTest: false,
+    active: "any",
+    sort: { key: "lastActive", dir: -1 },
+    open: new Set(),
+  };
+
+  // Per-viewer conveniences only; the page renders the same without them.
+  function restorePrefs() {
+    try {
+      const p = JSON.parse(localStorage.getItem(PREFS_KEY) || "{}");
+      if (["7", "30", "90", "all"].includes(p.range)) state.range = p.range;
+      if (["app", "local"].includes(p.zone)) state.zone = p.zone;
+      if (p.active in ACTIVE) state.active = p.active;
+      state.includeTest = p.includeTest === true;
+    } catch (e) { /* storage blocked: defaults stand */ }
+  }
+  function savePrefs() {
+    try {
+      localStorage.setItem(PREFS_KEY, JSON.stringify({
+        range: state.range, zone: state.zone, active: state.active, includeTest: state.includeTest,
+      }));
+    } catch (e) { /* storage blocked */ }
+  }
+
+  /* ── small helpers ───────────────────────────────────────────────────────── */
+
+  const NS = "http://www.w3.org/2000/svg";
+  function put(node, attrs, kids) {
+    for (const k in attrs || {}) {
+      const v = attrs[k];
+      if (v === null || v === undefined || v === false) continue;
+      if (k === "text") node.textContent = v;
+      else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2), v);
+      else node.setAttribute(k, v);
+    }
+    for (const kid of kids.flat(Infinity)) {
+      if (kid === null || kid === undefined || kid === false) continue;
+      node.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+    }
+    return node;
+  }
+  const h = (tag, attrs, ...kids) => put(document.createElement(tag), attrs, kids);
+  const s = (tag, attrs, ...kids) => put(document.createElementNS(NS, tag), attrs, kids);
+
+  const nf = new Intl.NumberFormat("en-US");
+  const fmtNum = v => (v === null || v === undefined || !isFinite(v)) ? "–" : nf.format(Math.round(v));
+  const fmtPct = v => (v === null || v === undefined || !isFinite(v)) ? "–" : `${Math.round(v * 100)}%`;
+  const fmtDec = v => (v === null || v === undefined || !isFinite(v)) ? "–" : v.toFixed(1);
+  function fmtDur(sec) {
+    if (sec === null || sec === undefined || !isFinite(sec)) return "–";
+    const min = Math.max(0, sec) / 60;
+    if (min < 60) return `${Math.max(1, Math.round(min))}m`;
+    const hr = min / 60;
+    if (hr < 48) return `${Math.round(hr)}h`;
+    const d = hr / 24;
+    if (d < 21) return `${Math.round(d)}d`;
+    return `${Math.round(d / 7)}w`;
+  }
+  const dayLabel = dn => new Date(dn * DAY * 1000).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  const handleOf = p => `@${p.handle || "?"}`;
+  const count = (arr, fn) => { let n = 0; for (const x of arr) if (fn(x)) n++; return n; };
+  function median(arr) {
+    if (!arr.length) return null;
+    const a = [...arr].sort((x, y) => x - y);
+    const mid = a.length >> 1;
+    return a.length % 2 ? a[mid] : (a[mid - 1] + a[mid]) / 2;
+  }
+  function niceMax(v) {
+    if (v <= 2) return 2;
+    if (v <= 10) return Math.ceil(v / 2) * 2;
+    const p = 10 ** Math.floor(Math.log10(v));
+    for (const f of [1, 2, 4, 5, 10]) if (f * p >= v) return f * p;
+    return v;
+  }
+  function names(list, limit = 8) {
+    const shown = list.slice(0, limit).map(handleOf).join(", ");
+    return list.length > limit ? `${shown} and ${list.length - limit} more` : shown;
+  }
+  const rangeName = () => state.range === "all" ? "all time" : `the last ${state.range} days`;
+
+  // Calendar day, hour and weekday of a moment in a time zone. Days are
+  // counted from 1970-01-01, so "days since joining" is plain subtraction.
+  // Cached per quarter hour, which is fine enough for every real zone offset.
+  function makeClock(tz) {
+    const fmt = new Intl.DateTimeFormat("en-US", {
+      timeZone: tz, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric", hour: "numeric",
+    });
+    const cache = new Map();
+    return sec => {
+      const key = Math.floor(sec / 900);
+      let hit = cache.get(key);
+      if (!hit) {
+        const parts = {};
+        for (const part of fmt.formatToParts(new Date(key * 900000))) parts[part.type] = part.value;
+        const dn = Math.floor(Date.UTC(+parts.year, +parts.month - 1, +parts.day) / 86400000);
+        hit = { dn, hour: +parts.hour % 24, dow: (dn + 3) % 7 }; // dow 0 is Monday
+        cache.set(key, hit);
+      }
+      return hit;
+    };
+  }
+  const weekOf = dn => Math.floor((dn + 3) / 7); // Monday-start weeks
+  const weekStart = w => w * 7 - 3;
+
+  function activeBetween(p, from, to) {
+    for (let d = from; d <= to; d++) if (p.activeDns.has(d)) return true;
+    return false;
+  }
+
+  /* ── tooltip ─────────────────────────────────────────────────────────────── */
+
+  const tip = document.getElementById("tip");
+  function showTip(evt, head, lines) {
+    tip.replaceChildren(
+      h("div", { class: "head", text: head }),
+      ...lines.map(l => h("div", { class: "line" },
+        l.color ? h("i", { style: `background:${l.color}` }) : null,
+        h("strong", { text: l.value }),
+        l.label ? h("span", { text: l.label }) : null,
+      )),
+    );
+    tip.hidden = false;
+    const pad = 14;
+    const r = tip.getBoundingClientRect();
+    let x = evt.clientX + pad, y = evt.clientY + pad;
+    if (x + r.width > innerWidth - 8) x = evt.clientX - r.width - pad;
+    if (y + r.height > innerHeight - 8) y = evt.clientY - r.height - pad;
+    tip.style.left = `${Math.max(8, x)}px`;
+    tip.style.top = `${Math.max(8, y)}px`;
+  }
+  const hideTip = () => { tip.hidden = true; };
+
+  /* ── chart pieces ────────────────────────────────────────────────────────── */
+
+  const widthOf = host => Math.max(260, Math.floor(host.getBoundingClientRect().width || 300));
+
+  function legend(items, box) {
+    return h("div", { class: "legend" }, items.map(it =>
+      h("span", null, h("i", { class: box ? "box" : null, style: `background:${it.color}` }), it.label)));
+  }
+
+  // A column with a 4px rounded data end and a square foot on the baseline.
+  function colPath(x, y, w, hgt, down) {
+    const r = Math.min(4, w / 2, hgt);
+    if (down) return `M${x},${y}V${y + hgt - r}Q${x},${y + hgt} ${x + r},${y + hgt}H${x + w - r}Q${x + w},${y + hgt} ${x + w},${y + hgt - r}V${y}Z`;
+    return `M${x},${y + hgt}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + hgt}Z`;
+  }
+
+  function xTicks(svg, n, xAt, yPos, labelAt) {
+    const idx = n <= 8 ? [...Array(n).keys()] : [0, Math.floor((n - 1) / 2), n - 1];
+    idx.forEach((i, k) => {
+      const anchor = n <= 8 ? "middle" : k === 0 ? "start" : k === idx.length - 1 ? "end" : "middle";
+      svg.append(s("text", { x: xAt(i), y: yPos, "text-anchor": anchor, class: "tick", text: labelAt(i) }));
+    });
+  }
+
+  function tableView(headers, rows) {
+    return h("details", { class: "tv" },
+      h("summary", { text: "show as a table" }),
+      h("div", { class: "table-wrap" },
+        h("table", { class: "data" },
+          h("thead", null, h("tr", null, headers.map((t, i) => h("th", { class: i ? null : "txt", text: t })))),
+          h("tbody", null, rows.map(r => h("tr", null, r.map((c, i) => h("td", { class: i ? null : "txt", text: c }))))),
+        )));
+  }
+
+  function lineChart(host, { labels, series }) {
+    const W = widthOf(host), H = 230;
+    const m = { t: 14, r: 40, b: 26, l: 34 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const n = labels.length;
+    const max = niceMax(Math.max(1, ...series.flatMap(x => x.values)));
+    const xAt = i => m.l + (n === 1 ? iw / 2 : (i * iw) / (n - 1));
+    const yAt = v => m.t + ih - (v / max) * ih;
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, class: "chart", role: "img", "aria-label": series.map(x => x.label).join(", ") });
+
+    for (const v of [max / 2, max]) {
+      svg.append(s("line", { x1: m.l, x2: W - m.r, y1: yAt(v), y2: yAt(v), class: "grid" }));
+      svg.append(s("text", { x: m.l - 6, y: yAt(v) + 3.5, "text-anchor": "end", class: "tick", text: fmtNum(v) }));
+    }
+    svg.append(s("line", { x1: m.l, x2: W - m.r, y1: yAt(0), y2: yAt(0), class: "axis" }));
+    svg.append(s("text", { x: m.l - 6, y: yAt(0) + 3.5, "text-anchor": "end", class: "tick", text: "0" }));
+    xTicks(svg, n, xAt, H - 6, i => labels[i]);
+
+    for (const x of series) {
+      const d = x.values.map((v, i) => `${i ? "L" : "M"}${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join("");
+      svg.append(s("path", { d, fill: "none", stroke: x.color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    }
+    // End labels only when they sit apart; the legend and tooltip carry the rest.
+    const ends = series.map(x => ({ x, y: yAt(x.values[n - 1]) })).sort((a, b) => a.y - b.y);
+    const apart = ends.every((e, i) => i === 0 || e.y - ends[i - 1].y >= 12);
+    for (const e of ends) {
+      svg.append(s("circle", { cx: xAt(n - 1), cy: e.y, r: 4, fill: e.x.color, stroke: "#fff", "stroke-width": 2 }));
+      if (apart) svg.append(s("text", { x: xAt(n - 1) + 9, y: e.y + 3.5, class: "label", text: fmtNum(e.x.values[n - 1]) }));
+    }
+
+    const cross = s("line", { y1: m.t, y2: m.t + ih, class: "cross", visibility: "hidden" });
+    svg.append(cross);
+    const hit = s("rect", { x: m.l - 6, y: 0, width: iw + 12, height: m.t + ih, fill: "transparent" });
+    hit.addEventListener("pointermove", evt => {
+      const box = svg.getBoundingClientRect();
+      const px = ((evt.clientX - box.left) * W) / box.width;
+      const i = Math.min(n - 1, Math.max(0, Math.round(((px - m.l) / iw) * (n - 1))));
+      cross.setAttribute("x1", xAt(i));
+      cross.setAttribute("x2", xAt(i));
+      cross.setAttribute("visibility", "visible");
+      showTip(evt, labels[i], series.map(x => ({ color: x.color, value: fmtNum(x.values[i]), label: x.label })));
+    });
+    hit.addEventListener("pointerleave", () => { cross.setAttribute("visibility", "hidden"); hideTip(); });
+    svg.append(hit);
+
+    return [legend(series), svg];
+  }
+
+  // One series of columns. capLabel(i) names the value drawn on a cap;
+  // tipFor(i) returns [head, lines].
+  function columnChart(host, { values, labels, height = 150, capLabel, tipFor, color = "var(--series-1)", capAll }) {
+    const W = widthOf(host), H = height;
+    const m = { t: 16, r: 4, b: 22, l: 30 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const n = values.length;
+    const max = niceMax(Math.max(1, ...values));
+    const band = iw / Math.max(1, n);
+    const bw = Math.max(1, Math.min(24, band - 2));
+    const base = m.t + ih;
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, class: "chart" });
+
+    svg.append(s("line", { x1: m.l, x2: W - m.r, y1: m.t, y2: m.t, class: "grid" }));
+    svg.append(s("text", { x: m.l - 6, y: m.t + 3.5, "text-anchor": "end", class: "tick", text: fmtNum(max) }));
+    svg.append(s("text", { x: m.l - 6, y: base + 3.5, "text-anchor": "end", class: "tick", text: "0" }));
+
+    const peak = values.indexOf(Math.max(...values));
+    const labelAll = capAll ?? n <= 12;
+    values.forEach((v, i) => {
+      const x = m.l + band * i + (band - bw) / 2;
+      let mark = null;
+      if (v > 0) {
+        const hgt = Math.max(1.5, (v / max) * ih);
+        mark = s("path", { d: colPath(x, base - hgt, bw, hgt), fill: color });
+        svg.append(mark);
+        if (labelAll || i === peak) {
+          svg.append(s("text", { x: x + bw / 2, y: base - hgt - 4, "text-anchor": "middle", class: "label", text: capLabel ? capLabel(i) : fmtNum(v) }));
+        }
+      } else if (capAll === true) {
+        svg.append(s("text", { x: x + band / 2 - (band - bw) / 2, y: base - 4, "text-anchor": "middle", class: "tick", text: capLabel ? capLabel(i) : "0" }));
+      }
+      const hit = s("rect", { x: m.l + band * i, y: m.t - 14, width: band, height: ih + 14, fill: "transparent" });
+      hit.addEventListener("pointermove", evt => { mark?.classList.add("hot"); const [head, lines] = tipFor(i); showTip(evt, head, lines); });
+      hit.addEventListener("pointerleave", () => { mark?.classList.remove("hot"); hideTip(); });
+      svg.append(hit);
+    });
+    svg.append(s("line", { x1: m.l, x2: W - m.r, y1: base, y2: base, class: "axis" }));
+    xTicks(svg, n, i => m.l + band * i + band / 2, H - 5, i => labels[i]);
+    return svg;
+  }
+
+  // Columns stacked above the line, and one series hanging below it.
+  function divergingColumns(host, { labels, up, down, tipFor }) {
+    const W = widthOf(host), H = 240;
+    const m = { t: 14, r: 4, b: 24, l: 30 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const n = labels.length;
+    const upMax = Math.max(1, ...labels.map((_, i) => up.reduce((sum, x) => sum + x.values[i], 0)));
+    const downMax = Math.max(0, ...down.values);
+    const top = niceMax(upMax);
+    const bottom = downMax ? niceMax(downMax) : 0;
+    const scale = ih / (top + bottom);
+    const base = m.t + top * scale;
+    const band = iw / n;
+    const bw = Math.max(2, Math.min(24, band - 4));
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, class: "chart" });
+
+    svg.append(s("line", { x1: m.l, x2: W - m.r, y1: m.t, y2: m.t, class: "grid" }));
+    svg.append(s("text", { x: m.l - 6, y: m.t + 3.5, "text-anchor": "end", class: "tick", text: fmtNum(top) }));
+    if (bottom) {
+      svg.append(s("line", { x1: m.l, x2: W - m.r, y1: base + bottom * scale, y2: base + bottom * scale, class: "grid" }));
+      svg.append(s("text", { x: m.l - 6, y: base + bottom * scale + 3.5, "text-anchor": "end", class: "tick", text: `−${fmtNum(bottom)}` }));
+    }
+    svg.append(s("text", { x: m.l - 6, y: base + 3.5, "text-anchor": "end", class: "tick", text: "0" }));
+
+    labels.forEach((_, i) => {
+      const x = m.l + band * i + (band - bw) / 2;
+      const parts = up.filter(x => x.values[i] > 0);
+      let y = base;
+      parts.forEach((part, k) => {
+        const full = part.values[i] * scale;
+        const gap = k ? 2 : 0; // the surface gap between stacked segments
+        const hgt = Math.max(1, full - gap);
+        y -= full;
+        const last = k === parts.length - 1;
+        svg.append(s("path", {
+          d: last ? colPath(x, y, bw, hgt) : `M${x},${y + hgt}V${y}H${x + bw}V${y + hgt}Z`,
+          fill: part.color,
+        }));
+      });
+      if (down.values[i] > 0) {
+        svg.append(s("path", { d: colPath(x, base + 1, bw, Math.max(1, down.values[i] * scale - 1), true), fill: down.color }));
+      }
+      const hit = s("rect", { x: m.l + band * i, y: m.t, width: band, height: ih, fill: "transparent" });
+      hit.addEventListener("pointermove", evt => { const [head, lines] = tipFor(i); showTip(evt, head, lines); });
+      hit.addEventListener("pointerleave", hideTip);
+      svg.append(hit);
+    });
+    svg.append(s("line", { x1: m.l, x2: W - m.r, y1: base, y2: base, class: "axis" }));
+    xTicks(svg, n, i => m.l + band * i + band / 2, H - 6, i => labels[i]);
+    return [legend([...up, down], true), svg];
+  }
+
+  const RAMP = ["var(--seq-1)", "var(--seq-2)", "var(--seq-3)", "var(--seq-4)", "var(--seq-5)", "var(--seq-6)"];
+  const RAMP_HEX = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95"];
+  const rampStep = (v, max) => v <= 0 || max <= 0 ? -1 : Math.min(5, Math.floor((v / max) * 5.999));
+
+  function scaleLegend(max, unit) {
+    return h("div", { class: "legend" },
+      h("span", null, "fewer", h("span", { class: "ramp" }, RAMP.map(c => h("i", { class: "box", style: `background:${c}` }))), "more"),
+      h("span", { style: "color:var(--muted)" }, `most in one ${unit}: ${fmtNum(max)}`));
+  }
+
+  const DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const hourName = hr => hr === 0 ? "12am" : hr < 12 ? `${hr}am` : hr === 12 ? "12pm" : `${hr - 12}pm`;
+
+  function heatmap(host, { grid, unit }) {
+    const W = widthOf(host);
+    const left = 32, gap = 2;
+    const cell = Math.max(8, Math.min(22, Math.floor((W - left) / 24) - gap));
+    const rowH = Math.max(cell, 12);
+    const H = 7 * (rowH + gap) + 18;
+    const max = Math.max(0, ...grid.flat());
+    const svg = s("svg", { viewBox: `0 0 ${left + 24 * (cell + gap)} ${H}`, width: left + 24 * (cell + gap), height: H, class: "chart" });
+    DOW.forEach((d, r) => svg.append(s("text", { x: left - 6, y: r * (rowH + gap) + rowH / 2 + 3.5, "text-anchor": "end", class: "tick", text: d })));
+    [0, 6, 12, 18].forEach(hr => svg.append(s("text", { x: left + hr * (cell + gap), y: H - 3, class: "tick", text: hourName(hr) })));
+    grid.forEach((row, r) => row.forEach((v, c) => {
+      const step = rampStep(v, max);
+      const rect = s("rect", {
+        x: left + c * (cell + gap), y: r * (rowH + gap), width: cell, height: rowH, rx: 3,
+        fill: step < 0 ? "var(--seq-0)" : RAMP[step],
+      });
+      rect.addEventListener("pointermove", evt => { rect.classList.add("hot"); showTip(evt, `${DOW[r]} ${hourName(c)}`, [{ value: fmtNum(v), label: v === 1 ? "event" : "events" }]); });
+      rect.addEventListener("pointerleave", () => { rect.classList.remove("hot"); hideTip(); });
+      svg.append(rect);
+    }));
+    return [svg, scaleLegend(max, unit)];
+  }
+
+  function barRow({ name, sub, share, value, detail }) {
+    return h("div", { class: "bar-row" },
+      h("div", { class: "name" }, name, sub ? h("small", { text: sub }) : null),
+      h("div", { class: "track" }, h("div", { class: share > 0 ? "fill" : "fill none", style: `width:${Math.max(0, Math.min(1, share || 0)) * 100}%` })),
+      h("div", { class: "val" }, value),
+      detail ? h("div", { class: "detail" }, detail) : null,
+    );
+  }
+
+  const empty = text => h("div", { class: "empty", text });
+
+  /* ── the model ───────────────────────────────────────────────────────────── */
+
+  function build() {
+    const raw = state.raw;
+    const tz = state.zone === "local" ? LOCAL_TZ : APP_TZ;
+    const clock = makeClock(tz);
+    const nowS = Date.now() / 1000;
+    const todayDn = clock(nowS).dn;
+    const activeSet = new Set(ACTIVE[state.active]);
+    const anySet = new Set(ACTIVE.any);
+
+    const people = [];
+    const byI = new Map();
+    for (const u of raw.users) {
+      if (u.test && !state.includeTest) continue;
+      const p = {
+        ...u, joinDn: clock(u.joined).dn, events: [], first: {},
+        activeDns: new Set(), anyDns: new Set(),
+        lastActive: null, lastActiveDn: null, lastActiveType: null,
+      };
+      people.push(p);
+      byI.set(u.i, p);
+    }
+
+    const col = name => raw.columns.indexOf(name);
+    const [cu, ct, cs, ca, cb, cx, cv] = ["u", "t", "s", "a", "b", "x", "v"].map(col);
+    const events = [];
+    for (const row of raw.events) {
+      const p = byI.get(row[cu]);
+      if (!p) continue;
+      if (row[cx] === 1 && !state.includeTest) continue;
+      const sec = row[cs];
+      const c = clock(sec);
+      const e = { p, t: row[ct], s: sec, a: row[ca], b: row[cb], v: row[cv] === 1, dn: c.dn, hour: c.hour, dow: c.dow };
+      events.push(e);
+      p.events.push(e);
+      if (!(e.t in p.first)) p.first[e.t] = e;
+      if (anySet.has(e.t)) p.anyDns.add(e.dn);
+      if (activeSet.has(e.t)) {
+        p.activeDns.add(e.dn);
+        if (p.lastActive === null || sec >= p.lastActive) {
+          p.lastActive = sec; p.lastActiveDn = e.dn; p.lastActiveType = e.t;
+        }
+      }
+    }
+
+    const firstDn = people.length ? Math.min(...people.map(p => p.joinDn)) : todayDn;
+    const startDn = state.range === "all" ? Math.min(firstDn, todayDn) : todayDn - Number(state.range) + 1;
+    const days = [];
+    for (let d = startDn; d <= todayDn; d++) days.push(d);
+
+    return {
+      tz, nowS, todayDn, startDn, days, people, byI, events, activeSet, anySet,
+      rangeEvents: events.filter(e => e.dn >= startDn),
+      cohort: people.filter(p => p.joinDn >= startDn),
+    };
+  }
+
+  /* ── sections ────────────────────────────────────────────────────────────── */
+
+  function renderKpis(m, host) {
+    const { people, todayDn, days, rangeEvents, cohort } = m;
+    const dau = count(people, p => p.activeDns.has(todayDn));
+    const wau = count(people, p => activeBetween(p, todayDn - 6, todayDn));
+    const mau = count(people, p => activeBetween(p, todayDn - 29, todayDn));
+
+    let ratioSum = 0, ratioDays = 0;
+    for (const d of days) {
+      const monthly = count(people, p => p.joinDn <= d && activeBetween(p, d - 29, d));
+      if (!monthly) continue;
+      ratioSum += count(people, p => p.activeDns.has(d)) / monthly;
+      ratioDays++;
+    }
+
+    const eligible = cohort.filter(p => todayDn - p.joinDn >= 7);
+    const activated = eligible.filter(p => p.events.some(e => WRITE.has(e.t) && e.dn - p.joinDn < 7));
+    const of = t => count(rangeEvents, e => e.t === t);
+    const messages = rangeEvents.filter(e => MESSAGE.has(e.t));
+
+    const tiles = [
+      ["people", fmtNum(people.length), `${cohort.length} joined in ${rangeName()}`],
+      ["active today", fmtNum(dau), `${wau} in 7 days · ${mau} in 30`],
+      ["stickiness", ratioDays ? fmtPct(ratioSum / ratioDays) : "–", "daily active ÷ monthly active, averaged over the range"],
+      ["activated", eligible.length ? fmtPct(activated.length / eligible.length) : "–", eligible.length ? `${activated.length} of ${eligible.length} wrote in their first week` : "nobody in the range has had a week yet"],
+      ["posts", fmtNum(of("post")), `${of("tap")} prompt taps · ${of("journal")} journal entries`],
+      ["messages", fmtNum(messages.length), `from ${new Set(messages.map(e => e.p)).size} people · ${of("group_msg")} in groups`],
+    ];
+    host.replaceChildren(...tiles.map(([label, value, sub]) =>
+      h("div", { class: "tile" }, h("div", { class: "label", text: label }), h("div", { class: "value", text: value }), h("div", { class: "sub", text: sub }))));
+  }
+
+  function renderActive(m, host) {
+    const { people, days } = m;
+    const labels = days.map(dayLabel);
+    const daily = days.map(d => count(people, p => p.activeDns.has(d)));
+    const weekly = days.map(d => count(people, p => activeBetween(p, d - 6, d)));
+    const monthly = days.map(d => count(people, p => activeBetween(p, d - 29, d)));
+    const series = [
+      { label: "daily", color: "var(--series-1)", values: daily },
+      { label: "weekly (7 days)", color: "var(--series-2)", values: weekly },
+      { label: "monthly (30 days)", color: "var(--series-3)", values: monthly },
+    ];
+    host.replaceChildren(...lineChart(host, { labels, series }),
+      tableView(["day", "daily", "weekly", "monthly"], days.map((_, i) => [labels[i], daily[i], weekly[i], monthly[i]])));
+  }
+
+  function renderLifecycle(m, host) {
+    const { people, todayDn, startDn } = m;
+    const lastW = weekOf(todayDn);
+    const firstW = Math.min(weekOf(startDn), lastW - 7);
+    const weeks = [];
+    for (let w = firstW; w <= lastW; w++) weeks.push(w);
+    const activeIn = (p, w) => weekOf(p.joinDn) === w || activeBetween(p, weekStart(w), weekStart(w) + 6);
+    const joined = [], kept = [], back = [], quiet = [];
+    for (const w of weeks) {
+      let a = 0, b = 0, c = 0, d = 0;
+      for (const p of people) {
+        const jw = weekOf(p.joinDn);
+        if (jw > w) continue;
+        const now = activeIn(p, w);
+        const before = jw <= w - 1 && activeIn(p, w - 1);
+        if (jw === w) a++;
+        else if (now && before) b++;
+        else if (now) c++;
+        else if (before) d++;
+      }
+      joined.push(a); kept.push(b); back.push(c); quiet.push(d);
+    }
+    const labels = weeks.map(w => dayLabel(weekStart(w)));
+    const up = [
+      { label: "joined", color: "var(--series-1)", values: joined },
+      { label: "stayed active", color: "var(--series-2)", values: kept },
+      { label: "came back", color: "var(--series-3)", values: back },
+    ];
+    const down = { label: "went quiet", color: "var(--deemph)", values: quiet };
+    host.replaceChildren(
+      ...divergingColumns(host, {
+        labels, up, down,
+        tipFor: i => [`week of ${labels[i]}${i === weeks.length - 1 ? " (so far)" : ""}`, [
+          ...up.map(x => ({ color: x.color, value: fmtNum(x.values[i]), label: x.label })),
+          { color: down.color, value: fmtNum(down.values[i]), label: down.label },
+        ]],
+      }),
+      tableView(["week of", "joined", "stayed active", "came back", "went quiet"], weeks.map((_, i) => [labels[i], joined[i], kept[i], back[i], quiet[i]])),
+    );
+  }
+
+  function renderFrequency(m, host) {
+    const { people, days, startDn, todayDn } = m;
+    const n = days.length;
+    const perPerson = people.filter(p => p.joinDn <= todayDn).map(p => count(p.activeDns, d => d >= startDn && d <= todayDn));
+    const idle = count(perPerson, x => x === 0);
+    const size = n <= 31 ? 1 : 7;
+    const buckets = Math.ceil(n / size);
+    const values = Array(buckets).fill(0);
+    for (const x of perPerson) if (x > 0) values[Math.floor((x - 1) / size)]++;
+    const labels = values.map((_, i) => size === 1 ? String(i + 1) : `${i * size + 1}–${Math.min(n, (i + 1) * size)}`);
+    document.getElementById("frequency-hint").textContent =
+      `People by how many of the ${n} days in the range they ${ACTIVE_NAMES[state.active]}.${idle ? ` ${idle} ${idle === 1 ? "person wasn't" : "people weren't"} active at all.` : ""}`;
+    host.replaceChildren(
+      columnChart(host, {
+        values, labels, height: 170, capAll: buckets <= 16 ? undefined : false,
+        tipFor: i => [`active on ${labels[i]} ${labels[i] === "1" ? "day" : "days"}`, [{ value: fmtNum(values[i]), label: values[i] === 1 ? "person" : "people" }]],
+      }),
+      tableView(["days active", "people"], [["0", idle], ...values.map((v, i) => [labels[i], v])]),
+    );
+  }
+
+  // Each step returns the event that reached it, or null. `after` is how many
+  // days someone needs to have been around before the step can be judged.
+  const FUNNEL = [
+    { label: "joined", reach: p => ({ s: p.joined }) },
+    { label: "made a friend", reach: p => p.first.friend || null },
+    { label: "wrote something", sub: "a post, prompt tap or journal entry", reach: p => p.events.find(e => WRITE.has(e.t)) || null },
+    { label: "got an echo back", reach: p => p.first.echoed || null },
+    { label: "came back another day", sub: "active on a later day than they joined", after: 1, reach: (p, m) => p.events.find(e => m.activeSet.has(e.t) && e.dn > p.joinDn) || null },
+    { label: "active in their second week", sub: "days 7 to 13 after joining", after: 14, reach: (p, m) => p.events.find(e => m.activeSet.has(e.t) && e.dn - p.joinDn >= 7 && e.dn - p.joinDn < 14) || null },
+  ];
+
+  function renderFunnel(m, host) {
+    const { cohort, todayDn } = m;
+    document.getElementById("funnel-hint").textContent =
+      `The ${cohort.length} ${cohort.length === 1 ? "person" : "people"} who joined in ${rangeName()}, and how far each got. Each step counts only people who also reached every step above it. Names under a step are who stopped there.`;
+    if (!cohort.length) return host.replaceChildren(empty("Nobody joined in this range. Try a longer one."));
+
+    let wait = 0;
+    let previous = cohort;
+    const rows = [];
+    FUNNEL.forEach((step, k) => {
+      wait = Math.max(wait, step.after || 0);
+      const eligible = cohort.filter(p => todayDn - p.joinDn >= wait);
+      const before = previous.filter(p => todayDn - p.joinDn >= wait);
+      const reached = [];
+      const times = [];
+      for (const p of before) {
+        const hit = step.reach(p, m);
+        if (hit) { reached.push(p); times.push(hit.s - p.joined); }
+      }
+      const stopped = before.filter(p => !reached.includes(p));
+      const tooNew = cohort.length - eligible.length;
+      const bits = [];
+      if (k > 0) {
+        bits.push(`${fmtPct(before.length ? reached.length / before.length : null)} of the step above`);
+        if (stopped.length) bits.push([h("b", { text: `${stopped.length} stopped here` }), `: ${names(stopped)}`]);
+        if (times.length) bits.push(`median ${fmtDur(median(times))} after joining`);
+        if (tooNew) bits.push(`${tooNew} too new to count`);
+      }
+      rows.push(barRow({
+        name: step.label, sub: step.sub,
+        share: eligible.length ? reached.length / eligible.length : 0,
+        value: [fmtNum(reached.length), h("span", { text: ` · ${fmtPct(eligible.length ? reached.length / eligible.length : null)}` })],
+        detail: bits.length ? bits.flatMap((bit, i) => i ? [" · ", bit] : [bit]) : null,
+      }));
+      previous = reached;
+    });
+    host.replaceChildren(h("div", { class: "bars" }, rows));
+  }
+
+  function renderSetup(m, host) {
+    const { cohort } = m;
+    if (!cohort.length) return host.replaceChildren(empty("Nobody joined in this range."));
+    const checks = [
+      ["added a photo", p => p.photo],
+      ["confirmed their age", p => p.first.age_ok],
+      ["turned on notifications", p => p.first.push_on],
+      ["made a friend on their first day", p => p.first.friend && p.first.friend.s - p.joined < DAY],
+      ["came through an invite", p => p.invited_by !== null && p.invited_by !== undefined],
+    ];
+    host.replaceChildren(h("div", { class: "bars" }, checks.map(([name, test]) => {
+      const yes = cohort.filter(p => test(p));
+      const no = cohort.filter(p => !test(p));
+      return barRow({
+        name, share: yes.length / cohort.length,
+        value: [fmtNum(yes.length), h("span", { text: ` · ${fmtPct(yes.length / cohort.length)}` })],
+        detail: no.length && no.length <= 8 ? `not: ${names(no)}` : null,
+      });
+    })));
+  }
+
+  function renderQuiet(m, host) {
+    const { cohort, todayDn } = m;
+    const settled = cohort.filter(p => todayDn - p.joinDn >= 14);
+    const quiet = settled.filter(p => p.lastActiveDn === null || todayDn - p.lastActiveDn >= 14);
+    if (!settled.length) return host.replaceChildren(empty("Nobody in this range joined 14 or more days ago."));
+    if (!quiet.length) return host.replaceChildren(empty(settled.length === 1
+      ? "The one person who's been around 14 days was active in the last 14."
+      : `All ${settled.length} people who've been around 14 days were active in the last 14.`));
+    const groups = new Map();
+    for (const p of quiet) {
+      const key = p.lastActiveType === null ? `never ${ACTIVE_NAMES[state.active]}` : `last ${typeLabel(p.lastActiveType)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(p);
+    }
+    const rows = [...groups.entries()].sort((a, b) => b[1].length - a[1].length).map(([key, list]) => barRow({
+      name: key, share: list.length / quiet.length,
+      value: fmtNum(list.length),
+      detail: list.slice(0, 8).map(p => `${handleOf(p)}${p.lastActive ? ` (${fmtDur(m.nowS - p.lastActive)} ago)` : ""}`).join(", ") + (list.length > 8 ? ` and ${list.length - 8} more` : ""),
+    }));
+    host.replaceChildren(
+      h("p", { class: "hint", text: `${quiet.length} of ${settled.length} (${fmtPct(quiet.length / settled.length)}) have gone quiet.` }),
+      h("div", { class: "bars" }, rows));
+  }
+
+  function renderRetentionDays(m, host) {
+    const { cohort, todayDn, activeSet } = m;
+    const marks = [1, 3, 7, 14, 30];
+    const stats = marks.map(n => {
+      const eligible = cohort.filter(p => todayDn - p.joinDn >= n);
+      const back = eligible.filter(p => p.events.some(e => activeSet.has(e.t) && e.dn - p.joinDn >= n));
+      return { n, eligible: eligible.length, back: back.length, share: eligible.length ? back.length / eligible.length : 0 };
+    });
+    if (!cohort.length) return host.replaceChildren(empty("Nobody joined in this range."));
+    host.replaceChildren(
+      columnChart(host, {
+        values: stats.map(x => Math.round(x.share * 100)),
+        labels: stats.map(x => `day ${x.n}`),
+        height: 180,
+        capAll: true,
+        capLabel: i => stats[i].eligible ? `${Math.round(stats[i].share * 100)}%` : "too new",
+        tipFor: i => [`on or after day ${stats[i].n}`, [{ value: stats[i].eligible ? fmtPct(stats[i].share) : "–", label: stats[i].eligible ? `${stats[i].back} of ${stats[i].eligible} came back` : "nobody has been around that long" }]],
+      }),
+      tableView(["after", "came back", "of", "share"], stats.map(x => [`day ${x.n}`, x.back, x.eligible, x.eligible ? fmtPct(x.share) : "–"])),
+    );
+  }
+
+  function renderCohorts(m, host) {
+    const { cohort, todayDn, activeSet } = m;
+    if (!cohort.length) return host.replaceChildren(empty("Nobody joined in this range."));
+    const byWeek = new Map();
+    for (const p of cohort) {
+      const w = weekOf(p.joinDn);
+      if (!byWeek.has(w)) byWeek.set(w, []);
+      byWeek.get(w).push(p);
+    }
+    const weeks = [...byWeek.keys()].sort((a, b) => a - b);
+    const span = Math.min(12, Math.floor((todayDn - weekStart(weeks[0])) / 7));
+    const head = h("tr", null, h("th", { class: "txt sticky", text: "joined week of" }), h("th", { text: "people" }),
+      [...Array(span + 1).keys()].map(k => h("th", { text: `wk ${k}` })));
+    const rows = weeks.map(w => {
+      const members = byWeek.get(w);
+      const cells = [...Array(span + 1).keys()].map(k => {
+        const started = members.filter(p => todayDn - p.joinDn >= 7 * k);
+        if (!started.length) return h("td", { class: "cell" });
+        const active = started.filter(p => p.events.some(e => activeSet.has(e.t) && e.dn - p.joinDn >= 7 * k && e.dn - p.joinDn < 7 * k + 7));
+        const share = active.length / started.length;
+        const step = share > 0 ? Math.min(5, Math.floor(share * 5.999)) : -1;
+        const bg = step < 0 ? "var(--seq-0)" : RAMP[step];
+        const ink = step >= 4 ? "#fff" : "var(--ink)";
+        return h("td", {
+          class: "cell", style: `background:${bg};color:${ink}`,
+          title: `${active.length} of ${started.length}${started.length < members.length ? ` (${members.length - started.length} not there yet)` : ""}`,
+          text: fmtPct(share),
+        });
+      });
+      return h("tr", null, h("td", { class: "txt sticky", text: dayLabel(weekStart(w)) }), h("td", { text: fmtNum(members.length) }), cells);
+    });
+    host.replaceChildren(h("div", { class: "table-wrap" }, h("table", { class: "data cohort" }, h("thead", null, head), h("tbody", null, rows))));
+  }
+
+  function renderPaths(m, host) {
+    const { cohort } = m;
+    if (!cohort.length) return host.replaceChildren(empty("Nobody joined in this range."));
+    const root = { count: 0, kids: new Map() };
+    for (const p of cohort) {
+      root.count++;
+      const seen = new Set();
+      let node = root;
+      for (const e of p.events) {
+        if (JOURNEY_SKIP.has(e.t) || seen.has(e.t)) continue;
+        seen.add(e.t);
+        if (!node.kids.has(e.t)) node.kids.set(e.t, { count: 0, kids: new Map() });
+        node = node.kids.get(e.t);
+        node.count++;
+        if (seen.size === 3) break;
+      }
+    }
+    const rows = [];
+    const add = (label, n, depth, stop) => rows.push(h("div", { class: `node${depth === 0 ? " root" : ""}${stop ? " stop" : ""}`, style: `--depth:${depth}` },
+      h("div", { class: "nm", title: label, text: label }),
+      h("div", { class: "track" }, h("div", { class: "fill", style: `width:${(n / root.count) * 100}%` })),
+      h("div", { class: "ct", text: `${n} · ${fmtPct(n / root.count)}` })));
+    const walk = (node, depth) => {
+      const kids = [...node.kids.entries()].sort((a, b) => b[1].count - a[1].count);
+      const limit = depth === 1 ? 6 : 3;
+      kids.slice(0, limit).forEach(([t, kid]) => {
+        add(typeLabel(t), kid.count, depth, false);
+        if (depth < 3) walk(kid, depth + 1);
+      });
+      const rest = kids.slice(limit).reduce((sum, [, kid]) => sum + kid.count, 0);
+      if (rest) add("something else", rest, depth, true);
+      const stopped = node.count - kids.reduce((sum, [, kid]) => sum + kid.count, 0);
+      if (stopped && depth <= 3) add(depth === 1 ? "nothing yet" : "nothing after that", stopped, depth, true);
+    };
+    add("joined", root.count, 0, false);
+    walk(root, 1);
+    host.replaceChildren(h("div", { class: "tree" }, rows));
+  }
+
+  function renderFirsts(m, host) {
+    const { cohort } = m;
+    if (!cohort.length) return host.replaceChildren(empty("Nobody joined in this range."));
+    const kinds = ["friend_req", "friend", "tap", "post", "journal", "echo", "echoed", "dm", "dm_in", "group_msg", "react", "comment", "invite", "catchup_add", "circle"];
+    const rows = kinds.map(t => {
+      const did = cohort.filter(p => p.first[t]);
+      const times = did.map(p => p.first[t].s - p.joined);
+      return { t, n: did.length, share: did.length / cohort.length, med: median(times), fast: times.length ? Math.min(...times) : null };
+    }).sort((a, b) => b.n - a.n || (a.med ?? Infinity) - (b.med ?? Infinity));
+    host.replaceChildren(h("div", { class: "table-wrap" }, h("table", { class: "data" },
+      h("thead", null, h("tr", null,
+        h("th", { class: "txt", text: "first time they" }), h("th", { text: "people" }), h("th", { text: "share" }),
+        h("th", { text: "median" }), h("th", { text: "fastest" }))),
+      h("tbody", null, rows.map(r => h("tr", null,
+        h("td", { class: "txt", text: typeLabel(r.t) }),
+        h("td", { class: r.n ? null : "zero", text: fmtNum(r.n) }),
+        h("td", { class: r.n ? null : "zero", text: fmtPct(r.share) }),
+        h("td", { class: r.n ? null : "zero", text: fmtDur(r.med) }),
+        h("td", { class: r.n ? null : "zero", text: fmtDur(r.fast) }))))),
+    ));
+  }
+
+  const FEATURES = [
+    ["posting", "a post shared with friends or circles", e => e.t === "post"],
+    ["prompt taps", "answering the daily prompt with a tap", e => e.t === "tap"],
+    ["journal", "a post kept to themselves", e => e.t === "journal"],
+    ["voice notes", "in posts, journal entries or messages", e => e.v && ["post", "journal", "dm", "group_msg"].includes(e.t)],
+    ["echoes", null, e => e.t === "echo"],
+    ["comments", null, e => e.t === "comment"],
+    ["direct messages", null, e => e.t === "dm"],
+    ["group chats", "starting one or sending in one", e => e.t === "group_msg" || e.t === "group_new"],
+    ["reactions", null, e => e.t === "react"],
+    ["friend requests", null, e => e.t === "friend_req"],
+    ["invites", null, e => e.t === "invite"],
+    ["catch up", "adding someone or logging a catch up", e => e.t === "catchup_add" || e.t === "catchup_log"],
+    ["circles", "beyond the default ones", e => e.t === "circle"],
+  ];
+
+  function renderAdoption(m, host) {
+    const { rangeEvents, anySet } = m;
+    const active = new Set(rangeEvents.filter(e => anySet.has(e.t)).map(e => e.p));
+    document.getElementById("adoption-hint").textContent =
+      `Of the ${active.size} ${active.size === 1 ? "person" : "people"} who did anything in ${rangeName()}, how many used each part of the app, and how much.`;
+    if (!active.size) return host.replaceChildren(empty("Nobody did anything in this range."));
+    const rows = FEATURES.map(([name, sub, test]) => {
+      const hits = rangeEvents.filter(test);
+      const users = new Set(hits.map(e => e.p));
+      return { name, sub, users: users.size, uses: hits.length };
+    }).sort((a, b) => b.users - a.users || b.uses - a.uses);
+    host.replaceChildren(h("div", { class: "bars" }, rows.map(r => barRow({
+      name: r.name, sub: r.sub, share: r.users / active.size,
+      value: [fmtNum(r.users), h("span", { text: ` · ${fmtPct(r.users / active.size)}` })],
+      detail: r.uses ? `${fmtNum(r.uses)} ${r.uses === 1 ? "time" : "times"} · ${fmtDec(r.uses / r.users)} per person` : null,
+    }))));
+  }
+
+  function renderDaily(m, host) {
+    const { days, rangeEvents } = m;
+    const metrics = [
+      ["joined", e => e.t === "joined", 1],
+      ["posts", e => e.t === "post", 1],
+      ["prompt taps", e => e.t === "tap", 1],
+      ["journal entries", e => e.t === "journal", 1],
+      ["direct messages", e => e.t === "dm", 1],
+      ["group messages", e => e.t === "group_msg", 1],
+      ["echoes", e => e.t === "echo", 1],
+      ["new friendships", e => e.t === "friend", 2], // one event on each side
+    ];
+    const index = new Map(days.map((d, i) => [d, i]));
+    const labels = days.map(dayLabel);
+    const table = [];
+    const charts = metrics.map(([name, test, per]) => {
+      const values = Array(days.length).fill(0);
+      for (const e of rangeEvents) if (test(e) && index.has(e.dn)) values[index.get(e.dn)] += 1 / per;
+      const rounded = values.map(v => Math.round(v));
+      table.push(rounded);
+      return [h("div", { class: "multiple" }), name, rounded];
+    });
+    // In the page before drawing, so each chart can measure its own cell.
+    host.replaceChildren(h("div", { class: "multiples" }, charts.map(([cell]) => cell)));
+    for (const [cell, name, values] of charts) {
+      const total = values.reduce((a, b) => a + b, 0);
+      cell.replaceChildren(
+        h("h3", null, name, h("span", { text: fmtNum(total) })),
+        columnChart(cell, {
+          values, labels, height: 110, capAll: false,
+          tipFor: i => [labels[i], [{ value: fmtNum(values[i]), label: name }]],
+        }));
+    }
+    host.append(tableView(["day", ...metrics.map(x => x[0])], days.map((_, i) => [labels[i], ...table.map(col => col[i])])));
+  }
+
+  function renderWhen(m, host) {
+    const { rangeEvents } = m;
+    document.getElementById("when-hint").textContent =
+      `By weekday and hour in ${m.tz === APP_TZ ? "Pacific time, the app's own day" : `your time zone (${m.tz})`}.`;
+    const grids = [
+      ["writing", "posts, taps and journal entries", WRITE],
+      ["messaging", "direct and group messages", MESSAGE],
+    ];
+    const parts = [];
+    const tables = [];
+    for (const [title, unit, types] of grids) {
+      const grid = DOW.map(() => Array(24).fill(0));
+      for (const e of rangeEvents) if (types.has(e.t)) grid[e.dow][e.hour]++;
+      const wrap = h("div", { class: "multiple", style: "margin-bottom:14px" });
+      parts.push([wrap, title, unit, grid]);
+      tables.push([title, grid]);
+    }
+    host.replaceChildren(...parts.map(([wrap]) => wrap));
+    for (const [wrap, title, unit, grid] of parts) {
+      wrap.replaceChildren(h("h3", null, `${title}: ${unit}`, h("span", { text: fmtNum(grid.flat().reduce((a, b) => a + b, 0)) })), ...heatmap(wrap, { grid, unit: "hour" }));
+    }
+    const rows = [];
+    for (let d = 0; d < 7; d++) for (let hr = 0; hr < 24; hr++) {
+      const vals = tables.map(([, g]) => g[d][hr]);
+      if (vals.some(Boolean)) rows.push([`${DOW[d]} ${hourName(hr)}`, ...vals]);
+    }
+    host.append(tableView(["when", ...tables.map(([t]) => t)], rows));
+  }
+
+  function renderWriting(m, host) {
+    const { rangeEvents } = m;
+    const written = t => rangeEvents.filter(e => e.t === t && !e.v);
+    const kinds = [
+      ["posts", written("post")],
+      ["journal entries", written("journal")],
+      ["voice posts", rangeEvents.filter(e => (e.t === "post" || e.t === "journal") && e.v)],
+    ];
+    const rows = kinds.map(([name, list]) => {
+      const words = list.map(e => e.a || 0);
+      const chars = list.map(e => e.b || 0);
+      const total = words.reduce((a, b) => a + b, 0);
+      return [name, fmtNum(list.length), fmtNum(total), list.length ? fmtDec(total / list.length) : "–", fmtNum(median(words)),
+        fmtNum(chars.reduce((a, b) => a + b, 0))];
+    });
+    const edges = [0, 10, 25, 50, 100, 250, Infinity];
+    const bucketNames = ["no words", "1–10", "11–25", "26–50", "51–100", "101–250", "250+"];
+    const values = Array(bucketNames.length).fill(0);
+    for (const e of [...kinds[0][1], ...kinds[1][1]]) {
+      const w = e.a || 0;
+      const i = w === 0 ? 0 : edges.findIndex((edge, k) => k > 0 && w <= edge);
+      values[i]++;
+    }
+    host.replaceChildren(
+      h("div", { class: "table-wrap" }, h("table", { class: "data" },
+        h("thead", null, h("tr", null, ["", "count", "words", "average", "median", "characters"].map((t, i) => h("th", { class: i ? null : "txt", text: t })))),
+        h("tbody", null, rows.map(r => h("tr", null, r.map((c, i) => h("td", { class: i ? null : "txt", text: c }))))))),
+      h("h3", { class: "subhead", text: "words per post and journal entry" }),
+      columnChart(host, {
+        values, labels: bucketNames, height: 160, capAll: true,
+        tipFor: i => [`${bucketNames[i]} words`, [{ value: fmtNum(values[i]), label: values[i] === 1 ? "entry" : "entries" }]],
+      }),
+    );
+  }
+
+  function renderInvites(m, host) {
+    const { people, rangeEvents, cohort, byI } = m;
+    const sent = new Map(), joined = new Map();
+    for (const e of rangeEvents) {
+      if (e.t === "invite") sent.set(e.p, (sent.get(e.p) || 0) + 1);
+      if (e.t === "invite_joined") joined.set(e.p, (joined.get(e.p) || 0) + 1);
+    }
+    const inviters = [...new Set([...sent.keys(), ...joined.keys()])]
+      .sort((a, b) => (joined.get(b) || 0) - (joined.get(a) || 0) || (sent.get(b) || 0) - (sent.get(a) || 0));
+    const through = cohort.filter(p => p.invited_by !== null && p.invited_by !== undefined);
+    const parts = [h("p", { class: "hint", text: `${through.length} of the ${cohort.length} people who joined in ${rangeName()} came through an invite.` })];
+    if (inviters.length) {
+      parts.push(h("div", { class: "table-wrap" }, h("table", { class: "data" },
+        h("thead", null, h("tr", null, ["inviter", "invites sent", "joined", "joined ÷ sent"].map((t, i) => h("th", { class: i ? null : "txt", text: t })))),
+        h("tbody", null, inviters.map(p => h("tr", null,
+          h("td", { class: "txt", text: handleOf(p) }),
+          h("td", { text: fmtNum(sent.get(p) || 0) }),
+          h("td", { text: fmtNum(joined.get(p) || 0) }),
+          h("td", { text: sent.get(p) ? fmtPct((joined.get(p) || 0) / sent.get(p)) : "–" })))))));
+    } else {
+      parts.push(empty("No invites sent or joined in this range."));
+    }
+    const edges = people.filter(p => byI.has(p.invited_by)).sort((a, b) => b.joined - a.joined);
+    if (edges.length) {
+      parts.push(h("h3", { class: "subhead", text: "who invited whom, all time" }));
+      parts.push(h("ul", { class: "firsts" }, edges.map(p =>
+        h("li", { style: "grid-template-columns:1fr auto" }, `${handleOf(byI.get(p.invited_by))} invited ${handleOf(p)}`, h("span", { text: `joined ${dayLabel(p.joinDn)}` })))));
+    }
+    host.replaceChildren(...parts);
+  }
+
+  function renderGroups(m, host) {
+    const { events, startDn, nowS } = m;
+    const groups = new Map();
+    const get = g => {
+      if (!groups.has(g)) groups.set(g, { g, creator: null, created: null, members: new Set(), senders: new Set(), all: 0, inRange: 0, last: null });
+      return groups.get(g);
+    };
+    for (const e of events) {
+      if (e.t === "group_new") { const x = get(e.a); x.creator = e.p; x.created = e.dn; x.members.add(e.p); }
+      if (e.t === "group_join") get(e.a).members.add(e.p);
+      if (e.t === "group_msg") {
+        const x = get(e.a);
+        x.all++; x.senders.add(e.p); x.last = e.s;
+        if (e.dn >= startDn) x.inRange++;
+      }
+    }
+    if (!groups.size) return host.replaceChildren(empty("No group chats yet."));
+    const list = [...groups.values()].sort((a, b) => (b.last || 0) - (a.last || 0));
+    host.replaceChildren(h("div", { class: "table-wrap" }, h("table", { class: "data" },
+      h("thead", null, h("tr", null, ["group", "started", "members", "spoke", "messages", "last"].map((t, i) => h("th", { class: i < 2 ? "txt" : null, text: t })))),
+      h("tbody", null, list.map(x => h("tr", null,
+        h("td", { class: "txt", text: `#${x.g}` }),
+        h("td", { class: "txt", text: `${x.creator ? handleOf(x.creator) : "–"}${x.created !== null ? `, ${dayLabel(x.created)}` : ""}` }),
+        h("td", { text: fmtNum(x.members.size) }),
+        h("td", { text: fmtNum(x.senders.size) }),
+        h("td", { class: x.inRange ? null : "zero", text: `${fmtNum(x.inRange)} of ${fmtNum(x.all)}` }),
+        h("td", { text: x.last ? `${fmtDur(nowS - x.last)} ago` : "–" }))))),
+    ));
+  }
+
+  function statusOf(p, m) {
+    if (m.todayDn - p.joinDn < 7) return { key: "new", label: "new", order: 0 };
+    if (p.lastActiveDn === null) return { key: "never", label: "never active", order: 4 };
+    const since = m.todayDn - p.lastActiveDn;
+    if (since < 7) return { key: "active", label: "active", order: 1 };
+    if (since < 28) return { key: "cooling", label: "cooling", order: 2 };
+    return { key: "dormant", label: "dormant", order: 3 };
+  }
+
+  function personStats(p, m) {
+    const r = {
+      post: 0, writtenPosts: 0, postWords: 0, postChars: 0, tap: 0, voice: 0,
+      journal: 0, writtenJournal: 0, journalWords: 0, journalChars: 0,
+      echo: 0, echoed: 0, comment: 0, dm: 0, dm_in: 0, group_msg: 0, group_new: 0, react: 0,
+      friends: 0, invite: 0, invitesJoined: 0, catchup: 0,
+    };
+    const peers = new Set();
+    const days = new Set();
+    for (const e of p.events) {
+      if (e.t === "friend") r.friends++; // everyone they're friends with now
+      if (e.dn < m.startDn) continue;
+      if (m.activeSet.has(e.t)) days.add(e.dn);
+      switch (e.t) {
+        case "post":
+          r.post++;
+          if (e.v) r.voice++; else { r.writtenPosts++; r.postWords += e.a || 0; r.postChars += e.b || 0; }
+          break;
+        case "journal":
+          r.journal++;
+          if (e.v) r.voice++; else { r.writtenJournal++; r.journalWords += e.a || 0; r.journalChars += e.b || 0; }
+          break;
+        case "dm": r.dm++; peers.add(e.a); break;
+        case "invite_joined": r.invitesJoined++; break;
+        case "catchup_add": case "catchup_log": r.catchup++; break;
+        case "friend": break;
+        default: if (e.t in r) r[e.t]++;
+      }
+    }
+    r.dmPeople = peers.size;
+    r.activeDays = days.size;
+    r.avgWords = r.writtenPosts ? r.postWords / r.writtenPosts : null;
+    return r;
+  }
+
+  function renderPeople(m, host) {
+    const { people, byI, nowS } = m;
+    if (!people.length) return host.replaceChildren(empty("No accounts."));
+    const rows = people.map(p => ({ p, st: personStats(p, m), status: statusOf(p, m) }));
+    // Re-rendering on a sort or a toggle keeps the table where it was scrolled.
+    const previous = host.querySelector(".table-wrap");
+    const scrollLeft = previous ? previous.scrollLeft : 0;
+    const visible = Math.floor((previous || host).getBoundingClientRect().width) - 2;
+    const num = key => ({ key, get: r => r.st[key] });
+    const COLUMNS = [
+      { group: "person", key: "handle", label: "person", text: true, get: r => r.p.handle || "", show: r => [handleOf(r.p), r.p.test ? h("span", { class: "tag", text: "test" }) : null] },
+      { group: "person", key: "status", label: "status", text: true, get: r => r.status.order, show: r => h("span", { class: `status ${r.status.key}` }, h("i"), r.status.label) },
+      { group: "person", key: "joined", label: "joined", get: r => r.p.joined, show: r => dayLabel(r.p.joinDn) },
+      { group: "person", key: "lastActive", label: "last active", get: r => r.p.lastActive ?? -1, show: r => r.p.lastActive ? `${fmtDur(nowS - r.p.lastActive)} ago` : "never" },
+      { group: "person", ...num("activeDays"), label: "active days" },
+      { group: "writing", ...num("post"), label: "posts" },
+      { group: "writing", ...num("postWords"), label: "words" },
+      { group: "writing", ...num("postChars"), label: "characters" },
+      { group: "writing", key: "avgWords", label: "words / post", get: r => r.st.avgWords ?? -1, show: r => fmtDec(r.st.avgWords) },
+      { group: "writing", ...num("tap"), label: "taps" },
+      { group: "writing", ...num("voice"), label: "voice" },
+      { group: "journal", ...num("journal"), label: "entries" },
+      { group: "journal", ...num("journalWords"), label: "words" },
+      { group: "journal", ...num("journalChars"), label: "characters" },
+      { group: "echoes", ...num("echo"), label: "given" },
+      { group: "echoes", ...num("echoed"), label: "got" },
+      { group: "echoes", ...num("comment"), label: "comments" },
+      { group: "messages", ...num("dm"), label: "sent" },
+      { group: "messages", ...num("dm_in"), label: "got" },
+      { group: "messages", ...num("dmPeople"), label: "people" },
+      { group: "messages", ...num("group_msg"), label: "in groups" },
+      { group: "messages", ...num("group_new"), label: "groups made" },
+      { group: "messages", ...num("react"), label: "reactions" },
+      { group: "social", ...num("friends"), label: "friends" },
+      { group: "social", ...num("invite"), label: "invites" },
+      { group: "social", ...num("invitesJoined"), label: "joined" },
+      { group: "social", key: "invitedBy", label: "invited by", text: true, get: r => byI.get(r.p.invited_by)?.handle || "", show: r => byI.has(r.p.invited_by) ? handleOf(byI.get(r.p.invited_by)) : "–" },
+      { group: "social", ...num("catchup"), label: "catch up" },
+    ];
+
+    const col = COLUMNS.find(c => c.key === state.sort.key) || COLUMNS[3];
+    rows.sort((a, b) => {
+      const x = col.get(a), y = col.get(b);
+      const cmp = typeof x === "string" ? x.localeCompare(y) : x - y;
+      return cmp * state.sort.dir || (b.p.lastActive ?? -1) - (a.p.lastActive ?? -1);
+    });
+
+    // Group labels over runs of columns. The first cell stays one column wide
+    // so it can stick with the person column beneath it.
+    const spans = [];
+    for (const c of COLUMNS) {
+      const last = spans[spans.length - 1];
+      if (last && last.group === c.group) last.n++;
+      else spans.push({ group: c.group, n: 1 });
+    }
+    const groupRow = h("tr", { class: "group" },
+      h("th", { class: "sticky" }),
+      spans[0].n > 1 ? h("th", { class: "plain", colspan: spans[0].n - 1 }) : null,
+      spans.slice(1).map(x => h("th", { colspan: x.n, text: x.group })));
+
+    const headRow = h("tr", null, COLUMNS.map((c, i) => h("th", {
+      class: ["sortable", c.text ? "txt" : null, i === 0 ? "sticky" : null, c.key === col.key ? "sorted" : null].filter(Boolean).join(" "),
+      text: `${c.label}${c.key === col.key ? (state.sort.dir < 0 ? " ↓" : " ↑") : ""}`,
+      onclick: () => {
+        state.sort = { key: c.key, dir: c.key === state.sort.key ? -state.sort.dir : (c.text ? 1 : -1) };
+        renderSection("people");
+      },
+    })));
+
+    const body = h("tbody");
+    for (const r of rows) {
+      const id = r.p.i;
+      const open = state.open.has(id);
+      body.append(h("tr", {
+        class: `person${open ? " open" : ""}`,
+        tabindex: 0,
+        "aria-expanded": open ? "true" : "false",
+        onclick: () => { open ? state.open.delete(id) : state.open.add(id); renderSection("people"); },
+        onkeydown: evt => { if (evt.key === "Enter" || evt.key === " ") { evt.preventDefault(); evt.currentTarget.click(); } },
+      }, COLUMNS.map((c, i) => {
+        const value = c.get(r);
+        const zero = !c.text && !c.show && value === 0;
+        return h("td", { class: [c.text ? "txt" : null, i === 0 ? "sticky" : null, zero ? "zero" : null].filter(Boolean).join(" ") || null },
+          c.show ? c.show(r) : fmtNum(value));
+      })));
+      if (open) body.append(h("tr", { class: "detail" }, h("td", { colspan: COLUMNS.length },
+        h("div", { class: "detail-inner", style: `width:${visible}px` }, personDetail(r.p, m)))));
+    }
+
+    const wrap = h("div", { class: "table-wrap" },
+      h("table", { class: "data" }, h("thead", null, groupRow, headRow), body));
+    host.replaceChildren(wrap);
+    wrap.scrollLeft = scrollLeft;
+  }
+
+  function personDetail(p, m) {
+    const firsts = Object.values(p.first)
+      .filter(e => e.t !== "joined")
+      .sort((a, b) => a.s - b.s)
+      .map(e => h("li", null, h("span", { text: `+${fmtDur(e.s - p.joined)}` }), typeLabel(e.t)));
+
+    // Twelve weeks of days, one column a week, Monday on top.
+    const lastW = weekOf(m.todayDn);
+    const perDay = new Map();
+    for (const e of p.events) if (m.activeSet.has(e.t)) perDay.set(e.dn, (perDay.get(e.dn) || 0) + 1);
+    const max = Math.max(1, ...perDay.values());
+    const cell = 12, gap = 2, left = 30;
+    const svg = s("svg", { viewBox: `0 0 ${left + 12 * (cell + gap)} ${7 * (cell + gap) + 14}`, width: left + 12 * (cell + gap), height: 7 * (cell + gap) + 14, class: "chart" });
+    [0, 2, 4, 6].forEach(r => svg.append(s("text", { x: left - 5, y: r * (cell + gap) + cell - 2, "text-anchor": "end", class: "tick", text: DOW[r] })));
+    for (let k = 0; k < 12; k++) {
+      const w = lastW - 11 + k;
+      for (let r = 0; r < 7; r++) {
+        const dn = weekStart(w) + r;
+        if (dn > m.todayDn) continue;
+        const v = perDay.get(dn) || 0;
+        const before = dn < p.joinDn;
+        const step = rampStep(v, max);
+        const rect = s("rect", {
+          x: left + k * (cell + gap), y: r * (cell + gap), width: cell, height: cell, rx: 2.5,
+          fill: before ? "transparent" : step < 0 ? "var(--seq-0)" : RAMP[step],
+          stroke: before ? "var(--grid)" : null,
+        });
+        rect.addEventListener("pointermove", evt => showTip(evt, dayLabel(dn), [{ value: before ? "–" : fmtNum(v), label: before ? "before they joined" : v === 1 ? "thing done" : "things done" }]));
+        rect.addEventListener("pointerleave", hideTip);
+        svg.append(rect);
+      }
+    }
+    svg.append(s("text", { x: left, y: 7 * (cell + gap) + 11, class: "tick", text: dayLabel(weekStart(lastW - 11)) }));
+
+    const invitedBy = m.byI.get(p.invited_by);
+    return h("div", { class: "person-detail" },
+      h("div", null,
+        h("h4", { text: `${p.name || handleOf(p)}, joined ${dayLabel(p.joinDn)}${invitedBy ? ` through ${handleOf(invitedBy)}` : ""}${p.founding !== null && p.founding !== undefined ? ` · founding #${p.founding}` : ""}` }),
+        firsts.length ? h("ul", { class: "firsts" }, firsts) : h("p", { class: "hint", text: "Nothing since joining." })),
+      h("div", null,
+        h("h4", { text: `last 12 weeks · ${ACTIVE_NAMES[state.active]}` }),
+        svg,
+        h("div", { style: "margin-top:6px" }, scaleLegend(max, "day"))),
+    );
+  }
+
+  /* ── wiring ──────────────────────────────────────────────────────────────── */
+
+  const SECTIONS = {
+    kpis: ["kpis", renderKpis],
+    active: ["active-chart", renderActive],
+    lifecycle: ["lifecycle-chart", renderLifecycle],
+    frequency: ["frequency-chart", renderFrequency],
+    funnel: ["funnel", renderFunnel],
+    setup: ["setup", renderSetup],
+    quiet: ["quiet", renderQuiet],
+    retentionDays: ["retention-days", renderRetentionDays],
+    cohorts: ["cohorts", renderCohorts],
+    paths: ["paths", renderPaths],
+    firsts: ["firsts", renderFirsts],
+    adoption: ["adoption", renderAdoption],
+    daily: ["daily", renderDaily],
+    when: ["when", renderWhen],
+    writing: ["writing", renderWriting],
+    invites: ["invites", renderInvites],
+    groups: ["groups", renderGroups],
+    people: ["people", renderPeople],
+  };
+
+  let model = null;
+
+  // One section failing to draw says so in its own card; the rest still render.
+  function renderSection(name) {
+    const [id, fn] = SECTIONS[name];
+    const host = document.getElementById(id);
+    try {
+      fn(model, host);
+    } catch (err) {
+      console.error(`analytics: ${name} failed`, err);
+      host.replaceChildren(empty(`Couldn't draw this: ${err.message}`));
+    }
+  }
+
+  function render() {
+    if (!state.raw) return;
+    hideTip();
+    model = build();
+    for (const name of Object.keys(SECTIONS)) renderSection(name);
+    const generated = new Date(state.raw.generated_at);
+    document.getElementById("data-note").textContent =
+      `${model.people.length} people · ${fmtNum(model.events.length)} events · as of ${generated.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+  }
+
+  function syncControls() {
+    document.querySelectorAll("#range-seg button").forEach(b => b.classList.toggle("on", b.dataset.range === state.range));
+    document.querySelectorAll("#zone-seg button").forEach(b => b.classList.toggle("on", b.dataset.zone === state.zone));
+    document.getElementById("active-select").value = state.active;
+    document.getElementById("test-toggle").checked = state.includeTest;
+  }
+
+  function bindControls() {
+    const zoneLocal = document.getElementById("zone-local");
+    zoneLocal.title = LOCAL_TZ;
+    if (LOCAL_TZ === APP_TZ) zoneLocal.parentElement.style.display = "none";
+    const changed = () => { savePrefs(); syncControls(); render(); };
+    document.querySelectorAll("#range-seg button").forEach(b => b.addEventListener("click", () => { state.range = b.dataset.range; changed(); }));
+    document.querySelectorAll("#zone-seg button").forEach(b => b.addEventListener("click", () => { state.zone = b.dataset.zone; changed(); }));
+    document.getElementById("active-select").addEventListener("change", e => { state.active = e.target.value; changed(); });
+    document.getElementById("test-toggle").addEventListener("change", e => { state.includeTest = e.target.checked; changed(); });
+    document.getElementById("refresh-btn").addEventListener("click", load);
+
+    let lastWidth = board.clientWidth;
+    let timer = null;
+    window.addEventListener("resize", () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => { if (board.clientWidth !== lastWidth) { lastWidth = board.clientWidth; render(); } }, 150);
+    });
+  }
+
+  async function load() {
+    const btn = document.getElementById("refresh-btn");
+    const errorHost = document.getElementById("load-error");
+    btn.disabled = true;
+    board.classList.add("loading");
+    if (!state.raw) document.getElementById("data-note").textContent = "loading…";
+    try {
+      state.raw = await callFunction("admin-analytics");
+      errorHost.replaceChildren();
+      render();
+    } catch (err) {
+      if (err.message !== "unauthorized") {
+        errorHost.replaceChildren(h("div", { class: "notice", text: `Couldn't load analytics: ${err.message}` }));
+        if (!state.raw) document.getElementById("data-note").textContent = "";
+      }
+    } finally {
+      btn.disabled = false;
+      board.classList.remove("loading");
+    }
+  }
+
+  let started = false;
+  function start() {
+    if (started) return load();
+    started = true;
+    restorePrefs();
+    syncControls();
+    bindControls();
+    load();
+  }
+</script>
+</body>
+</html>
