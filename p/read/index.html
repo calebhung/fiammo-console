@@ -213,7 +213,10 @@
   <div class="loading" aria-label="Loading"><i style="width:40%"></i><i style="width:96%"></i><i style="width:88%"></i><i style="width:60%"></i></div>
 </main>
 <noscript><main><p class="fine">This page needs JavaScript to open the post.</p></main></noscript>
-<script src="/p/read/seal.js" defer></script>
-<script src="/p/read/read.js" defer></script>
+<!-- The scripts live outside /p/: _redirects rewrites every /p/<a>/<b> to this
+     page, and /p/read/read.js has exactly that shape, so under /p/read/ they
+     came back as this HTML. -->
+<script src="/reader/seal.js" defer></script>
+<script src="/reader/read.js" defer></script>
 </body>
 </html>
