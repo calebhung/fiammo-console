@@ -1,4 +1,4 @@
-// fiammo — the reader for /p/<code>/<token>. See index.html's header for the
+// fiammo — the reader for /p/<code>/<token> (page: p/read/index.html). See its header for the
 // shape of it; the rules themselves live in the text-link edge function.
 (function () {
   "use strict";
