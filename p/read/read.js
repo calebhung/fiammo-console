@@ -16,6 +16,8 @@
     if (q.get("key")) KEY = q.get("key");
   }
   var APP_STORE = "/download";
+  // fiammo is iPhone-only: on Android there's no app to point at.
+  var CAN_GET_APP = !/android/i.test(navigator.userAgent);
 
   var parts = location.pathname.replace(/\/+$/, "").split("/");
   var CODE = parts[2] || "", TOKEN = parts[3] || "";
@@ -70,8 +72,11 @@
     flame: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.5c.5 2.4 4 4 4 7.5A4 4 0 018 13.2 4 4 0 014 9c0-1.8 1.1-3 1.9-3.6-.1 1.3.5 2.2 1.2 2.4C6.9 5.7 7.3 3.5 8 1.5z"/></svg>',
   };
 
-  function top(right) {
-    return h("div", { class: "top" }, [h("a", { class: "wordmark", href: "/", text: "fiammo" }), right || null]);
+  function top() {
+    return h("div", { class: "top" }, [
+      h("a", { class: "wordmark", href: "/", text: "fiammo" }),
+      CAN_GET_APP ? h("a", { class: "get", href: APP_STORE, text: "Get the app" }) : null,
+    ]);
   }
   function screen(kids) {
     clearInterval(S.timer);
@@ -164,7 +169,7 @@
     S.el = { nod: nod, field: field, send: send, log: log, burn: burn };
 
     screen([
-      top(null),
+      top(),
       byline,
       p.prompt_text ? h("p", { class: "prompt" }, ["Answering ", h("b", { text: p.prompt_text })]) : null,
       text, photos,
@@ -256,8 +261,8 @@
       h("h2", { text: n + " writes here most days. Tomorrow's won't come by text." }),
       h("div", { class: "perk", html: ICON.person + "<span></span>" }),
       h("div", { class: "perk", html: ICON.flame + "<span>Posts burn after a day. Nothing to scroll back through.</span>" }),
-      h("a", { class: "primary", href: APP_STORE, text: "Get fiammo" }),
-      h("p", { class: "fine", style: "text-align:center", text: "Free on iPhone" }),
+      CAN_GET_APP ? h("a", { class: "primary", href: APP_STORE, text: "Get fiammo" }) : null,
+      h("p", { class: "fine", style: "text-align:center", text: CAN_GET_APP ? "Free on iPhone" : "fiammo is on iPhone for now." }),
     ]));
     var perk = document.querySelector("#inviteslot .perk span");
     perk.textContent = "Sign up with " + S.data.reader.masked + " and " + n + "'s friend request is waiting for you.";
@@ -346,7 +351,7 @@
   function renderLocked() {
     var a = S.data.author, n = name(a);
     screen([
-      top(null),
+      top(),
       h("div", { class: "hello" }, [
         avatar(a, 52),
         h("h1", { text: "This link was opened on another phone" }),
@@ -360,7 +365,7 @@
   function renderBurned(a, newer) {
     var n = name(a);
     screen([
-      top(h("span", { class: "meta", text: "Burned" })),
+      top(),
       h("div", { class: "hello" }, [
         avatar(a, 52),
         h("h1", { text: "This one burned" }),
@@ -384,7 +389,7 @@
 
   function notFound() {
     screen([
-      top(null),
+      top(),
       h("div", { class: "hello" }, [
         h("h1", { text: "This link doesn't open anything" }),
         h("p", { text: "It may have been copied wrong. Posts on fiammo burn after a day, so the one it pointed to may be gone." }),
@@ -395,7 +400,7 @@
 
   function failed() {
     screen([
-      top(null),
+      top(),
       h("div", { class: "hello" }, [
         h("h1", { text: "This didn't load" }),
         h("p", { text: "Check your connection and try again." }),

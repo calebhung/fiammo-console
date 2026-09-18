@@ -25,6 +25,8 @@
      an image or a link, gets to carry it in a Referer. -->
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#F9F8F6">
+<!-- Safari's own "Open / Get" bar for fiammo on iPhone, above the page. -->
+<meta name="apple-itunes-app" content="app-id=6791766677">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="fiammo">
 <meta property="og:title" content="Something written for you">
@@ -82,6 +84,12 @@
   .top { display: flex; align-items: center; justify-content: space-between; }
   .wordmark { font-family: var(--script); font-size: 26px; color: var(--fg); text-decoration: none; }
   .meta { color: var(--muted); font-size: 13px; }
+  /* On every screen, so each texted post is also a way to the app. */
+  .get {
+    display: inline-flex; align-items: center; height: 32px; padding: 0 14px;
+    border-radius: 16px; background: var(--gold); color: var(--paper);
+    font: 500 13px var(--sans); text-decoration: none;
+  }
 
   .avatar {
     flex: none; border-radius: 50%; overflow: hidden;
