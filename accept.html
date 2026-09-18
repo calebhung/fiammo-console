@@ -4,16 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+<meta name="apple-itunes-app" content="app-id=6791766677">
 <title>Fiammo · Confirm</title>
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="fiammo">
-<meta property="og:title" content="You've been added to a circle on fiammo">
-<meta property="og:description" content="Write something before you read theirs.">
-<meta property="og:image" content="https://fiammo.co/og-image.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The fiammo flame">
-<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
 <link rel="preconnect" href="https://syqqxogkqmuojchbglle.supabase.co" crossorigin>
 <link rel="dns-prefetch" href="https://syqqxogkqmuojchbglle.supabase.co">
@@ -119,19 +111,20 @@
     margin: 0 0 2px;
   }
 
-  #phone-last4 {
+  #phone-number, #phone-code {
     font-family: var(--font-mono);
     font-size: 1.1rem;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.08em;
     text-align: center;
-    width: 110px;
+    width: 220px;
     padding: 10px 12px;
     border: 1px solid var(--border);
     border-radius: 8px;
     background: var(--bg);
     color: var(--text);
   }
-  #phone-last4:focus {
+  #phone-code { letter-spacing: 0.4em; width: 170px; }
+  #phone-number:focus, #phone-code:focus {
     outline: none;
     border-color: var(--ink);
   }
@@ -208,51 +201,49 @@
     </a>
   </header>
 
-  <!-- Two shapes, one page, chosen by the server at load.
-       The invite text is composed inside the iOS app, so the token URL that
-       lands in someone's Messages is frozen until the next App Store release.
-       That makes this page the only part of the flow that can change, which is
-       why nothing here is hardcoded: preview-circle-invite returns sms_enabled
-       (the circle_sms_settings kill switch, flipped from dev-tools), and it
-       decides which shape renders.
+  <!-- Two paths, both always on the page: the app, or texts.
+       The SMS opt-in is in the served HTML, not revealed by script, because
+       this page is the A2P campaign's call to action and compliance captures
+       don't run JS. When the opt-in was hidden until script decided to show
+       it, the capture saw a download button and no consent form, and the
+       campaign was rejected for it (twice: before a2d1990, and after 998a406).
 
-         sms_enabled false → the app, and nothing else. Confirming an opt-in
-           for texts that can't be sent would be a promise broken on the spot.
-         sms_enabled true  → the consent form, its disclosure and the "or"
-           divider come back, exactly as before.
+       Script only ever takes the form away, for terminal states (bad link,
+       expired, declined, confirmed). Consent collected while the
+       circle_sms_settings switch is off is deliberate: accept-circle-invite
+       leaves opt_in_confirmation_sent_at null, and
+       admin-sms-backfill-confirmations sends the registered confirmation
+       before the switch is flipped.
 
-       The SMS block below is therefore hidden in the served HTML and revealed
-       by script. Worth knowing what that costs: a compliance capture that
-       doesn't run JS won't see the opt-in. That's the right trade while the
-       switch is off — there's nothing to review — but if a carrier or Twilio
-       campaign review is pending, serve it unhidden for the duration.
-
-       Either way the invite itself is unaffected: the contact is in the circle
-       from the moment the host adds them, and installing resolves the rest
-       (074_link_circle_contacts_on_signup) with no text ever involved. -->
+       The invite itself doesn't depend on any of this: the contact is in the
+       circle from the moment the host adds them, and installing resolves the
+       rest (074_link_circle_contacts_on_signup) with no text ever involved. -->
   <section id="state" class="card">
     <img class="hero-mark" src="flame.svg?v=2" alt="">
     <h1 id="state-title">someone added you to their circle</h1>
-    <p id="state-body">download now to find them.</p>
+    <p id="state-body">get their posts in the app, or as a text. no account needed for texts.</p>
 
     <div id="app-cta">
       <a class="download-btn" href="https://apps.apple.com/app/id6791766677">get fiammo</a>
       <p class="store-note">Free on the App Store. Sign up with this same phone number and you'll land straight in their circle, with their request waiting.</p>
     </div>
 
-    <div class="or" id="or-divider" hidden><span>or</span></div>
+    <div class="or" id="or-divider"><span>or</span></div>
 
-    <form id="confirm-form" hidden>
-      <p class="form-lede">stay on text</p>
-      <label class="field-label" for="phone-last4">confirm the last 4 digits of the phone number that got this text</label>
-      <input type="tel" id="phone-last4" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000">
+    <form id="confirm-form">
+      <p class="form-lede">get their posts by text</p>
+      <label class="field-label" for="phone-number" id="number-label">your phone number, the one that got this invite. we'll text it a code to confirm it's yours.</label>
+      <input type="tel" id="phone-number" inputmode="tel" maxlength="20" autocomplete="tel-national" placeholder="(555) 555-0123">
+      <label class="field-label" for="phone-code" id="code-label" hidden>enter the 6-digit code we texted you</label>
+      <input type="text" id="phone-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" hidden>
       <div class="field-error" id="field-error"></div>
-      <button id="confirm-btn" type="submit" disabled>yes, text me updates</button>
+      <button id="confirm-btn" type="submit" disabled>text me a code</button>
       <button id="decline-link" type="button">no thanks</button>
     </form>
 
-    <p class="disclosure" id="disclosure" hidden>
-      you'll get a text each time they post. message &amp; data rates may apply.
+    <p class="disclosure" id="disclosure">
+      we'll text a one-time code to confirm your number. after that you'll get a
+      text each time they post, with a link that works for a day. message &amp; data rates may apply.
       reply HELP for help, STOP at any time to opt out.
       by confirming you agree to fiammo's
       <a href="terms.html">terms</a> and <a href="privacy.html">privacy policy</a>.
@@ -280,7 +271,11 @@
   const secondaryEl = document.getElementById("secondary");
   const formEl = document.getElementById("confirm-form");
   const orEl = document.getElementById("or-divider");
-  const inputEl = document.getElementById("phone-last4");
+  const numberEl = document.getElementById("phone-number");
+  const codeEl = document.getElementById("phone-code");
+  const numberLabelEl = document.getElementById("number-label");
+  const codeLabelEl = document.getElementById("code-label");
+  const appCtaEl = document.getElementById("app-cta");
   const fieldErrorEl = document.getElementById("field-error");
   const btnEl = document.getElementById("confirm-btn");
   const declineBtnEl = document.getElementById("decline-link");
@@ -323,17 +318,32 @@
     revealAnyway = setTimeout(() => stateEl.classList.remove("loading"), 600);
   }
 
+  // The same browser secret the post reader (/p/read/) keeps. Confirming a
+  // number here makes this browser known for it (migration 164), so each
+  // post texted to that number opens straight to the post.
+  const BROWSER = (() => {
+    const k = "fiammo.reader";
+    try { const v = localStorage.getItem(k); if (v && /^[A-Za-z0-9_-]{43}$/.test(v)) return v; } catch (e) {}
+    const b = crypto.getRandomValues(new Uint8Array(32));
+    const v = btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    try { localStorage.setItem(k, v); } catch (e) {}
+    return v;
+  })();
+
+  // fiammo is iPhone-only. On Android the App Store button points nowhere
+  // they can go, so it's taken away and texts are the whole offer. (Script
+  // only ever removes: the served page shows both paths.)
+  if (/android/i.test(navigator.userAgent)) {
+    appCtaEl.hidden = true;
+    orEl.hidden = true;
+    bodyEl.textContent = "get their posts as a text. no account needed.";
+  }
+
   // Reserved token for compliance reviewers (e.g. Twilio campaign review).
   // Renders the real opt-in UI and copy with mock data — no edge function
   // calls, so nothing expires, gets consumed, or touches real invite data.
   const SAMPLE_TOKEN = "sample-review";
   const isSample = token === SAMPLE_TOKEN;
-
-  // Set from preview-circle-invite's sms_enabled on every load. Starts false
-  // and stays false on any failure — an unreachable server, a bad token, no
-  // token at all — so the page can only ever fall back to offering the app,
-  // never to advertising texts it can't send.
-  let smsOptInEnabled = false;
 
   function callEdge(name, body) {
     return fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
@@ -367,14 +377,7 @@
 
   function showInvite(ownerName) {
     titleEl.textContent = `${ownerName} added you to their circle`;
-    bodyEl.textContent = smsOptInEnabled
-      ? "get their posts in the app, or as a text. no account needed for texts."
-      : "download now to find them.";
     settled();
-    if (!smsOptInEnabled) return;
-    formEl.hidden = false;
-    orEl.hidden = false;
-    disclosureEl.hidden = false;
   }
 
   function errorMessageFor(errCode) {
@@ -393,10 +396,6 @@
       return;
     }
     if (isSample) {
-      // The sample exists to show a reviewer the opt-in page, so it renders
-      // that shape whatever the live switch says — it makes no network call
-      // by design, so it has no switch to read.
-      smsOptInEnabled = true;
       showInvite("Jordan");
       return;
     }
@@ -410,14 +409,11 @@
         return;
       }
 
-      // already_confirmed can only come from a row someone opted into before
-      // this page went download-only, so it still says what's true for them.
       if (data.already_confirmed) {
         showTerminal("you're already set", `you're getting texts from ${data.owner_name} whenever they post. reply STOP anytime to opt out.`, false);
         return;
       }
 
-      smsOptInEnabled = data.sms_enabled === true;
       showInvite(data.owner_name);
     } catch (e) {
       const [title, body] = errorMessageFor(null);
@@ -427,56 +423,86 @@
 
   loadPreview();
 
-  inputEl.addEventListener("input", () => {
-    inputEl.value = inputEl.value.replace(/\D/g, "").slice(0, 4);
-    btnEl.disabled = inputEl.value.length !== 4;
+  // Two steps, one form: the number (it has to be the one the host added,
+  // and a code goes to it), then the code. Nobody is enrolled in anything
+  // until the code checks out.
+  let step = "number";
+  const digitsOf = (v) => v.replace(/\D/g, "");
+
+  function readyToSubmit() {
+    if (step === "number") {
+      const d = digitsOf(numberEl.value);
+      return d.length === 10 || (d.length === 11 && d[0] === "1");
+    }
+    return digitsOf(codeEl.value).length === 6;
+  }
+  numberEl.addEventListener("input", () => { fieldErrorEl.textContent = ""; btnEl.disabled = !readyToSubmit(); });
+  codeEl.addEventListener("input", () => {
+    codeEl.value = digitsOf(codeEl.value).slice(0, 6);
+    fieldErrorEl.textContent = "";
+    btnEl.disabled = !readyToSubmit();
+    if (codeEl.value.length === 6) formEl.requestSubmit();
   });
 
   function setFormBusy(busy) {
-    btnEl.disabled = busy || inputEl.value.length !== 4;
+    btnEl.disabled = busy || !readyToSubmit();
     declineBtnEl.disabled = busy;
-    inputEl.disabled = busy;
+    numberEl.disabled = busy;
+    codeEl.disabled = busy;
   }
 
-  // Confirmation is a deliberate submit with the visitor's own phone digits —
-  // nothing is sent to the server, and nobody is enrolled in anything, until
-  // this form is submitted.
+  function toCodeStep(maskedNumber) {
+    step = "code";
+    numberEl.hidden = true;
+    numberLabelEl.hidden = true;
+    codeLabelEl.hidden = false;
+    codeLabelEl.textContent = `enter the 6-digit code we texted to ${maskedNumber || "your phone"}`;
+    codeEl.hidden = false;
+    codeEl.value = "";
+    btnEl.textContent = "confirm";
+    setFormBusy(false);
+    codeEl.focus();
+  }
+
+  function youreSet(name) {
+    showTerminal("you're set", `you'll get a text from ${name} whenever they post to fiammo, with a link that works for a day. reply STOP anytime to opt out.`, false);
+  }
+
   formEl.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (!readyToSubmit()) return;
     fieldErrorEl.textContent = "";
+    const label = btnEl.textContent;
     setFormBusy(true);
-    const originalLabel = btnEl.textContent;
-    btnEl.textContent = "confirming…";
+    btnEl.textContent = step === "number" ? "sending…" : "confirming…";
 
     if (isSample) {
-      showTerminal("you're set", "you'll get a text from Jordan whenever they post to fiammo. reply STOP anytime to opt out.", false);
-      return;
+      if (step === "number") return toCodeStep("(•••) •••-••23");
+      return youreSet("Jordan");
     }
 
     try {
-      const res = await callEdge("accept-circle-invite", { token, phone_last4: inputEl.value });
+      const body = step === "number"
+        ? { token, action: "send_code", phone: numberEl.value, browser: BROWSER }
+        : { token, action: "verify_code", otp: codeEl.value, browser: BROWSER };
+      const res = await callEdge("accept-circle-invite", body);
       const data = await res.json().catch(() => ({}));
 
-      if (res.status === 403 && data.error === "phone_mismatch") {
-        fieldErrorEl.textContent = "those digits don't match. Double check and try again.";
-        setFormBusy(false);
-        btnEl.textContent = originalLabel;
-        inputEl.focus();
-        return;
-      }
+      if (res.ok && step === "number") return toCodeStep(data.masked);
+      if (res.ok) return youreSet(data.owner_name || "your friend");
 
-      if (!res.ok) {
-        const [title, body] = errorMessageFor(data.error);
-        showTerminal(title, body, true);
-        return;
-      }
-
-      const name = data.owner_name || "your friend";
-      showTerminal("you're set", `you'll get a text from ${name} whenever they post to fiammo. reply STOP anytime to opt out.`, false);
+      const again = (msg) => { fieldErrorEl.textContent = msg; setFormBusy(false); btnEl.textContent = label; };
+      if (data.error === "phone_mismatch") return again("that's not the number they added. check it and try again.");
+      if (data.error === "wrong_code") return again(data.attempts_left === 1 ? "that's not it. one more try." : "that's not it. check the text and try again.");
+      if (data.error === "code_expired") { step = "number"; numberEl.hidden = false; numberLabelEl.hidden = false; codeEl.hidden = true; codeLabelEl.hidden = true; btnEl.textContent = "text me a code"; return again("that code expired. send a new one."); }
+      if (data.error === "sms_unavailable") return again("we can't text codes just yet. get the app above, or try again soon.");
+      if (data.error === "unsupported_number") return again("texts only go to US numbers for now. get the app above instead.");
+      const [title, bodyText] = errorMessageFor(data.error);
+      showTerminal(title, bodyText, true);
     } catch (e) {
-      fieldErrorEl.textContent = "something went wrong. Give it another try.";
+      fieldErrorEl.textContent = "something went wrong. give it another try.";
       setFormBusy(false);
-      btnEl.textContent = originalLabel;
+      btnEl.textContent = label;
     }
   });
 
