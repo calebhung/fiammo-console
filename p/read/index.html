@@ -1,0 +1,211 @@
+<!doctype html>
+<!--
+  fiammo — /p/<code>/<token>: a post someone texted you, read in the browser.
+
+  _redirects sends every two-segment /p/ path here (a one-segment /p/<code>
+  is still the old forward-to-the-App-Store page in /p/index.html). All the
+  deciding happens server-side in the text-link edge function (fiammo repo,
+  supabase/functions/text-link, migration 164). This page only renders what
+  it is told and asks for what it needs:
+
+    open         the post, "burned", or "locked" (opened on another phone)
+    send_code    text a code to the number the link was sent to
+    verify_code  prove it; this browser is then known for that number
+    answer       a nod, or a reply sealed here to the author's key (seal.js)
+
+  Reading never needs a code; answering always needs a proven number.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>fiammo</title>
+<meta name="robots" content="noindex">
+<!-- The token in the path is the key to this post. Nothing leaving the page,
+     an image or a link, gets to carry it in a Referer. -->
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#F9F8F6">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="fiammo">
+<meta property="og:title" content="Something written for you">
+<meta property="og:description" content="Read it before it burns.">
+<meta property="og:image" content="https://fiammo.co/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The fiammo flame">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/flame.svg?v=2" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+  /* Same values as style.css, which mirrors Color+Fiammo.swift. */
+  :root {
+    --paper: #F9F8F6;
+    --card: #FFFFFF;
+    --border: #E9E7E3;
+    --fg: #1A1512;
+    --muted: #85807A;
+    --ink: #120B04;
+    --copper: #C96F3B;
+    --bronze: #8B5210;
+    --gold: #B8731A;
+    --error: #D97366;
+    --serif: 'Lora', Georgia, 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+    --script: Optima, Candara, 'Lora', serif;
+    /* Motion+Fiammo: arrive fast, settle, never overshoot. */
+    --arrive: cubic-bezier(.2, .8, .2, 1);
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--paper);
+    color: var(--fg);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  }
+  main {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: 20px 20px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  [hidden] { display: none !important; }
+
+  .top { display: flex; align-items: center; justify-content: space-between; }
+  .wordmark { font-family: var(--script); font-size: 26px; color: var(--fg); text-decoration: none; }
+  .meta { color: var(--muted); font-size: 13px; }
+
+  .avatar {
+    flex: none; border-radius: 50%; overflow: hidden;
+    display: grid; place-items: center;
+    font-weight: 600; font-family: var(--sans);
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+  .byline { display: flex; align-items: center; gap: 10px; }
+  .byline .who { color: var(--gold); font-size: 15px; }
+  .byline .burn { margin-left: auto; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  .prompt { font-size: 13px; line-height: 1.5; color: var(--muted); margin: -8px 0 0; }
+  .prompt b { color: var(--fg); font-weight: 500; }
+
+  .text { display: flex; flex-direction: column; gap: 12px; }
+  .text p {
+    font-family: var(--serif); font-size: 17px; line-height: 1.65;
+    color: rgba(26, 21, 18, .86); margin: 0;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .photos { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .photos img { width: 100%; border-radius: 12px; display: block; background: var(--border); }
+
+  .hair { height: .5px; background: var(--border); }
+
+  .answer { display: flex; flex-direction: column; gap: 12px; }
+  .nod {
+    align-self: flex-start; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    height: 38px; padding: 0 18px; border-radius: 19px;
+    border: 1px solid var(--fg); background: transparent; color: var(--fg);
+    font: 500 15px var(--sans);
+    transition: background .18s var(--arrive), color .18s var(--arrive);
+  }
+  .nod svg { width: 14px; height: 14px; }
+  .nod[aria-pressed="true"] { background: var(--fg); color: var(--paper); cursor: default; }
+  .reply {
+    display: flex; align-items: flex-end; gap: 8px;
+    background: var(--card); border-radius: 22px;
+    box-shadow: inset 0 0 0 .5px var(--border);
+    padding: 6px 6px 6px 16px;
+  }
+  .reply:focus-within { box-shadow: inset 0 0 0 1px var(--gold); }
+  .reply textarea {
+    flex: 1; border: 0; outline: 0; resize: none; background: transparent;
+    font: 16px/1.4 var(--sans); color: var(--fg);
+    padding: 7px 0; min-height: 22px; max-height: 140px;
+  }
+  .reply textarea::placeholder { color: var(--muted); }
+  .send {
+    flex: none; width: 34px; height: 34px; border-radius: 50%; border: 0; cursor: pointer;
+    background: var(--ink); color: #fff; display: grid; place-items: center;
+    transition: opacity .15s;
+  }
+  .send:disabled { opacity: .25; cursor: default; }
+  .send svg { width: 15px; height: 15px; }
+
+  .bubble {
+    align-self: flex-end; max-width: 85%;
+    background: var(--ink); color: #fff;
+    border-radius: 18px; padding: 10px 14px;
+    font-size: 15px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere;
+    animation: arrive .28s var(--arrive) both;
+  }
+  .notice { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--fg); animation: arrive .28s var(--arrive) both; }
+  .notice::before { content: ""; width: 14px; height: 1px; background: var(--fg); }
+
+  .card {
+    background: var(--card); border-radius: 16px; padding: 18px;
+    box-shadow: 0 0 0 .5px var(--border);
+    display: flex; flex-direction: column; gap: 12px;
+    animation: arrive .32s var(--arrive) both;
+  }
+  .card h2 { font-family: var(--serif); font-weight: 400; font-size: 20px; line-height: 1.3; margin: 0; text-wrap: balance; }
+  .card p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+  .perk { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; color: var(--fg); }
+  .perk svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--copper); }
+
+  .code { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .code span {
+    height: 54px; border-radius: 10px; background: var(--card);
+    box-shadow: inset 0 0 0 .5px var(--border);
+    display: grid; place-items: center; font-size: 24px; font-variant-numeric: tabular-nums;
+  }
+  .code span.at { box-shadow: inset 0 0 0 1px var(--gold); }
+  .code input {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; border: 0; font-size: 16px; color: transparent; caret-color: transparent;
+  }
+  .fine { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin: 0; }
+  .error { font-size: 13.5px; line-height: 1.45; color: var(--error); margin: 0; }
+  .link { background: none; border: 0; padding: 0; font: inherit; color: var(--copper); cursor: pointer; }
+  .link:disabled { color: var(--muted); cursor: default; }
+
+  .primary {
+    display: flex; align-items: center; justify-content: center;
+    height: 50px; border-radius: 10px; border: 0; cursor: pointer;
+    background: var(--gold); color: var(--paper);
+    font: 500 15px var(--sans); text-decoration: none;
+  }
+  .primary:disabled { opacity: .45; cursor: default; }
+
+  .hello { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .hello h1 { font-family: var(--serif); font-weight: 400; font-size: 27px; line-height: 1.22; margin: 0; text-wrap: balance; }
+  .hello p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--muted); }
+  .ash { display: flex; flex-direction: column; gap: 12px; padding: 18px 16px; background: var(--card); border-radius: 14px; box-shadow: 0 0 0 .5px var(--border); }
+  .ash i { display: block; height: 9px; border-radius: 5px; background: #EFEBE6; }
+
+  .loading { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; }
+  .loading i { display: block; height: 10px; border-radius: 5px; background: #F0EEEA; }
+
+  button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+  @keyframes arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite">
+  <div class="top"><a class="wordmark" href="/">fiammo</a></div>
+  <div class="loading" aria-label="Loading"><i style="width:40%"></i><i style="width:96%"></i><i style="width:88%"></i><i style="width:60%"></i></div>
+</main>
+<noscript><main><p class="fine">This page needs JavaScript to open the post.</p></main></noscript>
+<script src="/p/read/seal.js" defer></script>
+<script src="/p/read/read.js" defer></script>
+</body>
+</html>
