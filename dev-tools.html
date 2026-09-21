@@ -281,6 +281,30 @@
     color: var(--text);
   }
 
+  .prompt-eval {
+    margin: 12px 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .prompt-eval .row { gap: 6px; flex-wrap: wrap; align-items: center; }
+  .prompt-eval .stats { margin-top: 6px; }
+  .prompt-eval .why { font-family: 'Lora', Georgia, serif; font-size: 0.92rem; margin: 6px 0 0; }
+  .vote-row { margin-top: 10px; }
+  .prompt-eval button.vote { padding: 6px 12px; background: var(--bg); color: var(--text); border-color: var(--border); }
+  .prompt-eval button.vote.picked { border-color: var(--accent-strong); background: var(--accent); color: var(--on-accent); }
+  #label-card { margin-top: 12px; }
+  #label-card .label-text { font-family: 'Lora', Georgia, serif; font-size: 1.25rem; line-height: 1.45; margin: 10px 0 6px; }
+  #label-card .label-options { margin: 4px 0 0; padding-left: 18px; }
+  #label-card .label-options li { font-family: 'Lora', Georgia, serif; font-size: 0.98rem; margin: 2px 0; }
+  #label-card .vote-row button.vote { padding: 10px 22px; font-size: 1.1rem; background: var(--bg); color: var(--text); border-color: var(--border); }
+  #label-card .vote-row button.vote.picked { border-color: var(--accent-strong); background: var(--accent); color: var(--on-accent); }
+  #label-card textarea { width: 100%; max-width: none; min-height: 64px; font: inherit; padding: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 6px; box-sizing: border-box; }
+  #label-card .why { font-family: 'Lora', Georgia, serif; font-size: 0.92rem; margin: 6px 0 0; }
+  #label-card .later { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .label-keys { color: var(--muted); font-size: 0.8rem; margin-top: 10px; }
+  .label-keys kbd { font-family: var(--font-mono); border: 1px solid var(--border); border-radius: 4px; padding: 0 4px; }
+  #prompt-flagged .flag-item { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
   .prompt-hit {
     padding: 10px 0;
     border-bottom: 1px solid var(--border);
@@ -732,6 +756,7 @@
         <span id="prompt-daynum" class="stats"></span>
       </div>
 
+      <p class="stats" id="prompt-flagged"></p>
       <div id="prompt-day"></div>
 
       <div class="row" style="margin-top:18px">
@@ -741,6 +766,26 @@
       <p class="stats" id="prompts-summary"></p>
       <div id="prompts-list"></div>
       <pre class="result" id="prompts-log"></pre>
+      </div>
+    </section>
+
+    <section class="tool card" id="label-prompts" data-tool="label-prompts">
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">label prompts</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
+      <p class="hint">one prompt at a time: good or bad, and why. the next two months come first, in the order people will see them, then the rest of the library. a 👎 needs a reason, since that's what the judge learns from. the judge's own take stays hidden until you've labeled, so it can't lean on you.</p>
+      <div class="row">
+        <select id="label-filter">
+          <option value="unlabeled">not labeled yet</option>
+          <option value="down">labeled 👎</option>
+          <option value="up">labeled 👍</option>
+          <option value="all">everything</option>
+        </select>
+        <button id="label-reload">reload</button>
+        <span class="stats" id="label-progress"></span>
+      </div>
+      <div id="label-card"></div>
+      <p class="label-keys"><kbd>1</kbd> 👍 · <kbd>2</kbd> 👎 · <kbd>enter</kbd> save and next · <kbd>esc</kbd> leave the reason box · <kbd>→</kbd> skip · <kbd>←</kbd> back</p>
+      <pre class="result" id="label-log"></pre>
       </div>
     </section>
 
@@ -820,6 +865,7 @@
     refreshCircleSmsStatus();
     refreshConfig();
     refreshPrompts();
+    refreshLabels();
     refreshDiagnosticsHistory();
     refreshReports();
     startActivityLog();
@@ -1576,6 +1622,8 @@
       card.appendChild(w);
     }
 
+    card.appendChild(evaluationBlock(cell));
+
     const editBtn = document.createElement("button");
     editBtn.textContent = "edit";
     let open = false;
@@ -1588,6 +1636,163 @@
     card.appendChild(editBtn);
 
     promptDay.appendChild(card);
+  }
+
+  // ── Evaluation (fiammo migration 172) ─────────────────────────────────
+  // What the judge thinks of the day's prompt, how it actually did, and
+  // Caleb's own thumbs up or down with the reason. A thumbs down on today or a
+  // coming day offers a swap: the prompt trades places with one of the same
+  // kind about half a year out, which moves nothing else. Switching it off
+  // instead would make the rotation show the next prompt two days running.
+  const same = (a, b) => (a || "").toLowerCase() === (b || "").toLowerCase();
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function outcomeLine(o) {
+    const parts = [];
+    if (o.replaced_at) parts.push("swapped out");
+    parts.push(o.audience ? o.answers + " of " + o.audience + " answered" : o.answers + " answered");
+    if (o.kind === "poll" && o.answers) parts.push(o.writes + " wrote instead", o.tap_notes + " added why");
+    if (o.median_write_chars) parts.push("writing median " + o.median_write_chars + " chars");
+    parts.push(o.echoes + " echo" + (o.echoes === 1 ? "" : "es"), o.comments + " comment" + (o.comments === 1 ? "" : "s"));
+    return parts.join(" · ");
+  }
+
+  function evaluationBlock(cell) {
+    const box = el("div", "prompt-eval");
+    const isFuture = cell.day >= promptState.today;
+
+    // The judge
+    const j = (cell.judgements || []).find(j => same(j.prompt_text, cell.text));
+    const jRow = el("div", "row");
+    if (j) {
+      jRow.appendChild(el("span", "badge" + (j.flagged ? " fail" : ""), j.flagged ? "judge: would swap · " + j.score : "judge: " + j.score + "/100"));
+      for (const r of j.reasons || []) jRow.appendChild(el("span", "badge", r));
+    } else if (cell.source !== "weekly") {
+      jRow.appendChild(el("span", "badge", isFuture ? "not judged yet" : "no judgement"));
+    }
+    if (cell.source !== "weekly" && cell.text) {
+      const again = el("button", "vote", j ? "judge again" : "judge now");
+      again.style.padding = "6px 12px";
+      again.addEventListener("click", async () => {
+        again.disabled = true; again.textContent = "judging…";
+        try {
+          await callFunction("prompt-eval", { action: "judge", day: cell.day });
+          await loadDay(cell.day);
+        } catch (e) {
+          setResult(promptsLog, e.message, true);
+          again.disabled = false; again.textContent = "judge now";
+        }
+      });
+      jRow.appendChild(again);
+    }
+    box.appendChild(jRow);
+    if (j && j.why) box.appendChild(el("p", "why", j.why));
+
+    // What happened
+    for (const o of cell.outcomes || []) {
+      const line = el("p", "stats", (same(o.prompt_text, cell.text) ? "" : "“" + o.prompt_text + "” · ") + outcomeLine(o) +
+        (o.verdict ? " · " + o.verdict : "") + (o.verdict_basis ? " (" + o.verdict_basis + ")" : ""));
+      box.appendChild(line);
+      if (o.note) box.appendChild(el("p", "why", o.note));
+    }
+
+    // Votes
+    const votes = cell.votes || [];
+    const up = votes.filter(v => v.vote > 0).length, down = votes.length - up;
+    if (votes.length) {
+      box.appendChild(el("p", "stats", "👍 " + up + " · 👎 " + down));
+      for (const v of votes.slice(0, 3)) {
+        if (v.reason) box.appendChild(el("p", "why", (v.vote > 0 ? "👍 " : "👎 ") + v.reason));
+      }
+    }
+
+    if (!cell.text || cell.source === "weekly") return box;
+
+    const row = el("div", "row vote-row");
+    const upBtn = el("button", "vote", "👍");
+    const downBtn = el("button", "vote", "👎");
+    upBtn.title = "a good prompt"; downBtn.title = "a bad prompt — say why";
+    row.append(upBtn, downBtn);
+    box.appendChild(row);
+
+    const form = el("div", "row vote-row");
+    form.style.display = "none";
+    const reason = el("input");
+    reason.type = "text"; reason.maxLength = 500;
+    const save = el("button", null, "save");
+    form.append(reason, save);
+    box.appendChild(form);
+
+    let picked = 0;
+    const pick = (v) => {
+      picked = v;
+      upBtn.classList.toggle("picked", v > 0);
+      downBtn.classList.toggle("picked", v < 0);
+      reason.placeholder = v > 0 ? "why it works (optional)" : "why it's bad";
+      form.style.display = "";
+      reason.focus();
+    };
+    upBtn.addEventListener("click", () => pick(1));
+    downBtn.addEventListener("click", () => pick(-1));
+
+    const swapRow = el("div", "row vote-row");
+    const swap = el("button", "danger", "swap this day");
+    swap.title = "trades this prompt with one of the same kind about half a year out; nothing else moves";
+    swapRow.appendChild(swap);
+    swapRow.style.display = isFuture && cell.source === "rotation" && down > 0 ? "" : "none";
+    box.appendChild(swapRow);
+    swap.addEventListener("click", async () => {
+      if (!confirm("Swap " + dateFromDay(cell.day) + "'s prompt?\n\nIt trades places with a prompt of the same kind about half a year out. " +
+        (cell.day === promptState.today ? "It's live now, so phones switch within 15 minutes, and anyone who already answered sees the new one unanswered." : "Nothing else moves."))) return;
+      swap.disabled = true;
+      try {
+        const r = await callFunction("admin-refresh-prompt", { day: cell.day });
+        setResult(promptsLog, "now: " + r.todayNow + "\nmoved to #" + r.movedTo.position + ": " + r.movedTo.text);
+        await loadDay(cell.day);
+      } catch (e) {
+        setResult(promptsLog, e.message, true);
+        swap.disabled = false;
+      }
+    });
+
+    const submit = async () => {
+      const why = reason.value.trim();
+      if (picked < 0 && !why) { reason.focus(); setResult(promptsLog, "say why it's bad", true); return; }
+      save.disabled = true;
+      try {
+        await callFunction("admin-prompt-vote", { text: cell.text, vote: picked, reason: why || null, day: cell.day });
+        setResult(promptsLog, (picked > 0 ? "👍" : "👎") + " saved on “" + cell.text + "”");
+        await loadDay(cell.day);
+      } catch (e) {
+        setResult(promptsLog, e.message, true);
+        save.disabled = false;
+      }
+    };
+    save.addEventListener("click", submit);
+    reason.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+
+    return box;
+  }
+
+  function renderFlagged(flagged) {
+    const box = document.getElementById("prompt-flagged");
+    box.innerHTML = "";
+    if (!flagged) return;
+    if (!flagged.length) { box.textContent = "judge: nothing flagged in the next two weeks"; return; }
+    box.appendChild(document.createTextNode("judge would swap: "));
+    flagged.forEach((f, i) => {
+      if (i) box.appendChild(document.createTextNode(" · "));
+      const a = el("span", "flag-item", dateFromDay(f.day) + " (" + f.score + ")");
+      a.title = f.text + (f.why ? "\n\n" + f.why : "");
+      a.addEventListener("click", () => loadDay(f.day));
+      box.appendChild(a);
+    });
   }
 
   async function loadDay(day) {
@@ -1604,6 +1809,7 @@
         (data.scheduledCount ? " · " + data.scheduledCount + " pinned" : "") +
         " · wraps in " + (data.ringCount - ((promptState.today % data.ringCount) + data.ringCount) % data.ringCount) + " days";
       renderDayCard((data.calendar || [])[0]);
+      renderFlagged(data.flagged);
     } catch (e) {
       promptDayNum.textContent = "error";
       setResult(promptsLog, e.message, true);
@@ -1650,6 +1856,193 @@
       promptsList.appendChild(item);
     }
   }
+
+  // ── Labeling queue ────────────────────────────────────────────────────
+  // The day card takes a vote one date at a time; this walks the library so
+  // Caleb can label prompts in a sitting. Votes go through the same
+  // admin-prompt-vote as the day card, and a prompt's label is its newest vote.
+  const labelCardEl = document.getElementById("label-card");
+  const labelProgress = document.getElementById("label-progress");
+  const labelFilter = document.getElementById("label-filter");
+  const labelLog = document.getElementById("label-log");
+  let labelState = { items: [], queue: [], i: 0, today: null };
+
+  function labelOf(item) { return item.votes.length ? item.votes[0].vote : 0; }
+
+  async function refreshLabels() {
+    labelProgress.textContent = "loading…";
+    try {
+      // The whole calendar the function will resolve (60 days), from today.
+      const data = await callFunction("admin-prompts-list", { days: 60 });
+      const votes = data.votes || [];
+      const byText = new Map();
+      const add = (text, extra) => {
+        const key = (text || "").toLowerCase();
+        if (!key || byText.has(key)) return;
+        byText.set(key, { text, votes: votes.filter(v => same(v.prompt_text, text)), ...extra });
+      };
+      for (const cell of data.calendar || []) {
+        if (!cell.text || cell.source === "weekly") continue;
+        add(cell.text, { poll_options: cell.poll_options || [], day: cell.day, cell });
+      }
+      for (const p of data.prompts || []) {
+        if (!p.active) continue;
+        add(p.text, { poll_options: p.poll_options || [], position: p.position });
+      }
+      labelState.items = [...byText.values()];
+      labelState.today = data.dayNumber;
+      buildLabelQueue(null);
+    } catch (e) {
+      labelProgress.textContent = "error";
+      setResult(labelLog, e.message, true);
+    }
+  }
+
+  function buildLabelQueue(keepText) {
+    const f = labelFilter.value;
+    const items = labelState.items;
+    labelState.queue = items.filter(it => {
+      const l = labelOf(it);
+      return f === "all" || (f === "unlabeled" ? l === 0 : f === "up" ? l > 0 : l < 0);
+    });
+    const at = keepText ? labelState.queue.findIndex(it => same(it.text, keepText)) : -1;
+    labelState.i = at >= 0 ? at : 0;
+    renderLabelCard();
+  }
+
+  function renderLabelCard() {
+    const items = labelState.items, q = labelState.queue;
+    const done = items.filter(it => labelOf(it) !== 0).length;
+    const downs = items.filter(it => labelOf(it) < 0).length;
+    labelProgress.textContent = done + " of " + items.length + " labeled · 👎 " + downs +
+      (q.length ? " · " + (labelState.i + 1) + " / " + q.length + " here" : "");
+    labelCardEl.innerHTML = "";
+    const item = q[labelState.i];
+    if (!item) {
+      labelCardEl.appendChild(el("p", "stats", labelFilter.value === "unlabeled" ? "everything's labeled." : "nothing here."));
+      return;
+    }
+
+    const head = el("div", "row");
+    head.style.gap = "6px";
+    if (item.day != null) {
+      const off = item.day - labelState.today;
+      head.appendChild(el("span", "badge on", off === 0 ? "today" : off === 1 ? "tomorrow" : dateFromDay(item.day) + " · in " + off + " days"));
+    } else if (item.position != null) {
+      head.appendChild(el("span", "badge", "#" + item.position));
+    }
+    head.appendChild(el("span", "badge", item.poll_options.length ? "poll" : "written"));
+    labelCardEl.appendChild(head);
+
+    labelCardEl.appendChild(el("p", "label-text", item.text));
+    if (item.poll_options.length) {
+      const ul = el("ul", "label-options");
+      for (const o of item.poll_options) ul.appendChild(el("li", null, o));
+      labelCardEl.appendChild(ul);
+    }
+
+    const row = el("div", "row vote-row");
+    const upBtn = el("button", "vote", "👍");
+    const downBtn = el("button", "vote", "👎");
+    row.append(upBtn, downBtn);
+    labelCardEl.appendChild(row);
+
+    const reason = el("textarea");
+    reason.maxLength = 500;
+    reason.placeholder = "pick 👍 or 👎, then say why";
+    const form = el("div", "vote-row");
+    form.appendChild(reason);
+    const save = el("button", null, "save and next");
+    save.style.marginTop = "8px";
+    form.appendChild(save);
+    labelCardEl.appendChild(form);
+
+    let picked = 0;
+    const pick = (v) => {
+      picked = v;
+      upBtn.classList.toggle("picked", v > 0);
+      downBtn.classList.toggle("picked", v < 0);
+      reason.placeholder = v > 0 ? "why it works (optional)" : "why it's bad";
+      reason.focus();
+    };
+    upBtn.addEventListener("click", () => pick(1));
+    downBtn.addEventListener("click", () => pick(-1));
+
+    const submit = async () => {
+      const why = reason.value.trim();
+      if (!picked) { setResult(labelLog, "pick 👍 or 👎 first", true); return; }
+      if (picked < 0 && !why) { reason.focus(); setResult(labelLog, "say why it's bad", true); return; }
+      save.disabled = true;
+      try {
+        const r = await callFunction("admin-prompt-vote", { text: item.text, vote: picked, reason: why || null, day: item.day ?? undefined });
+        item.votes = r.votes || [{ vote: picked, reason: why || null }];
+        setResult(labelLog, (picked > 0 ? "👍" : "👎") + " saved on “" + item.text + "”");
+        // Under "not labeled yet" the saved one leaves the queue, so the same
+        // index is already the next prompt; elsewhere, step past it.
+        const f = labelFilter.value;
+        const stays = f === "all" || (f === "up" && picked > 0) || (f === "down" && picked < 0);
+        if (stays) labelState.i++;
+        else labelState.queue.splice(labelState.i, 1);
+        if (labelState.i >= labelState.queue.length) labelState.i = Math.max(0, labelState.queue.length - 1);
+        renderLabelCard();
+      } catch (e) {
+        setResult(labelLog, e.message, true);
+        save.disabled = false;
+      }
+    };
+    save.addEventListener("click", submit);
+    labelCardEl._submit = submit;
+    labelCardEl._pick = pick;
+    labelCardEl._reason = reason;
+
+    // What's already known, below the fold of the decision: earlier labels,
+    // how it did, and the judge. Hidden until it has a label of yours.
+    const later = el("div", "later");
+    if (item.votes.length) {
+      const up = item.votes.filter(v => v.vote > 0).length;
+      later.appendChild(el("p", "stats", "your labels: 👍 " + up + " · 👎 " + (item.votes.length - up)));
+      for (const v of item.votes.slice(0, 3)) {
+        if (v.reason) later.appendChild(el("p", "why", (v.vote > 0 ? "👍 " : "👎 ") + v.reason));
+      }
+      const j = item.cell && (item.cell.judgements || []).find(j => same(j.prompt_text, item.text));
+      if (j) later.appendChild(el("p", "stats", "judge: " + j.score + "/100" + (j.flagged ? " · would swap" : "") +
+        ((j.reasons || []).length ? " · " + j.reasons.join(", ") : "")));
+      if (j && j.why) later.appendChild(el("p", "why", j.why));
+    }
+    if (later.childNodes.length) labelCardEl.appendChild(later);
+  }
+
+  function labelStep(d) {
+    const n = labelState.queue.length;
+    if (!n) return;
+    labelState.i = Math.min(Math.max(labelState.i + d, 0), n - 1);
+    renderLabelCard();
+  }
+
+  labelFilter.addEventListener("change", () => buildLabelQueue(null));
+  document.getElementById("label-reload").addEventListener("click", refreshLabels);
+
+  document.addEventListener("keydown", (e) => {
+    const section = document.getElementById("label-prompts");
+    if (!section || section.classList.contains("collapsed") || tools.style.display === "none") return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const reason = labelCardEl._reason;
+    const inReason = document.activeElement === reason;
+    if (inReason) {
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); labelCardEl._submit(); }
+      else if (e.key === "Escape") reason.blur();
+      return;
+    }
+    // Only when nothing else on the page has the keyboard.
+    const tag = (document.activeElement && document.activeElement.tagName) || "";
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    const rect = section.getBoundingClientRect();
+    if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+    if (e.key === "1") { e.preventDefault(); labelCardEl._pick && labelCardEl._pick(1); }
+    else if (e.key === "2") { e.preventDefault(); labelCardEl._pick && labelCardEl._pick(-1); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); labelStep(1); }
+    else if (e.key === "ArrowLeft") { e.preventDefault(); labelStep(-1); }
+  });
 
   document.getElementById("prompt-prev").addEventListener("click", () => loadDay(promptState.day - 1));
   document.getElementById("prompt-next").addEventListener("click", () => loadDay(promptState.day + 1));
