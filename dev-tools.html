@@ -281,6 +281,19 @@
     color: var(--text);
   }
 
+  .prompt-eval {
+    margin: 12px 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+  }
+  .prompt-eval .row { gap: 6px; flex-wrap: wrap; align-items: center; }
+  .prompt-eval .stats { margin-top: 6px; }
+  .prompt-eval .why { font-family: 'Lora', Georgia, serif; font-size: 0.92rem; margin: 6px 0 0; }
+  .vote-row { margin-top: 10px; }
+  .prompt-eval button.vote { padding: 6px 12px; background: var(--bg); color: var(--text); border-color: var(--border); }
+  .prompt-eval button.vote.picked { border-color: var(--accent-strong); background: var(--accent); color: var(--on-accent); }
+  #prompt-flagged .flag-item { cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+
   .prompt-hit {
     padding: 10px 0;
     border-bottom: 1px solid var(--border);
@@ -732,6 +745,7 @@
         <span id="prompt-daynum" class="stats"></span>
       </div>
 
+      <p class="stats" id="prompt-flagged"></p>
       <div id="prompt-day"></div>
 
       <div class="row" style="margin-top:18px">
@@ -1576,6 +1590,8 @@
       card.appendChild(w);
     }
 
+    card.appendChild(evaluationBlock(cell));
+
     const editBtn = document.createElement("button");
     editBtn.textContent = "edit";
     let open = false;
@@ -1588,6 +1604,163 @@
     card.appendChild(editBtn);
 
     promptDay.appendChild(card);
+  }
+
+  // ── Evaluation (fiammo migration 172) ─────────────────────────────────
+  // What the judge thinks of the day's prompt, how it actually did, and
+  // Caleb's own thumbs up or down with the reason. A thumbs down on today or a
+  // coming day offers a swap: the prompt trades places with one of the same
+  // kind about half a year out, which moves nothing else. Switching it off
+  // instead would make the rotation show the next prompt two days running.
+  const same = (a, b) => (a || "").toLowerCase() === (b || "").toLowerCase();
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  function outcomeLine(o) {
+    const parts = [];
+    if (o.replaced_at) parts.push("swapped out");
+    parts.push(o.audience ? o.answers + " of " + o.audience + " answered" : o.answers + " answered");
+    if (o.kind === "poll" && o.answers) parts.push(o.writes + " wrote instead", o.tap_notes + " added why");
+    if (o.median_write_chars) parts.push("writing median " + o.median_write_chars + " chars");
+    parts.push(o.echoes + " echo" + (o.echoes === 1 ? "" : "es"), o.comments + " comment" + (o.comments === 1 ? "" : "s"));
+    return parts.join(" · ");
+  }
+
+  function evaluationBlock(cell) {
+    const box = el("div", "prompt-eval");
+    const isFuture = cell.day >= promptState.today;
+
+    // The judge
+    const j = (cell.judgements || []).find(j => same(j.prompt_text, cell.text));
+    const jRow = el("div", "row");
+    if (j) {
+      jRow.appendChild(el("span", "badge" + (j.flagged ? " fail" : ""), j.flagged ? "judge: would swap · " + j.score : "judge: " + j.score + "/100"));
+      for (const r of j.reasons || []) jRow.appendChild(el("span", "badge", r));
+    } else if (cell.source !== "weekly") {
+      jRow.appendChild(el("span", "badge", isFuture ? "not judged yet" : "no judgement"));
+    }
+    if (cell.source !== "weekly" && cell.text) {
+      const again = el("button", "vote", j ? "judge again" : "judge now");
+      again.style.padding = "6px 12px";
+      again.addEventListener("click", async () => {
+        again.disabled = true; again.textContent = "judging…";
+        try {
+          await callFunction("prompt-eval", { action: "judge", day: cell.day });
+          await loadDay(cell.day);
+        } catch (e) {
+          setResult(promptsLog, e.message, true);
+          again.disabled = false; again.textContent = "judge now";
+        }
+      });
+      jRow.appendChild(again);
+    }
+    box.appendChild(jRow);
+    if (j && j.why) box.appendChild(el("p", "why", j.why));
+
+    // What happened
+    for (const o of cell.outcomes || []) {
+      const line = el("p", "stats", (same(o.prompt_text, cell.text) ? "" : "“" + o.prompt_text + "” · ") + outcomeLine(o) +
+        (o.verdict ? " · " + o.verdict : "") + (o.verdict_basis ? " (" + o.verdict_basis + ")" : ""));
+      box.appendChild(line);
+      if (o.note) box.appendChild(el("p", "why", o.note));
+    }
+
+    // Votes
+    const votes = cell.votes || [];
+    const up = votes.filter(v => v.vote > 0).length, down = votes.length - up;
+    if (votes.length) {
+      box.appendChild(el("p", "stats", "👍 " + up + " · 👎 " + down));
+      for (const v of votes.slice(0, 3)) {
+        if (v.reason) box.appendChild(el("p", "why", (v.vote > 0 ? "👍 " : "👎 ") + v.reason));
+      }
+    }
+
+    if (!cell.text || cell.source === "weekly") return box;
+
+    const row = el("div", "row vote-row");
+    const upBtn = el("button", "vote", "👍");
+    const downBtn = el("button", "vote", "👎");
+    upBtn.title = "a good prompt"; downBtn.title = "a bad prompt — say why";
+    row.append(upBtn, downBtn);
+    box.appendChild(row);
+
+    const form = el("div", "row vote-row");
+    form.style.display = "none";
+    const reason = el("input");
+    reason.type = "text"; reason.maxLength = 500;
+    const save = el("button", null, "save");
+    form.append(reason, save);
+    box.appendChild(form);
+
+    let picked = 0;
+    const pick = (v) => {
+      picked = v;
+      upBtn.classList.toggle("picked", v > 0);
+      downBtn.classList.toggle("picked", v < 0);
+      reason.placeholder = v > 0 ? "why it works (optional)" : "why it's bad";
+      form.style.display = "";
+      reason.focus();
+    };
+    upBtn.addEventListener("click", () => pick(1));
+    downBtn.addEventListener("click", () => pick(-1));
+
+    const swapRow = el("div", "row vote-row");
+    const swap = el("button", "danger", "swap this day");
+    swap.title = "trades this prompt with one of the same kind about half a year out; nothing else moves";
+    swapRow.appendChild(swap);
+    swapRow.style.display = isFuture && cell.source === "rotation" && down > 0 ? "" : "none";
+    box.appendChild(swapRow);
+    swap.addEventListener("click", async () => {
+      if (!confirm("Swap " + dateFromDay(cell.day) + "'s prompt?\n\nIt trades places with a prompt of the same kind about half a year out. " +
+        (cell.day === promptState.today ? "It's live now, so phones switch within 15 minutes, and anyone who already answered sees the new one unanswered." : "Nothing else moves."))) return;
+      swap.disabled = true;
+      try {
+        const r = await callFunction("admin-refresh-prompt", { day: cell.day });
+        setResult(promptsLog, "now: " + r.todayNow + "\nmoved to #" + r.movedTo.position + ": " + r.movedTo.text);
+        await loadDay(cell.day);
+      } catch (e) {
+        setResult(promptsLog, e.message, true);
+        swap.disabled = false;
+      }
+    });
+
+    const submit = async () => {
+      const why = reason.value.trim();
+      if (picked < 0 && !why) { reason.focus(); setResult(promptsLog, "say why it's bad", true); return; }
+      save.disabled = true;
+      try {
+        await callFunction("admin-prompt-vote", { text: cell.text, vote: picked, reason: why || null, day: cell.day });
+        setResult(promptsLog, (picked > 0 ? "👍" : "👎") + " saved on “" + cell.text + "”");
+        await loadDay(cell.day);
+      } catch (e) {
+        setResult(promptsLog, e.message, true);
+        save.disabled = false;
+      }
+    };
+    save.addEventListener("click", submit);
+    reason.addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+
+    return box;
+  }
+
+  function renderFlagged(flagged) {
+    const box = document.getElementById("prompt-flagged");
+    box.innerHTML = "";
+    if (!flagged) return;
+    if (!flagged.length) { box.textContent = "judge: nothing flagged in the next two weeks"; return; }
+    box.appendChild(document.createTextNode("judge would swap: "));
+    flagged.forEach((f, i) => {
+      if (i) box.appendChild(document.createTextNode(" · "));
+      const a = el("span", "flag-item", dateFromDay(f.day) + " (" + f.score + ")");
+      a.title = f.text + (f.why ? "\n\n" + f.why : "");
+      a.addEventListener("click", () => loadDay(f.day));
+      box.appendChild(a);
+    });
   }
 
   async function loadDay(day) {
@@ -1604,6 +1777,7 @@
         (data.scheduledCount ? " · " + data.scheduledCount + " pinned" : "") +
         " · wraps in " + (data.ringCount - ((promptState.today % data.ringCount) + data.ringCount) % data.ringCount) + " days";
       renderDayCard((data.calendar || [])[0]);
+      renderFlagged(data.flagged);
     } catch (e) {
       promptDayNum.textContent = "error";
       setResult(promptsLog, e.message, true);
