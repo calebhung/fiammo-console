@@ -366,6 +366,19 @@
     color: var(--muted);
   }
 
+  /* --- waitlist --- */
+  .waitlist-pickall { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); margin-top: 12px; display: flex; gap: 8px; align-items: center; }
+  .waitlist-row { display: flex; gap: 10px; align-items: flex-start; }
+  .waitlist-row input[type="checkbox"] { margin-top: 3px; }
+  .waitlist-row .who { flex: 1; min-width: 0; }
+  .waitlist-row .name { font-weight: 600; }
+  .waitlist-row .handle { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); margin-left: 6px; }
+  .waitlist-row .facts { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); margin-top: 4px; line-height: 1.6; overflow-wrap: anywhere; }
+  .waitlist-row .facts b { font-weight: normal; color: var(--text); }
+  .waitlist-row .lapsed { text-decoration: line-through; }
+  .waitlist-row button { padding: 6px 12px; font-size: 0.78rem; }
+  .waitlist-controls select { font-family: var(--font-mono); font-size: 0.85rem; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+
   /* --- activity log --- */
 
   .log-controls {
@@ -789,6 +802,30 @@
       </div>
     </section>
 
+    <section class="tool card" id="waitlist" data-tool="waitlist">
+      <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">waitlist</span><span class="chevron">▾</span></h2>
+      <div class="tool-body">
+      <p class="hint">with the waitlist on, every new account waits here after sign-up until it's let in. two ways in: a friend's invite seat, which approves them on its own (shown as <em>seat</em>), or approval here. oldest first. turning the waitlist off only lets new signups straight in; it never releases the people already waiting.</p>
+      <div class="row">
+        <span id="waitlist-badge" class="badge">loading…</span>
+        <button id="waitlist-toggle-btn" disabled>loading…</button>
+      </div>
+      <div class="row waitlist-controls" style="margin-top:14px">
+        <select id="waitlist-filter">
+          <option value="pending">waiting</option>
+          <option value="approved">let in</option>
+          <option value="all">everyone</option>
+        </select>
+        <button id="waitlist-refresh-btn">refresh</button>
+        <button id="waitlist-approve-selected-btn" disabled>approve selected</button>
+        <button id="waitlist-approve-all-btn" class="danger" disabled>approve everyone waiting</button>
+      </div>
+      <p class="stats" id="waitlist-summary"></p>
+      <div id="waitlist-list"></div>
+      <pre class="result" id="waitlist-log"></pre>
+      </div>
+    </section>
+
     <section class="tool card" id="reports" data-tool="reports">
       <h2><span class="drag-handle" draggable="true" title="drag to reorder">⠿</span><span class="title">reported posts</span><span class="chevron">▾</span></h2>
       <div class="tool-body">
@@ -868,6 +905,7 @@
     refreshLabels();
     refreshDiagnosticsHistory();
     refreshReports();
+    refreshWaitlist();
     startActivityLog();
     revealHashTarget();
     refreshAlertBadge();
@@ -2138,6 +2176,181 @@
   }
 
   reportsRefreshBtn.addEventListener("click", refreshReports);
+
+  // --- Waitlist ---
+  // admin-waitlist-list feeds the table (admin_waitlist_rows, 175: oldest
+  // first, what each person entered at sign-up, and anyone who texted their
+  // number an invite); admin-waitlist-approve lets people in, by id or all;
+  // admin-waitlist-settings flips waitlist_enabled.
+
+  const waitlistBadge = document.getElementById("waitlist-badge");
+  const waitlistToggleBtn = document.getElementById("waitlist-toggle-btn");
+  const waitlistFilter = document.getElementById("waitlist-filter");
+  const waitlistRefreshBtn = document.getElementById("waitlist-refresh-btn");
+  const waitlistApproveSelectedBtn = document.getElementById("waitlist-approve-selected-btn");
+  const waitlistApproveAllBtn = document.getElementById("waitlist-approve-all-btn");
+  const waitlistSummary = document.getElementById("waitlist-summary");
+  const waitlistList = document.getElementById("waitlist-list");
+  const waitlistLog = document.getElementById("waitlist-log");
+  let waitlistEnabled = false;
+  let waitlistPendingCount = 0;
+
+  function waitlistWhen(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+      d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+
+  function waitlistPhone(digits) {
+    if (!digits) return "—";
+    const d = String(digits).replace(/\D/g, "");
+    const ten = d.length === 11 && d[0] === "1" ? d.slice(1) : d;
+    return ten.length === 10 ? `(${ten.slice(0, 3)}) ${ten.slice(3, 6)}-${ten.slice(6)}` : digits;
+  }
+
+  function waitlistVouches(invites) {
+    if (!invites || !invites.length) return "<b>nobody</b>";
+    const now = Date.now();
+    return invites.map(i => {
+      const live = i.credited || (i.expires_at && new Date(i.expires_at).getTime() > now);
+      const label = `@${escapeHtml(i.handle || "?")}` + (i.credited ? " · seat" : live ? "" : " · expired");
+      return `<b class="${live ? "" : "lapsed"}" title="sent ${escapeHtml(waitlistWhen(i.sent_at))}">${label}</b>`;
+    }).join(", ");
+  }
+
+  function selectedWaitlistIds() {
+    return [...waitlistList.querySelectorAll("input.waitlist-pick:checked")].map(c => c.value);
+  }
+
+  function syncWaitlistButtons() {
+    const n = selectedWaitlistIds().length;
+    waitlistApproveSelectedBtn.disabled = n === 0;
+    waitlistApproveSelectedBtn.textContent = n ? `approve ${n} selected` : "approve selected";
+    waitlistApproveAllBtn.disabled = waitlistPendingCount === 0;
+    const all = waitlistList.querySelector("input.waitlist-pick-all");
+    const boxes = waitlistList.querySelectorAll("input.waitlist-pick");
+    if (all) all.checked = boxes.length > 0 && n === boxes.length;
+  }
+
+  function renderWaitlist(data) {
+    waitlistEnabled = !!data.settings?.enabled;
+    waitlistBadge.textContent = waitlistEnabled ? "waitlist on" : "waitlist off";
+    waitlistBadge.classList.toggle("on", waitlistEnabled);
+    waitlistToggleBtn.textContent = waitlistEnabled ? "turn off" : "turn on";
+    waitlistToggleBtn.classList.toggle("danger", waitlistEnabled);
+    waitlistToggleBtn.disabled = false;
+
+    waitlistPendingCount = data.counts?.pending ?? 0;
+    const rows = data.rows || [];
+    waitlistSummary.textContent =
+      `${waitlistPendingCount} waiting · ${data.counts?.approved ?? 0} let in` +
+      (data.truncated ? ` · showing the first ${rows.length}` : "");
+
+    if (!rows.length) {
+      waitlistList.textContent = data.status === "pending" ? "nobody waiting" : "nobody here";
+      syncWaitlistButtons();
+      return;
+    }
+
+    const anyPending = rows.some(r => r.waitlist_status === "pending");
+    let html = anyPending
+      ? `<label class="waitlist-pickall"><input type="checkbox" class="waitlist-pick-all"> select everyone waiting below</label>`
+      : "";
+    rows.forEach((r, idx) => {
+      const pending = r.waitlist_status === "pending";
+      const name = [r.first_name, r.last_name].filter(Boolean).join(" ") || r.display_name || "—";
+      const status = pending
+        ? `waiting since <b>${escapeHtml(waitlistWhen(r.requested_at || r.created_at))}</b>`
+        : `let in <b>${escapeHtml(waitlistWhen(r.approved_at))}</b>${r.admitted_via ? ` by <b>${escapeHtml(r.admitted_via)}</b>` : ""}`;
+      const facts = [
+        `#${idx + 1} · ${status}`,
+        `<b>${escapeHtml(r.email || "no email")}</b> · <b>${escapeHtml(waitlistPhone(r.phone_digits))}</b> · signed up with <b>${escapeHtml(r.signup_method || "?")}</b>`,
+        `gender <b>${escapeHtml(r.gender || "—")}</b> · birthday <b>${escapeHtml(r.date_of_birth || "—")}</b> · age check <b>${r.age_confirmed_at ? "passed" : "not yet"}</b>`,
+        `invited by ${waitlistVouches(r.invites)}`,
+      ];
+      html += `<div class="report-row waitlist-row" data-id="${escapeHtml(r.id)}">`
+        + (pending ? `<input type="checkbox" class="waitlist-pick" value="${escapeHtml(r.id)}">` : "")
+        + `<div class="who"><span class="name">${escapeHtml(name)}</span><span class="handle">@${escapeHtml(r.handle || "")}</span>`
+        + `<div class="facts">${facts.join("<br>")}</div></div>`
+        + (pending ? `<button class="waitlist-approve-one">approve</button>` : "")
+        + `</div>`;
+    });
+    waitlistList.innerHTML = html;
+
+    waitlistList.querySelectorAll("input.waitlist-pick").forEach(c => c.addEventListener("change", syncWaitlistButtons));
+    const all = waitlistList.querySelector("input.waitlist-pick-all");
+    if (all) all.addEventListener("change", () => {
+      waitlistList.querySelectorAll("input.waitlist-pick").forEach(c => { c.checked = all.checked; });
+      syncWaitlistButtons();
+    });
+    waitlistList.querySelectorAll("button.waitlist-approve-one").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.closest(".waitlist-row").dataset.id;
+        approveWaitlist({ ids: [id] }, btn);
+      });
+    });
+    syncWaitlistButtons();
+  }
+
+  async function refreshWaitlist() {
+    waitlistSummary.textContent = "loading…";
+    waitlistRefreshBtn.disabled = true;
+    try {
+      const data = await callFunction("admin-waitlist-list", { status: waitlistFilter.value, limit: 1000 });
+      renderWaitlist(data);
+    } catch (e) {
+      waitlistSummary.textContent = "";
+      waitlistList.textContent = `couldn't load the waitlist: ${e.message}`;
+    } finally {
+      waitlistRefreshBtn.disabled = false;
+    }
+  }
+
+  async function approveWaitlist(body, btn) {
+    if (btn) btn.disabled = true;
+    waitlistApproveSelectedBtn.disabled = true;
+    waitlistApproveAllBtn.disabled = true;
+    try {
+      const data = await callFunction("admin-waitlist-approve", body);
+      setResult(waitlistLog, `let ${data.approved} ${data.approved === 1 ? "person" : "people"} in`, false);
+      await refreshWaitlist();
+    } catch (e) {
+      setResult(waitlistLog, `approve failed: ${e.message}`, true);
+      if (btn) btn.disabled = false;
+      syncWaitlistButtons();
+    }
+  }
+
+  waitlistApproveSelectedBtn.addEventListener("click", () => {
+    const ids = selectedWaitlistIds();
+    if (!ids.length) return;
+    approveWaitlist({ ids });
+  });
+
+  waitlistApproveAllBtn.addEventListener("click", () => {
+    if (!confirm(`let all ${waitlistPendingCount} waiting people in?`)) return;
+    approveWaitlist({ all: true });
+  });
+
+  waitlistToggleBtn.addEventListener("click", async () => {
+    const next = !waitlistEnabled;
+    const question = next
+      ? "turn the waitlist on? every new signup will wait until a friend's seat or you let them in."
+      : "turn the waitlist off? new signups go straight in. people already waiting stay waiting.";
+    if (!confirm(question)) return;
+    waitlistToggleBtn.disabled = true;
+    try {
+      await callFunction("admin-waitlist-settings", { enabled: next });
+      await refreshWaitlist();
+    } catch (e) {
+      setResult(waitlistLog, `couldn't change the waitlist: ${e.message}`, true);
+      waitlistToggleBtn.disabled = false;
+    }
+  });
+
+  waitlistFilter.addEventListener("change", refreshWaitlist);
+  waitlistRefreshBtn.addEventListener("click", refreshWaitlist);
 
   // --- Auto-flagged content ---
 
