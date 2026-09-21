@@ -24,6 +24,13 @@
 
   #invite-title { margin-top: 8px; }
 
+  .expiry {
+    font-size: 13px;
+    color: var(--muted, #8a8580);
+    margin-top: 14px;
+    text-align: center;
+  }
+
 </style>
 </head>
 <body>
@@ -39,8 +46,10 @@
     <img class="hero-mark" src="flame.svg?v=2" alt="Fiammo">
     <h1 id="invite-title">you're invited to fiammo</h1>
     <p class="tagline center">write. share. let it burn.</p>
-    <p>A private, text-first social app for small, user-defined circles. Posts burn 24 hours after sharing. Echoes let people respond privately, without the noise of a public feed.</p>
+    <p id="expired-line" hidden></p>
+    <p id="intro">A private, text-first social app for small, user-defined circles. Posts burn 24 hours after sharing. Echoes let people respond privately, without the noise of a public feed.</p>
     <a class="download-btn" href="https://apps.apple.com/app/id6791766677">get fiammo</a>
+    <p class="expiry" id="expiry" hidden></p>
   </main>
 
 
@@ -60,14 +69,64 @@
 </div>
 
 <script>
-  // Purely cosmetic personalization from the ?from= query param — no network
-  // calls, no state stored anywhere. Nothing here is an opt-in of any kind,
-  // it's just a download link, so there's nothing to persist or confirm.
-  const from = new URLSearchParams(location.search).get("from");
+(function () {
+  "use strict";
+
+  // Personalization from the ?from= query param, as before: no state stored
+  // anywhere, and nothing here is an opt-in of any kind.
+  var params = new URLSearchParams(location.search);
+  var from = params.get("from");
   if (from) {
-    document.getElementById("invite-title").textContent = `${from} wants you on fiammo`;
-    document.title = `${from} invited you to Fiammo`;
+    document.getElementById("invite-title").textContent = from + " wants you on fiammo";
+    document.title = from + " invited you to Fiammo";
   }
+
+  // An invite from the app carries its code (?i=, migration 173). It holds
+  // one of its sender's five seats for 7 days; past that the page says the
+  // invite has expired. Joining still works, since fiammo is on the App Store;
+  // the invite just no longer counts for the person who sent it. A link
+  // without a code, a bad code, or any failure leaves the page as it always
+  // was, so the code space says nothing about which invites exist.
+  var code = params.get("i");
+  if (!code || !/^[abcdefghjkmnpqrstuvwxyz23456789]{8}$/.test(code)) return;
+
+  // The publishable key, same one the app ships in Config.swift. Public by
+  // design, and not a JWT: apikey header only (see p/index.html).
+  var SUPABASE_URL = "https://syqqxogkqmuojchbglle.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
+
+  fetch(SUPABASE_URL + "/functions/v1/resolve-invite-link", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "apikey": SUPABASE_ANON_KEY },
+    body: JSON.stringify({ code: code })
+  })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) {
+      if (!d || !d.ok) return;
+      var name = d.first_name || from || "Your friend";
+      var expiry = document.getElementById("expiry");
+
+      if (d.status === "expired") {
+        document.getElementById("invite-title").textContent = "this invite has expired";
+        document.title = "This invite has expired · Fiammo";
+        var line = document.getElementById("expired-line");
+        line.textContent = "Invites to fiammo last 7 days, and " + name +
+          "'s has run out. Ask " + name + " for a new one, or get fiammo anyway.";
+        line.hidden = false;
+        return;
+      }
+
+      if (d.status === "open" && d.expires_at) {
+        var ms = new Date(d.expires_at).getTime() - Date.now();
+        var days = Math.floor(ms / 86400000);
+        expiry.textContent = days >= 1
+          ? "This invite expires in " + days + (days === 1 ? " day." : " days.")
+          : "This invite expires today.";
+        expiry.hidden = false;
+      }
+    })
+    .catch(function () {});
+})();
 </script>
 </body>
 </html>
