@@ -30,7 +30,12 @@
   :root {
     --paper:  #F9F8F6;
     --card:   #FFFFFF;
-    --ink:    #1A1512;
+    /* This page called #1A1512 "--ink", but that is style.css's --text: its
+       real --ink is #120B04, the darker one the primary button is filled
+       with. Renamed to --fg, the name p/read uses, and the true --ink added
+       beside it, so both post pages and style.css agree on what these mean. */
+    --fg:     #1A1512;
+    --ink:    #120B04;
     --muted:  #85807A;
     --copper: #C96F3B;
     --bronze: #8B5210;
@@ -41,7 +46,7 @@
   body {
     margin: 0;
     background: var(--paper);
-    color: var(--ink);
+    color: var(--fg);
     font-family: var(--font-sans);
     display: flex;
     align-items: center;
@@ -77,20 +82,25 @@
     font-weight: 500;
     font-size: 17px;
     line-height: 1.5;
-    color: var(--ink);
+    color: var(--fg);
     margin: 0 0 22px;
   }
+  /* style.css's .download-btn, the one primary button shape on the site:
+     ink filled at a 10px radius. This was a copper pill, from before the
+     accent stopped carrying large fills. */
   .cta {
     display: inline-block;
-    background: var(--copper);
-    color: #fff;
+    background: var(--ink);
+    color: var(--paper);
     text-decoration: none;
-    font-size: 16px;
-    font-weight: 600;
-    padding: 13px 26px;
-    border-radius: 999px;
-    border: 1px solid var(--bronze);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    font-weight: 500;
+    padding: 13px 30px;
+    border-radius: 10px;
+    border: 1px solid var(--ink);
   }
+  .cta:hover { background: var(--fg); border-color: var(--fg); }
   .foot {
     margin: 18px 0 0;
     font-size: 12.5px;

@@ -97,11 +97,16 @@
   }
   .meta { color: var(--muted); font-size: 13px; }
   /* On every screen, so each texted post is also a way to the app. */
+  /* The header pill is style.css's .nav-cta: outlined ink, filling only on
+     hover. It used to be a solid gold lozenge, which is the accent carrying a
+     fill it is not meant to carry, and it shouted louder than the post. */
   .get {
     display: inline-flex; align-items: center; height: 32px; padding: 0 14px;
-    border-radius: 16px; background: var(--gold); color: var(--paper);
+    border-radius: 999px; border: 1px solid var(--ink);
+    background: transparent; color: var(--ink);
     font: 500 13px var(--sans); text-decoration: none;
   }
+  .get:hover { background: var(--ink); color: var(--paper); }
 
   .avatar {
     flex: none; border-radius: 50%; overflow: hidden;
@@ -197,12 +202,16 @@
   .link { background: none; border: 0; padding: 0; font: inherit; color: var(--copper); cursor: pointer; }
   .link:disabled { color: var(--muted); cursor: default; }
 
+  /* The primary action is style.css's .download-btn: ink filled at a 10px
+     radius. Copper is the accent for warmth, rarely a large fill, and a
+     50px-tall gold slab was the largest fill on the page. */
   .primary {
     display: flex; align-items: center; justify-content: center;
-    height: 50px; border-radius: 10px; border: 0; cursor: pointer;
-    background: var(--gold); color: var(--paper);
+    height: 50px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--ink); background: var(--ink); color: var(--paper);
     font: 500 15px var(--sans); text-decoration: none;
   }
+  .primary:hover { background: var(--fg); border-color: var(--fg); }
   .primary:disabled { opacity: .45; cursor: default; }
 
   .hello { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
