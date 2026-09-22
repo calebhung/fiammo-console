@@ -77,9 +77,9 @@ header.site {
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  /* Room for the f's swash, which overhangs the word by about 37px each way:
+  /* Room for the f's swash, which overhangs the word by about 22px each way:
      every header gives it at least 18px of padding, and this is the rest with a little air. */
-  margin-block: 24px;
+  margin-block: 12px;
 }
 
 .wordmark .mark {
@@ -90,18 +90,20 @@ header.site {
 
 /* The app's wordmark, outlined from the faces the app draws it in (a Zapfino
  * "f" turned -8deg, Optima "iammo" tracked wide, the i in copper) so it reads
- * the same on a phone with neither font. The page lays it out by the x-height
- * of "iammo" alone and lets the swash overhang: margins in em of a 22px word,
- * one em being 32 of the SVG's units, which is the Optima size it was cut at.
- *   viewBox height 144.8 -> 4.525em
- *   x-height top at 65.9 from the top, baseline at 81.4, width's swash 54.7
+ * the same on a phone with neither font. The f is cut at 26pt against the
+ * app's 38 -- at the app's size it towered over a header. The page lays it
+ * out by the x-height of "iammo" alone and lets the swash overhang: margins in
+ * em of a 22px word, one em being 32 of the SVG's units, the Optima size it
+ * was cut at.
+ *   viewBox height 99.7 -> 3.116em
+ *   x-height top at 43.8 from the top, baseline at 59.3, swash left 37.7
  * The swash tail sweeps down under the flame and back, so the flame sits in
  * the crook of the f rather than a gap away from it. */
 .wordmark img.word {
   font-size: 22px;
-  height: 4.525em;
+  height: 3.116em;
   width: auto;
-  margin: -2.059em 0 -1.981em -1.2em;
+  margin: -1.368em 0 -1.263em -0.7em;
   display: block;
   pointer-events: none;
 }
