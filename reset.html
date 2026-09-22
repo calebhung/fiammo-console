@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<!-- This page handles a one-time credential in its URL and an email address
+     in its query. Neither should ride along to anywhere the visitor clicks
+     next. Fragments are never sent in a Referer, but ?email= is. -->
+<meta name="referrer" content="no-referrer">
+<title>Fiammo · Reset password</title>
+<link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
+<link rel="preconnect" href="https://syqqxogkqmuojchbglle.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://syqqxogkqmuojchbglle.supabase.co">
+<link rel="stylesheet" href="style.css?v=5">
+<style>
+  /* Page-scoped for the reason accept.html gives: style.css is cached for
+     four hours by Cloudflare Pages, so anything added there ships to nobody
+     who visited recently unless every page's ?v= is bumped in the same
+     commit. Only .card and .download-btn are borrowed from the shared sheet. */
+  .wrap { max-width: 480px; }
+
+  /* Both forms set display:flex, and an author rule beats the UA sheet's
+     [hidden]{display:none} at equal specificity. Without this every state
+     renders at once. Same trap accept.html hit. */
+  [hidden] { display: none !important; }
+
+  #panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 44px 32px 36px;
+  }
+  /* The global h1 is sized for an article; this one is a heading on a phone. */
+  #panel h1 {
+    margin: 8px 0 0;
+    font-size: 1.65rem;
+    line-height: 1.2;
+  }
+  #panel-body {
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    color: var(--muted);
+    margin: 10px 0 0;
+    max-width: 340px;
+    text-align: center;
+  }
+
+  form {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    max-width: 300px;
+    margin-top: 22px;
+    text-align: left;
+  }
+
+  .field-label {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+
+  input {
+    font-family: var(--font-sans);
+    font-size: 1rem; /* 16px, or iOS Safari zooms the page on focus */
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  input:focus { outline: none; border-color: var(--ink); }
+
+  .field-error {
+    color: #B3261E;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    min-height: 1em;
+  }
+
+  .rule-hint {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin: -2px 0 0;
+  }
+
+  /* Outlined ink rather than a solid fill, matching accept.html: a real
+     choice, but it shouldn't shout as loud as the app's own primary. */
+  button[type="submit"] {
+    margin-top: 4px;
+    padding: 11px 24px;
+    border-radius: 10px;
+    border: 1px solid var(--ink);
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  button[type="submit"]:hover:not(:disabled) { background: var(--ink); color: var(--on-accent); }
+  button[type="submit"]:disabled { opacity: 0.4; cursor: default; }
+
+  /* Show/hide sits on the password field's own label row, so the label and
+     the control read as one line rather than stacking another button. */
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .reveal {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    color: var(--muted);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .reveal:hover { color: var(--text); }
+
+  #app-cta { margin-top: 24px; }
+
+  .secondary {
+    margin-top: 24px;
+    text-align: center;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    color: var(--muted);
+  }
+  .secondary a { color: var(--muted); }
+  .secondary a:hover { color: var(--accent-strong); }
+
+  .resend {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
+    color: var(--muted);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .resend:hover:not(:disabled) { color: var(--accent-strong); }
+  .resend:disabled { text-decoration: none; cursor: default; opacity: 0.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <a class="wordmark" href="/">
+      <img class="mark" src="flame.svg?v=2" alt="">
+      <span class="word"><span class="initial">f</span><span class="i">i</span>ammo</span>
+    </a>
+  </header>
+
+  <!-- One card, four states, chosen by what the URL carries.
+       Nothing arrives here except by one of two routes: someone who came
+       looking for it (no token, so the ask form), or someone who tapped the
+       link in their email (a recovery session in the fragment, so the new
+       password form). The served HTML is the first of those, because that is
+       the state a visitor with no JavaScript can still read and act on. -->
+  <main class="card" id="panel">
+    <img class="hero-mark" src="flame.svg?v=2" alt="">
+    <h1 id="panel-title">reset your password</h1>
+    <p id="panel-body">Tell us the email address on your account and we'll send you a link to set a new password.</p>
+
+    <form id="ask-form">
+      <label class="field-label" for="ask-email">email address</label>
+      <input type="email" id="ask-email" autocomplete="email" autocapitalize="off"
+             autocorrect="off" spellcheck="false" placeholder="you@example.com">
+      <div class="field-error" id="ask-error"></div>
+      <button type="submit" id="ask-btn">send reset link</button>
+    </form>
+
+    <form id="set-form" hidden>
+      <div class="label-row">
+        <label class="field-label" for="new-password">new password</label>
+        <button type="button" class="reveal" id="reveal">show</button>
+      </div>
+      <input type="password" id="new-password" autocomplete="new-password">
+      <label class="field-label" for="confirm-password">type it again</label>
+      <input type="password" id="confirm-password" autocomplete="new-password">
+      <p class="rule-hint">At least 8 characters.</p>
+      <div class="field-error" id="set-error"></div>
+      <button type="submit" id="set-btn">save new password</button>
+    </form>
+
+    <div id="app-cta" hidden>
+      <a class="download-btn" href="https://apps.apple.com/app/id6791766677">get fiammo</a>
+    </div>
+  </main>
+
+  <p class="secondary" id="secondary">
+    Signed in with Apple or Google? Use that same button in the app. You can
+    still set a password here if you'd rather sign in with one.
+  </p>
+
+  <footer class="site">
+    <nav class="footer-nav">
+      <a href="/">Home</a>
+      <a href="/support.html">Support</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="https://apps.apple.com/app/id6791766677">Get the app</a>
+    </nav>
+    <div class="footer-base">
+      <span>&copy; 2026 fiammo</span>
+      <span><a href="mailto:hello@fiammo.co">hello@fiammo.co</a></span>
+    </div>
+  </footer>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://syqqxogkqmuojchbglle.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
+
+  // Where the emailed link comes back to, which is this page. It has to be on
+  // the project's Redirect URLs allow-list in Supabase Auth. There is no
+  // graceful failure if it isn't: GoTrue falls back to the Site URL, which on
+  // this project is the custom scheme `fiammo://`, so the link resolves to
+  // nothing a browser can open and the reset is simply dead.
+  // The clean URL, not /reset.html: Pages 308s the latter to the former, and
+  // the recovery token rides in the fragment. A redirect that dropped it would
+  // lose the token with nothing on screen to say why.
+  const RESET_URL = "https://fiammo.co/reset";
+
+  // The same floor the app and the project both hold (GoTrue's
+  // password_min_length is 8, and so is AccountRules.PasswordRule.minLength).
+  // Kept here as well so a short password is answered on the spot instead of
+  // after a round trip, and so this page can never drift under the other two.
+  const MIN_LENGTH = 8;
+  // bcrypt ignores everything past the 72nd byte, so a longer password would
+  // be silently truncated. Refused rather than quietly cut down, same as the app.
+  const MAX_BYTES = 72;
+
+  // GoTrue allows one recovery email per address per minute.
+  const RESEND_SECONDS = 60;
+
+  const titleEl = document.getElementById("panel-title");
+  const bodyEl = document.getElementById("panel-body");
+  const secondaryEl = document.getElementById("secondary");
+  const askFormEl = document.getElementById("ask-form");
+  const askEmailEl = document.getElementById("ask-email");
+  const askErrorEl = document.getElementById("ask-error");
+  const askBtnEl = document.getElementById("ask-btn");
+  const setFormEl = document.getElementById("set-form");
+  const newPasswordEl = document.getElementById("new-password");
+  const confirmPasswordEl = document.getElementById("confirm-password");
+  const setErrorEl = document.getElementById("set-error");
+  const setBtnEl = document.getElementById("set-btn");
+  const revealEl = document.getElementById("reveal");
+  const appCtaEl = document.getElementById("app-cta");
+
+  // What the URL was carrying, read once and then wiped.
+  //
+  // GoTrue hands back a real session in the fragment (access_token, type=
+  // recovery) and reports a dead link in either the fragment or the query,
+  // depending on how far it got before giving up, so both are read.
+  //
+  // The rewrite is not tidiness. An access token left in the address bar is
+  // one that gets copied into a message, kept in history, restored by a
+  // reopened tab, and read by anything that can see location afterwards. It
+  // is worth a full session for an hour. The URL is replaced before any of
+  // the page's own code runs against it.
+  function readLanding() {
+    const hash = new URLSearchParams(location.hash.slice(1));
+    const query = new URLSearchParams(location.search);
+    const landing = {
+      token: hash.get("type") === "recovery" ? hash.get("access_token") : null,
+      error: hash.get("error_code") || hash.get("error") ||
+             query.get("error_code") || query.get("error"),
+      // Sent by the app so someone who already typed their address doesn't
+      // type it again. Display only: it decides nothing, and the link the
+      // server mints is keyed to the address GoTrue was given, not this one.
+      email: query.get("email") || "",
+    };
+    history.replaceState(null, "", location.pathname);
+    return landing;
+  }
+
+  const landing = readLanding();
+
+  function show(el, visible) { el.hidden = !visible; }
+
+  function setPanel(title, body) {
+    titleEl.textContent = title;
+    bodyEl.textContent = body;
+  }
+
+  // Everything that isn't the state being entered, off. Each state then turns
+  // on only its own piece, so no state has to remember to undo another's.
+  function enter(state) {
+    show(askFormEl, state === "ask");
+    show(setFormEl, state === "set");
+    show(appCtaEl, state === "done");
+    show(secondaryEl, state === "ask");
+  }
+
+  function bytes(text) { return new TextEncoder().encode(text).length; }
+
+  // ---- Asking for the link ----------------------------------------------
+
+  async function sendResetLink(email) {
+    return fetch(
+      `${SUPABASE_URL}/auth/v1/recover?redirect_to=${encodeURIComponent(RESET_URL)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ email }),
+      }
+    );
+  }
+
+  // The same answer whether or not that address has an account, because the
+  // difference is worth knowing to someone working through a list of
+  // addresses and worth nothing to the person who owns one. GoTrue answers
+  // 200 either way; this page doesn't undo that by phrasing it as a fact.
+  function showSent(email) {
+    enter("sent");
+    setPanel(
+      "check your email",
+      `If ${email} has a fiammo account, a link to set a new password is on its way. It works once, and it expires in an hour.`
+    );
+
+    const again = document.createElement("p");
+    again.className = "secondary";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "resend";
+    again.append("Nothing arrived? ", btn);
+    bodyEl.after(again);
+
+    let left = RESEND_SECONDS;
+    const tick = () => {
+      if (left > 0) {
+        btn.disabled = true;
+        btn.textContent = `send it again in ${left}s`;
+        left -= 1;
+        setTimeout(tick, 1000);
+      } else {
+        btn.disabled = false;
+        btn.textContent = "send it again";
+      }
+    };
+    tick();
+
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      btn.textContent = "sending...";
+      try {
+        await sendResetLink(email);
+        btn.textContent = "sent again";
+      } catch {
+        btn.disabled = false;
+        btn.textContent = "send it again";
+      }
+    });
+  }
+
+  askFormEl.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    askErrorEl.textContent = "";
+
+    const email = askEmailEl.value.trim();
+    // Not a validity contest, just the one mistake worth catching before a
+    // round trip. Anything past this the server judges.
+    if (!email || !email.includes("@")) {
+      askErrorEl.textContent = "Enter the email address on your account.";
+      askEmailEl.focus();
+      return;
+    }
+
+    askBtnEl.disabled = true;
+    const label = askBtnEl.textContent;
+    askBtnEl.textContent = "sending...";
+
+    try {
+      const res = await sendResetLink(email);
+      if (res.status === 429) {
+        askErrorEl.textContent = "That's a lot of tries. Wait a minute and ask again.";
+        askBtnEl.disabled = false;
+        askBtnEl.textContent = label;
+        return;
+      }
+      // Anything else, including a refusal, is answered as sent: see showSent.
+      showSent(email);
+    } catch {
+      askErrorEl.textContent = "Couldn't reach fiammo. Check your connection and try again.";
+      askBtnEl.disabled = false;
+      askBtnEl.textContent = label;
+    }
+  });
+
+  // ---- Setting the new password -----------------------------------------
+
+  revealEl.addEventListener("click", () => {
+    const showing = newPasswordEl.type === "text";
+    newPasswordEl.type = confirmPasswordEl.type = showing ? "password" : "text";
+    revealEl.textContent = showing ? "show" : "hide";
+  });
+
+  // Checked here as well as on the server so the answer is immediate and the
+  // wording is ours. The server would refuse a short one anyway.
+  function passwordProblem(password, confirmation) {
+    if (password.length < MIN_LENGTH) return `Passwords are at least ${MIN_LENGTH} characters.`;
+    if (bytes(password) > MAX_BYTES) return `That password is too long. Keep it under ${MAX_BYTES} characters.`;
+    if (password !== confirmation) return "Those two don't match.";
+    return null;
+  }
+
+  setFormEl.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setErrorEl.textContent = "";
+
+    const password = newPasswordEl.value;
+    const problem = passwordProblem(password, confirmPasswordEl.value);
+    if (problem) {
+      setErrorEl.textContent = problem;
+      return;
+    }
+
+    setBtnEl.disabled = true;
+    const label = setBtnEl.textContent;
+    setBtnEl.textContent = "saving...";
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${landing.token}`,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ password }),
+      });
+
+      if (res.ok) {
+        // The recovery session did its one job. Spending it now means a token
+        // that somehow outlived this tab can't be replayed for the rest of
+        // its hour. Fire and forget: the password is already changed, and a
+        // failure here is not something to put in front of the person.
+        fetch(`${SUPABASE_URL}/auth/v1/logout?scope=global`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${landing.token}`,
+            "apikey": SUPABASE_ANON_KEY,
+          },
+        }).catch(() => {});
+
+        enter("done");
+        setPanel("that's done", "Your password is changed. Open fiammo and sign in with the new one.");
+        return;
+      }
+
+      const data = await res.json().catch(() => ({}));
+      const message = (data.msg || data.error_description || data.message || "").toLowerCase();
+
+      if (res.status === 401 || res.status === 403) {
+        showExpired();
+        return;
+      }
+      if (message.includes("different from the old password")) {
+        setErrorEl.textContent = "That's the password you already had. Pick a different one.";
+      } else if (message.includes("weak") || message.includes("password")) {
+        setErrorEl.textContent = "That password was refused. Try a longer one.";
+      } else {
+        setErrorEl.textContent = "Couldn't save that. Try again in a moment.";
+      }
+      setBtnEl.disabled = false;
+      setBtnEl.textContent = label;
+    } catch {
+      setErrorEl.textContent = "Couldn't reach fiammo. Check your connection and try again.";
+      setBtnEl.disabled = false;
+      setBtnEl.textContent = label;
+    }
+  });
+
+  // A dead link is not a dead end: the ask form is right there, which is the
+  // only thing the person can actually do about it.
+  function showExpired() {
+    enter("ask");
+    setPanel(
+      "that link has expired",
+      "Reset links work once and last an hour. Send yourself a fresh one."
+    );
+    askEmailEl.focus();
+  }
+
+  // ---- Which state this visit is ----------------------------------------
+
+  if (landing.token) {
+    enter("set");
+    setPanel("choose a new password", "Make it something you haven't used here before.");
+    newPasswordEl.focus();
+  } else if (landing.error) {
+    showExpired();
+  } else {
+    enter("ask");
+    if (landing.email) askEmailEl.value = landing.email;
+  }
+</script>
+</body>
+</html>

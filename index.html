@@ -17,6 +17,26 @@
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:url" content="https://fiammo.co/">
+<script>
+  /* A password recovery link that landed here instead of /reset.html.
+     Insurance, not a live fallback. GoTrue substitutes the project's Site URL
+     for a redirect_to that is not on the Redirect URLs allow-list, and today
+     that Site URL is the custom scheme `fiammo://`, which never reaches this
+     page. Should it ever be pointed at the website, as is the more usual
+     setup, a live recovery token would land here instead, on a page that had
+     nothing to do with it.
+
+     Forwarded rather than handled here: /reset.html is the page that knows
+     what to do with it. The fragment never reaches a server on the way, so
+     nothing is exposed by moving it. Inline and in the head so it runs before
+     the first paint, rather than after home.js at the foot of the body. */
+  (function () {
+    var hash = location.hash.slice(1);
+    if (hash.indexOf("type=recovery") === -1) return;
+    if (!new URLSearchParams(hash).get("access_token")) return;
+    location.replace("/reset.html#" + hash);
+  })();
+</script>
 </head>
 <body class="home">
 
@@ -207,6 +227,7 @@
     <a href="/support.html">Support</a>
     <a href="/privacy.html">Privacy</a>
     <a href="/terms.html">Terms</a>
+    <a href="/reset">Reset password</a>
     <a href="https://apps.apple.com/app/id6791766677">Get the app</a>
   </nav>
   <div class="footer-base">
