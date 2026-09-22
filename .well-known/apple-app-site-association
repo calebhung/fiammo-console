@@ -2,11 +2,20 @@
   "applinks": {
     "details": [
       {
-        "appIDs": ["BXP7FGLHSU.forthepeople.fiammo"],
+        "appIDs": [
+          "BXP7FGLHSU.forthepeople.fiammo"
+        ],
         "components": [
           {
             "/": "/u/*",
             "comment": "Scanned profile codes open the person's profile in the app."
+          },
+          {
+            "/": "/reset",
+            "?": {
+              "token_hash": "?*"
+            },
+            "comment": "A password reset opens the app, which sets the new password in place rather than sending someone back out to a browser to read a code. Without token_hash it is left to the browser, so the plain page stays reachable."
           }
         ]
       }
