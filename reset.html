@@ -184,12 +184,12 @@
   <main class="card" id="panel">
     <img class="hero-mark" src="flame.svg?v=2" alt="">
     <h1 id="panel-title">reset your password</h1>
-    <p id="panel-body">Tell us the email address on your account and we'll send you a link to set a new password.</p>
+    <p id="panel-body">Tell us the email address or username on your account and we'll send you a link to set a new password.</p>
 
     <form id="ask-form">
-      <label class="field-label" for="ask-email">email address</label>
-      <input type="email" id="ask-email" autocomplete="email" autocapitalize="off"
-             autocorrect="off" spellcheck="false" placeholder="you@example.com">
+      <label class="field-label" for="ask-email">email address or username</label>
+      <input type="text" id="ask-email" autocomplete="username" autocapitalize="off"
+             autocorrect="off" spellcheck="false" placeholder="you@example.com or @you">
       <div class="field-error" id="ask-error"></div>
       <button type="submit" id="ask-btn">send reset link</button>
     </form>
@@ -340,6 +340,37 @@
 
   // ---- Asking for the link ----------------------------------------------
 
+  // The address behind whatever was typed, the same way the app resolves it
+  // and through the same RPC, so a string that signs you in on the phone is a
+  // string that works here. Without this the page took "@caleb" for an email
+  // address, matched nobody, and still said to check your inbox.
+  //
+  // A leading @ is the username's sigil, not a domain separator — the one
+  // shape that has to be tested for, since it contains an @ either way.
+  async function resolveToEmail(typed) {
+    const looksLikeHandle = typed.startsWith("@") || !typed.includes("@");
+    if (!looksLikeHandle) return typed;
+
+    const handle = typed.replace(/^@+/, "").toLowerCase();
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_email_for_handle`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ p_handle: handle }),
+      });
+      if (!res.ok) return null;
+      const rows = await res.json().catch(() => []);
+      const found = Array.isArray(rows) ? rows[0] : null;
+      return found || null;
+    } catch {
+      return null;
+    }
+  }
+
   async function sendResetLink(email) {
     return fetch(
       `${SUPABASE_URL}/auth/v1/recover?redirect_to=${encodeURIComponent(RESET_URL)}`,
@@ -405,11 +436,9 @@
     event.preventDefault();
     askErrorEl.textContent = "";
 
-    const email = askEmailEl.value.trim();
-    // Not a validity contest, just the one mistake worth catching before a
-    // round trip. Anything past this the server judges.
-    if (!email || !email.includes("@")) {
-      askErrorEl.textContent = "Enter the email address on your account.";
+    const typed = askEmailEl.value.trim();
+    if (!typed) {
+      askErrorEl.textContent = "Enter the email address or username on your account.";
       askEmailEl.focus();
       return;
     }
@@ -419,6 +448,17 @@
     askBtnEl.textContent = "sending...";
 
     try {
+      // A username that resolves to nothing is said plainly, exactly as the
+      // app says it. That discloses whether a username exists, which the
+      // sign-in field already does; an address stays undisclosed either way.
+      const email = await resolveToEmail(typed);
+      if (!email) {
+        askErrorEl.textContent = `No account found for ${typed.startsWith("@") ? typed : "@" + typed}. Check the spelling or try your email address.`;
+        askBtnEl.disabled = false;
+        askBtnEl.textContent = label;
+        return;
+      }
+
       const res = await sendResetLink(email);
       if (res.status === 429) {
         askErrorEl.textContent = "That's a lot of tries. Wait a minute and ask again.";
@@ -427,7 +467,9 @@
         return;
       }
       // Anything else, including a refusal, is answered as sent: see showSent.
-      showSent(email);
+      // Echoed back as typed, so a username is not swapped for the address it
+      // resolved to — that would hand over an address nobody had asked for.
+      showSent(typed);
     } catch {
       askErrorEl.textContent = "Couldn't reach fiammo. Check your connection and try again.";
       askBtnEl.disabled = false;
