@@ -228,7 +228,10 @@
   // graceful failure if it isn't: GoTrue falls back to the Site URL, which on
   // this project is the custom scheme `fiammo://`, so the link resolves to
   // nothing a browser can open and the reset is simply dead.
-  const RESET_URL = "https://fiammo.co/reset.html";
+  // The clean URL, not /reset.html: Pages 308s the latter to the former, and
+  // the recovery token rides in the fragment. A redirect that dropped it would
+  // lose the token with nothing on screen to say why.
+  const RESET_URL = "https://fiammo.co/reset";
 
   // The same floor the app and the project both hold (GoTrue's
   // password_min_length is 8, and so is AccountRules.PasswordRule.minLength).
