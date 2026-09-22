@@ -82,7 +82,19 @@
   [hidden] { display: none !important; }
 
   .top { display: flex; align-items: center; justify-content: space-between; }
-  .wordmark { font-family: var(--script); font-size: 26px; color: var(--fg); text-decoration: none; }
+  /* The drawn wordmark, the same asset and geometry as every other page
+     (style.css .wordmark img.word). This used to be the word set in Optima,
+     which is the lettering the app moved off, and beside the real mark it
+     reads as a different product. Laid out by the x-height of "iammo" so the
+     f's swash overhangs into padding the header already has. */
+  .wordmark {
+    display: flex; align-items: center; flex-shrink: 0;
+    text-decoration: none; margin-block: 6px;
+  }
+  .wordmark img.word {
+    font-size: 22px; height: 2.176em; width: auto;
+    margin: -0.908em 0 -0.784em; display: block; pointer-events: none;
+  }
   .meta { color: var(--muted); font-size: 13px; }
   /* On every screen, so each texted post is also a way to the app. */
   .get {
@@ -209,7 +221,7 @@
 </head>
 <body>
 <main id="app" aria-live="polite">
-  <div class="top"><a class="wordmark" href="/">fiammo</a></div>
+  <div class="top"><a class="wordmark" href="/"><img class="word" src="/wordmark.svg?v=3" alt="fiammo"></a></div>
   <div class="loading" aria-label="Loading"><i style="width:40%"></i><i style="width:96%"></i><i style="width:88%"></i><i style="width:60%"></i></div>
 </main>
 <noscript><main><p class="fine">This page needs JavaScript to open the post.</p></main></noscript>
@@ -217,6 +229,10 @@
      page, and /p/read/read.js has exactly that shape, so under /p/read/ they
      came back as this HTML. -->
 <script src="/reader/seal.js" defer></script>
-<script src="/reader/read.js" defer></script>
+<!-- Versioned with the wordmark change: read.js draws the header for every
+     rendered state, so a cached copy of it would paint the old text wordmark
+     against the new stylesheet, which styles an <img> and not a word. Bump
+     this whenever read.js and this page's CSS have to agree. -->
+<script src="/reader/read.js?v=2" defer></script>
 </body>
 </html>
