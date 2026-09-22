@@ -9,6 +9,13 @@
           {
             "/": "/u/*",
             "comment": "Scanned profile codes open the person's profile in the app."
+          },
+          {
+            "/": "/reset",
+            "?": {
+              "token_hash": "?*"
+            },
+            "comment": "A password reset opens the app, which sets the new password in place. Only a build carrying PasswordResetLink can answer it, so this goes in with the release that ships it."
           }
         ]
       }
