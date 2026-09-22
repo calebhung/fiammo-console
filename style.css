@@ -81,12 +81,6 @@ header.site {
   margin-block: 6px;
 }
 
-.wordmark .mark {
-  height: 26px;
-  width: auto;
-  display: block;
-}
-
 /* The app's wordmark, outlined from the faces the app draws it in (a Zapfino
  * "f" turned -8deg, Optima "iammo" tracked wide, the i in copper) so it reads
  * the same on a phone with neither font. The f is cut at 18pt against the
@@ -97,13 +91,14 @@ header.site {
  * word, one em being 32 of the SVG's units, the Optima size it was cut at.
  *   viewBox height 69.6 -> 2.176em
  *   x-height top at 29.1 from the top, baseline at 44.6, swash left 26.4
- * The left margin pulls the swash's tail in under the flame so the flame sits
- * in the crook of the f; any less and the flame floats a gap away. */
+ * The header carries the word alone: beside the swash, the flame was a second
+ * ornament in thirty pixels. The tail's tip sits on the gutter's edge, so the
+ * stem of the f lands a little in from where the page's text starts. */
 .wordmark img.word {
   font-size: 22px;
   height: 2.176em;
   width: auto;
-  margin: -0.908em 0 -0.784em -1em;
+  margin: -0.908em 0 -0.784em;
   display: block;
   pointer-events: none;
 }
