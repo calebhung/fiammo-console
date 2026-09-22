@@ -13,6 +13,19 @@
 <link rel="preconnect" href="https://syqqxogkqmuojchbglle.supabase.co" crossorigin>
 <link rel="dns-prefetch" href="https://syqqxogkqmuojchbglle.supabase.co">
 <link rel="stylesheet" href="style.css?v=5">
+<script>
+  /* Decided before the body exists. The served HTML is the ask form, because
+     that is the state a visitor with no JavaScript can still read and act on
+     — but a visit carrying a token_hash is on its way to the password form,
+     and must not show the ask form even for one frame on the way. */
+  if (new URLSearchParams(location.search).get("token_hash")) {
+    document.documentElement.className += " arriving";
+  }
+</script>
+<style>
+  /* See the head script. Undone by enter(), which sets each panel explicitly. */
+  html.arriving #ask-form { display: none !important; }
+</style>
 <style>
   /* Page-scoped for the reason accept.html gives: style.css is cached for
      four hours by Cloudflare Pages, so anything added there ships to nobody
@@ -262,9 +275,23 @@
 
   // What the URL was carrying, read once and then wiped.
   //
-  // GoTrue hands back a real session in the fragment (access_token, type=
-  // recovery) and reports a dead link in either the fragment or the query,
-  // depending on how far it got before giving up, so both are read.
+  // Two shapes arrive here, and the difference is the whole point of this
+  // page's second version.
+  //
+  // `token_hash` in the query is what the recovery email sends now. Landing
+  // on it costs nothing: this page is static, so a prefetch, a link preview
+  // or a mail scanner fetching it changes nothing at all. The token is spent
+  // by the POST in exchangeTokenHash, which only happens when this script
+  // runs.
+  //
+  // A session in the fragment is the older shape, from GoTrue's own
+  // /auth/v1/verify link. That link spends its one-time token on a plain GET,
+  // so whatever fetched it first won, and a person whose browser or mail
+  // client fetched it twice in the same instant got the second answer: "One
+  // time token not found". The page then did the honest thing with a dead
+  // link and offered to send another, which read as a loop and was one.
+  // Server logs on 2026-09-22 showed two /verify hits in the same second for
+  // every real click. The branch stays only for links already in flight.
   //
   // The rewrite is not tidiness. An access token left in the address bar is
   // one that gets copied into a message, kept in history, restored by a
@@ -276,6 +303,8 @@
     const query = new URLSearchParams(location.search);
     const landing = {
       token: hash.get("type") === "recovery" ? hash.get("access_token") : null,
+      tokenHash: query.get("token_hash"),
+      type: query.get("type") || "recovery",
       error: hash.get("error_code") || hash.get("error") ||
              query.get("error_code") || query.get("error"),
       // Sent by the app so someone who already typed their address doesn't
@@ -299,6 +328,8 @@
   // Everything that isn't the state being entered, off. Each state then turns
   // on only its own piece, so no state has to remember to undo another's.
   function enter(state) {
+    // The pre-paint guard has done its job by the time any state is entered.
+    document.documentElement.classList.remove("arriving");
     show(askFormEl, state === "ask");
     show(setFormEl, state === "set");
     show(appCtaEl, state === "done");
@@ -499,18 +530,56 @@
     askEmailEl.focus();
   }
 
-  // ---- Which state this visit is ----------------------------------------
+  // Spends a token_hash for a session, by POST. A GET is what the old link
+  // did, and a GET is what anything at all will speculatively make on a URL
+  // it has been handed; a POST is made only by this script, only once.
+  async function exchangeTokenHash(tokenHash, type) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/auth/v1/verify`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "apikey": SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ type: type || "recovery", token_hash: tokenHash }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json().catch(() => ({}));
+      return data.access_token || null;
+    } catch {
+      return null;
+    }
+  }
 
-  if (landing.token) {
+  function enterSet() {
     enter("set");
     setPanel("choose a new password", "Make it something you haven't used here before.");
     newPasswordEl.focus();
-  } else if (landing.error) {
-    showExpired();
-  } else {
+  }
+
+  // ---- Which state this visit is ----------------------------------------
+
+  (async function start() {
+    // A session already in hand, from an older link. Nothing to spend.
+    if (landing.token) { enterSet(); return; }
+
+    if (landing.tokenHash) {
+      // Held on the loading line rather than showing the ask form for the
+      // half second the exchange takes: seeing "reset your password" and then
+      // being moved reads as the page changing its mind about who you are.
+      enter("checking");
+      setPanel("one moment", "Checking your link.");
+      const token = await exchangeTokenHash(landing.tokenHash, landing.type);
+      if (token) { landing.token = token; enterSet(); } else { showExpired(); }
+      return;
+    }
+
+    if (landing.error) { showExpired(); return; }
+
     enter("ask");
     if (landing.email) askEmailEl.value = landing.email;
-  }
+  })();
 </script>
 </body>
 </html>
