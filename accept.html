@@ -141,6 +141,39 @@
     min-height: 1em;
   }
 
+  /* Consent is a control, not a sentence of fine print underneath one. The
+     box is served unchecked, the visitor ticks it themselves, and it gates
+     the button: A2P campaign review rejects a pre-ticked box or an opt-in
+     implied by pressing send (error 30925), and a reviewer has to be able to
+     see the box and read what ticking it agrees to. Its text is in the
+     markup for the same reason the form is (see the note above the section):
+     a compliance capture doesn't run script.
+
+     Left-aligned, alone on this page, because three lines of disclosure
+     centered under a centered form read as a paragraph rather than as the
+     thing you are agreeing to. */
+  #consent {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    text-align: left;
+    max-width: 300px;
+    margin-top: 4px;
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    line-height: 1.55;
+    color: var(--text);
+    cursor: pointer;
+  }
+  #consent input {
+    flex: 0 0 auto;
+    width: 17px;
+    height: 17px;
+    margin: 1px 0 0;
+    accent-color: var(--ink);
+    cursor: pointer;
+  }
+
   /* Outlined ink rather than a second solid fill: the text path is a real
      choice, but it shouldn't shout as loud as the app. */
   #confirm-btn {
@@ -207,6 +240,13 @@
        it, the capture saw a download button and no consent form, and the
        campaign was rejected for it (twice: before a2d1990, and after 998a406).
 
+       The same goes for the consent checkbox: served unchecked, with its
+       text in the markup, gating the button. Nothing here may become an
+       opt-in that a visitor did not tick (error 30925), and nothing here may
+       depend on script to be seen. fiammo.co/sms is the public page these
+       rules are written against, and the campaign's registered call to
+       action; ?token=sample-review renders this page for reviewers.
+
        Script only ever takes the form away, for terminal states (bad link,
        expired, declined, confirmed). Consent collected while the
        circle_sms_settings switch is off is deliberate: accept-circle-invite
@@ -235,17 +275,21 @@
       <input type="tel" id="phone-number" inputmode="tel" maxlength="20" autocomplete="tel-national" placeholder="(555) 555-0123">
       <label class="field-label" for="phone-code" id="code-label" hidden>enter the 6-digit code we texted you</label>
       <input type="text" id="phone-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000" hidden>
+      <label id="consent">
+        <input type="checkbox" id="consent-box">
+        <span id="consent-text">Yes, text me when they post. These are automated messages from fiammo. Message frequency varies. Message and data rates may apply. Reply STOP to cancel, HELP for help.</span>
+      </label>
       <div class="field-error" id="field-error"></div>
       <button id="confirm-btn" type="submit" disabled>text me a code</button>
       <button id="decline-link" type="button">no thanks</button>
     </form>
 
     <p class="disclosure" id="disclosure">
-      we'll text a one-time code to confirm your number. after that you'll get a
-      text each time they post, with a link that works for a day. message &amp; data rates may apply.
-      reply HELP for help, STOP at any time to opt out.
-      by confirming you agree to fiammo's
-      <a href="terms.html">terms</a> and <a href="privacy.html">privacy policy</a>.
+      we'll text a one-time code to confirm the number is yours, then a text
+      each time they post, with a link that works for a day. by confirming you
+      agree to fiammo's <a href="terms.html">terms</a> and
+      <a href="privacy.html">privacy policy</a>. what these texts are, in full:
+      <a href="sms.html">fiammo.co/sms</a>.
     </p>
   </section>
 
@@ -277,6 +321,9 @@
   const appCtaEl = document.getElementById("app-cta");
   const fieldErrorEl = document.getElementById("field-error");
   const btnEl = document.getElementById("confirm-btn");
+  const consentEl = document.getElementById("consent");
+  const consentBoxEl = document.getElementById("consent-box");
+  const consentTextEl = document.getElementById("consent-text");
   const declineBtnEl = document.getElementById("decline-link");
   const disclosureEl = document.getElementById("disclosure");
 
@@ -306,8 +353,18 @@
   // carrying ?from paints the real name in the served markup's place before
   // the first frame, so there is no fade and no round trip to sit through —
   // which is the entire point of putting the name in the link.
+  // The consent line names who the texts would come from, once we know. It
+  // is served with "they" rather than blank so the sentence is complete and
+  // readable before any of this runs, and complete is what gets captured.
+  function setConsentName(name) {
+    consentTextEl.textContent = `Yes, text me when ${name} posts. These are `
+      + `automated messages from fiammo. Message frequency varies. Message and `
+      + `data rates may apply. Reply STOP to cancel, HELP for help.`;
+  }
+
   if (nameFromLink) {
     titleEl.textContent = `${nameFromLink} added you to their circle`;
+    setConsentName(nameFromLink);
   } else {
     stateEl.classList.add("loading");
     // Links minted before ?from existed still have to make the round trip.
@@ -376,6 +433,7 @@
 
   function showInvite(ownerName) {
     titleEl.textContent = `${ownerName} added you to their circle`;
+    setConsentName(ownerName);
     settled();
   }
 
@@ -431,11 +489,12 @@
   function readyToSubmit() {
     if (step === "number") {
       const d = digitsOf(numberEl.value);
-      return d.length === 10 || (d.length === 11 && d[0] === "1");
+      return consentBoxEl.checked && (d.length === 10 || (d.length === 11 && d[0] === "1"));
     }
     return digitsOf(codeEl.value).length === 6;
   }
   numberEl.addEventListener("input", () => { fieldErrorEl.textContent = ""; btnEl.disabled = !readyToSubmit(); });
+  consentBoxEl.addEventListener("change", () => { fieldErrorEl.textContent = ""; btnEl.disabled = !readyToSubmit(); });
   codeEl.addEventListener("input", () => {
     codeEl.value = digitsOf(codeEl.value).slice(0, 6);
     fieldErrorEl.textContent = "";
@@ -446,6 +505,7 @@
   function setFormBusy(busy) {
     btnEl.disabled = busy || !readyToSubmit();
     declineBtnEl.disabled = busy;
+    consentBoxEl.disabled = busy;
     numberEl.disabled = busy;
     codeEl.disabled = busy;
   }
@@ -454,6 +514,7 @@
     step = "code";
     numberEl.hidden = true;
     numberLabelEl.hidden = true;
+    consentEl.hidden = true;
     codeLabelEl.hidden = false;
     codeLabelEl.textContent = `enter the 6-digit code we texted to ${maskedNumber || "your phone"}`;
     codeEl.hidden = false;
@@ -493,7 +554,7 @@
       const again = (msg) => { fieldErrorEl.textContent = msg; setFormBusy(false); btnEl.textContent = label; };
       if (data.error === "phone_mismatch") return again("that's not the number they added. check it and try again.");
       if (data.error === "wrong_code") return again(data.attempts_left === 1 ? "that's not it. one more try." : "that's not it. check the text and try again.");
-      if (data.error === "code_expired") { step = "number"; numberEl.hidden = false; numberLabelEl.hidden = false; codeEl.hidden = true; codeLabelEl.hidden = true; btnEl.textContent = "text me a code"; return again("that code expired. send a new one."); }
+      if (data.error === "code_expired") { step = "number"; numberEl.hidden = false; numberLabelEl.hidden = false; consentEl.hidden = false; codeEl.hidden = true; codeLabelEl.hidden = true; btnEl.textContent = "text me a code"; return again("that code expired. send a new one."); }
       if (data.error === "sms_unavailable") return again("we can't text codes just yet. get the app above, or try again soon.");
       if (data.error === "unsupported_number") return again("texts only go to US numbers for now. get the app above instead.");
       const [title, bodyText] = errorMessageFor(data.error);

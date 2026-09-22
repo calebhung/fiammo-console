@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SMS notifications · Fiammo</title>
+<meta name="description" content="How fiammo's text message notifications work: what we send, how you opt in, and how to stop.">
+<link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=9">
+<style>
+  /* This page is the messaging program's public call to action, and the URL
+     given to carriers and to Twilio's A2P campaign review. Everything a
+     reviewer has to see — the consent checkbox, the disclosures, the sample
+     messages, the opt-out — is in the served HTML and in the committed
+     screenshots below. No script decides whether any of it renders, because
+     compliance captures do not run script: a campaign was rejected twice for
+     exactly that (see the note in accept.html). */
+
+  /* The opt-in specimen: the real form from the invitation page, reproduced
+     here at rest so the consent language and the unchecked box can be read
+     without holding an invitation. */
+  .specimen {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--lift);
+    padding: 28px;
+    margin: 28px 0;
+  }
+  .specimen-tag {
+    font-family: var(--font-sans);
+    font-size: .8125rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 18px;
+  }
+  .specimen .field-label {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: .9375rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .specimen input[type="tel"] {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: var(--font-mono);
+    font-size: 1.0625rem;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .consent {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    margin: 18px 0 0;
+    font-family: var(--font-sans);
+    font-size: .9375rem;
+    line-height: 1.55;
+    color: var(--text);
+  }
+  .consent input[type="checkbox"] {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    margin: 2px 0 0;
+    accent-color: var(--accent-strong);
+  }
+  .specimen .submit {
+    display: block;
+    width: 100%;
+    margin-top: 20px;
+    padding: 15px 20px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--ink);
+    color: var(--bg);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .specimen .submit[disabled] { opacity: .35; }
+
+  /* Sample messages, shown as the message bodies our code actually sends.
+     The text is copied from the send paths, not paraphrased: a carrier
+     comparing registered samples against real traffic has to find them
+     identical. */
+  .samples { list-style: none; padding: 0; margin: 16px 0 0; }
+  .samples li { margin: 0 0 14px; }
+  .sample-body {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    font-family: var(--font-mono);
+    font-size: .9375rem;
+    line-height: 1.5;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .sample-kind {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: .875rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps > li {
+    counter-increment: step;
+    position: relative;
+    padding-left: 44px;
+    margin-bottom: 28px;
+  }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: -2px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--accent-strong);
+    color: var(--on-accent);
+    font-family: var(--font-sans);
+    font-size: .9375rem;
+    font-weight: 600;
+    display: grid;
+    place-items: center;
+  }
+  figure.shot { margin: 16px 0 0; }
+  figure.shot img {
+    display: block;
+    width: 100%;
+    max-width: 380px;
+    height: auto;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--lift);
+  }
+  figure.shot figcaption {
+    font-family: var(--font-sans);
+    font-size: .875rem;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  .keyline {
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    background: var(--card);
+    padding: 18px 20px;
+    margin: 24px 0;
+  }
+  .keyline p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body class="doc">
+<div class="wrap">
+  <header class="site">
+    <a class="wordmark" href="/">
+      <img class="word" src="wordmark.svg?v=3" alt="fiammo">
+    </a>
+    <nav class="legal-links">
+      <a class="nav-cta" href="https://apps.apple.com/app/id6791766677">Get the app</a>
+    </nav>
+  </header>
+
+  <div class="doc-body">
+    <aside class="doc-nav">
+      <p class="doc-nav-title">Help and legal</p>
+      <nav aria-label="Help and legal">
+        <a href="/support.html">Support</a>
+        <a href="/sms.html" class="here" aria-current="page">SMS notifications</a>
+        <a href="/privacy.html">Privacy Policy</a>
+        <a href="/terms.html">Terms of Service</a>
+      </nav>
+    </aside>
+
+  <main class="article">
+    <h1>SMS notifications</h1>
+    <p class="updated">Last updated: Sep 22, 2026</p>
+
+    <p class="lede">Fiammo can text you when someone you know posts. This page is the full description of that program: who sends the messages, what they say, how you turn them on, and how you turn them off.</p>
+
+    <h2>Who sends these messages</h2>
+    <p>Fiammo sends them. They are automated messages from our application to a person who asked for them, generated by our servers when something happens in the app. They are not messages one person writes to another and we do not relay anyone's typed message to anyone else.</p>
+    <p>Fiammo is an iPhone app for sharing short written posts with a small group of people you choose, called a circle. When someone is added to a circle and does not have the app, they can choose to follow that circle by text instead. Following by text is what this program is for.</p>
+
+    <div class="keyline">
+      <p><strong>Program:</strong> fiammo circle post alerts. <strong>Message frequency varies</strong> and depends on how often the people in your circle write, typically a few messages a week. <strong>Message and data rates may apply.</strong> Reply <strong>STOP</strong> at any time to cancel. Reply <strong>HELP</strong> for help, or email <a href="mailto:hello@fiammo.co">hello@fiammo.co</a>.</p>
+    </div>
+
+    <h2>What we send</h2>
+    <p>Three kinds of message, and nothing else. No marketing, no promotions, no messages from any other business.</p>
+    <p>Two of those do different jobs and it is worth separating them. The <strong>one-time code</strong> proves the phone is yours: you ask for it, it arrives once, and it is the same code we use to sign you in if you later make an account. The <strong>post alert</strong> is the standing subscription: it keeps arriving until you stop it, which is why it is the one you have to tick a box to start. The box has to be ticked before we send anything at all, including the code, so no message of any kind reaches a phone whose owner has not agreed on this page first.</p>
+    <ul class="samples">
+      <li>
+        <span class="sample-kind">One-time code, sent when you ask us to confirm your number</span>
+        <code class="sample-body">Your fiammo verification code is: 402913</code>
+        <span class="sample-kind" style="margin:6px 0 0">Codes are delivered by Twilio Verify, so the exact wording is Twilio's. When fiammo sends a code from its own number instead, the body is: <code>Your fiammo code is 402913. Don't share it with anyone.</code></span>
+      </li>
+      <li>
+        <span class="sample-kind">Confirmation, sent once, immediately after you opt in</span>
+        <code class="sample-body">fiammo: You're confirmed for new-post alerts from Jordan. Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to unsubscribe, HELP for help.</code>
+      </li>
+      <li>
+        <span class="sample-kind">Post alert, the recurring message you opted in to</span>
+        <code class="sample-body">fiammo: Jordan shared a new post. Read it: https://fiammo.co/p/34j2avpx/Jm4tQ8abcd Reply STOP to opt out.</code>
+      </li>
+    </ul>
+    <p>A post alert never quotes the post. Posts on fiammo disappear 24 hours after they are written, and a text does not, so the alert says only that there is something to read and links to a page where the post still follows its own rules. The link works for that one post and only on the phone that confirmed the number.</p>
+
+    <h2>How you opt in</h2>
+    <p>There is one way to join this program, and it always begins with a person adding you to their circle in the fiammo app. We never text a number that has not completed the steps below.</p>
+
+    <ol class="steps">
+      <li>
+        <p><strong>Someone adds you to their circle and texts you an invitation.</strong> That invitation comes from their own phone and their own number, written in their own Messages app. Fiammo does not send it. It carries a link to the confirmation page on fiammo.co.</p>
+      </li>
+      <li>
+        <p><strong>You open the link and see the offer.</strong> The page names who added you, and offers two ways to follow them: install the app, or get their posts by text. Nothing has been sent to your phone by fiammo at this point.</p>
+        <figure class="shot">
+          <img src="/optin/step-1-invite-page.png" alt="The fiammo confirmation page: Jordan added you to their circle, with a Get fiammo button and, below it, a phone number field, an unchecked consent checkbox, and a Text me a code button.">
+          <figcaption>The confirmation page, as served. The consent checkbox is unchecked and the button is disabled until it is ticked.</figcaption>
+        </figure>
+      </li>
+      <li>
+        <p><strong>You type your own phone number and tick the consent box.</strong> The box is unchecked when the page loads and nothing is submitted until you tick it yourself. It reads:</p>
+        <p class="sample-body" style="font-family: var(--font-sans)">Yes, text me when Jordan posts. These are automated messages from fiammo. Message frequency varies. Message and data rates may apply. Reply STOP to cancel, HELP for help.</p>
+        <figure class="shot">
+          <img src="/optin/step-2-consent-checked.png" alt="The same page with a phone number filled in and the consent checkbox ticked, which enables the Text me a code button.">
+          <figcaption>Ticking the box is what enables the button. Nobody is enrolled without doing this.</figcaption>
+        </figure>
+      </li>
+      <li>
+        <p><strong>We text a 6-digit code to that number</strong> and you type it back into the page. The code only ever goes to the number on the invitation, never to a number typed in by someone else, which is how we know the person consenting is the person holding the phone.</p>
+        <figure class="shot">
+          <img src="/optin/step-3-code.png" alt="The page asking for the 6-digit code that was texted, with a Confirm button.">
+          <figcaption>The code step. A code lasts 10 minutes and dies after five wrong tries.</figcaption>
+        </figure>
+      </li>
+      <li>
+        <p><strong>You are opted in, and we say so in a text.</strong> The confirmation message above is the first message this program sends you. From then on you get one post alert each time that person writes.</p>
+        <figure class="shot">
+          <img src="/optin/step-4-confirmed.png" alt="The confirmation screen: you're set, you'll get a text from Jordan whenever they post to fiammo, with a link that works for a day, reply STOP anytime to opt out.">
+          <figcaption>The end of the flow. The opt-out instruction is repeated here and in every message that follows.</figcaption>
+        </figure>
+      </li>
+    </ol>
+
+    <div class="keyline">
+      <p><strong>Reviewing this page?</strong> The confirmation page above is reachable without an invitation at <a href="/accept?token=sample-review">fiammo.co/accept?token=sample-review</a>. It is a permanent sample that renders the real page and the real consent language against placeholder data, so it never expires and never consumes a live invitation. The screenshots on this page are of that sample.</p>
+    </div>
+
+    <h2>The opt-in form</h2>
+    <p>This is the consent control itself, reproduced from the confirmation page so it can be read here. It is shown at rest and does not submit anything.</p>
+    <div class="specimen" aria-hidden="true">
+      <p class="specimen-tag">Specimen &mdash; not a live form</p>
+      <label class="field-label" for="specimen-number">your phone number, the one that got this invite. we'll text it a code to confirm it's yours.</label>
+      <input type="tel" id="specimen-number" value="(555) 555-0123" disabled>
+      <label class="consent">
+        <input type="checkbox" disabled>
+        <span>Yes, text me when Jordan posts. These are automated messages from fiammo. Message frequency varies. Message and data rates may apply. Reply STOP to cancel, HELP for help.</span>
+      </label>
+      <button class="submit" disabled>text me a code</button>
+    </div>
+    <p>By ticking that box you also agree to fiammo's <a href="/terms.html">Terms of Service</a> and <a href="/privacy.html">Privacy Policy</a>.</p>
+
+    <h2>How to stop</h2>
+    <p>Reply <strong>STOP</strong> to any message from fiammo and the messages end. Twilio blocks the number at the carrier layer immediately, and our own records are updated in the same moment so we stop selecting you at all. To start again, text <strong>START</strong> to the same number.</p>
+    <p>You can also leave before you ever receive a post alert by choosing "no thanks" on the confirmation page, and an invitation that goes unanswered expires on its own after 30 days.</p>
+
+    <h2>How to get help</h2>
+    <p>Reply <strong>HELP</strong> to any message from fiammo, or email <a href="mailto:hello@fiammo.co">hello@fiammo.co</a>. Our <a href="/support.html">support page</a> has more.</p>
+
+    <h2>Your number</h2>
+    <p>Fiammo does not sell your information. <strong>No mobile information will be shared with third parties or affiliates for marketing or promotional purposes.</strong> Text messaging originator opt-in data and consent are not shared with any third party. Your number is used to deliver the messages described on this page and to sign you in if you create an account, and it is handled by our messaging provider (Twilio) and our hosting provider (Supabase) only so those messages can be delivered and that consent recorded. Our <a href="/privacy.html">Privacy Policy</a> has the full account.</p>
+  </main>
+  </div>
+
+  <footer class="site">
+    <nav class="footer-nav">
+      <a href="/">Home</a>
+      <a href="/support.html">Support</a>
+      <a href="/sms.html" class="here">SMS</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/terms.html">Terms</a>
+      <a href="https://apps.apple.com/app/id6791766677">Get the app</a>
+    </nav>
+    <div class="footer-base">
+      <span>&copy; 2026 fiammo</span>
+      <span><a href="mailto:hello@fiammo.co">hello@fiammo.co</a></span>
+    </div>
+  </footer>
+</div>
+</body>
+</html>
