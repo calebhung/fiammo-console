@@ -241,11 +241,49 @@ body.doc header.site {
   box-sizing: content-box;
 }
 
-body.doc .article {
-  max-width: 680px;
+/* The document sits beside a list of the three pages, the way consumer apps'
+   legal pages do, so moving between them doesn't mean a trip to the footer.
+   The list stays in view while the prose scrolls. Phones drop it; the footer
+   carries the same links. */
+body.doc .doc-body {
+  max-width: 1280px;
   margin: 0 auto;
   padding: 72px var(--doc-gutter) 0;
   box-sizing: content-box;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 720px);
+  column-gap: 96px;
+}
+
+body.doc .doc-nav {
+  position: sticky;
+  top: 32px;
+  align-self: start;
+  padding-top: 14px;
+  font-family: var(--font-sans);
+}
+.doc-nav-title {
+  margin: 0 0 18px;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.doc-nav nav { display: flex; flex-direction: column; gap: 14px; }
+.doc-nav a { color: var(--text); text-decoration: none; font-size: 1rem; }
+.doc-nav a:hover { color: var(--accent-strong); }
+.doc-nav a.here { color: var(--accent-strong); font-weight: 600; }
+
+body.doc .article {
+  max-width: 720px;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 960px) {
+  body.doc .doc-body { grid-template-columns: minmax(0, 1fr); max-width: 680px; }
+  body.doc .doc-nav { display: none; }
 }
 
 body.doc footer.site {
@@ -418,7 +456,7 @@ nav.legal-links a {
   body.doc .wrap { padding: 0 0 32px; }
   body.doc header.site { flex-direction: row; align-items: center; margin-bottom: 0; padding-top: 18px; padding-bottom: 18px; }
   body.doc nav.legal-links a.nav-cta { font-size: 14px; padding: 11px 16px; }
-  body.doc .article { padding-top: 40px; }
+  body.doc .doc-body { padding-top: 40px; }
   body.doc footer.site { margin-top: 64px; }
 
   .article p,
