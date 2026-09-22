@@ -109,6 +109,7 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); color: var(--bg); }
 .home .avs { display: inline-flex; }
 .home .avs .av { border: 2px solid var(--card); box-sizing: content-box; }
 .home .avs .av + .av { margin-left: -8px; }
+.home .avs > :first-child { margin-left: 0; }
 
 .kicker {
   font-family: var(--font-display);
@@ -530,14 +531,38 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); color: var(--bg); }
   align-items: center;
   gap: 6px;
   border: 1px solid var(--border);
+  background: transparent;
   color: var(--body);
   border-radius: 999px;
   padding: 8px 16px;
+  font: inherit;
   font-size: 14px;
+  cursor: pointer;
+  transition: background-color .18s var(--arrive), border-color .18s var(--arrive), color .18s var(--arrive);
 }
+.chip:hover { border-color: var(--quiet); }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chip svg { display: none; }
 .chip.on { background: var(--ink); border-color: var(--ink); color: var(--bg); font-weight: 500; }
-.members { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--body); padding-top: 6px; }
+.chip.on svg { display: block; }
+.members { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--body); padding-top: 6px; min-height: 36px; }
 .members .av { width: 32px; height: 32px; font-size: 12px; }
+/* Everyone past the three faces, counted rather than drawn. */
+.home .av-more {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--quiet);
+  font-size: 12px;
+  font-weight: 600;
+  border: 2px solid var(--card);
+  margin-left: -8px;
+}
+.members-count { margin-left: auto; color: var(--quiet); white-space: nowrap; }
 .panel-note { align-self: center; text-align: center; font-size: 12px; color: var(--quiet); padding-top: 6px; }
 
 @media (max-width: 900px) {
@@ -552,9 +577,8 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); color: var(--bg); }
   .mini-post { padding: 14px 16px; }
   .mini-post p { font-size: 16px; }
   .chip { padding: 7px 12px; font-size: 13px; }
-  .chip.wide-only { display: none; }
-  .members { font-size: 13px; }
-  .members .av { width: 28px; height: 28px; font-size: 11px; }
+  .members { font-size: 13px; flex-wrap: wrap; }
+  .members .av, .home .av-more { width: 28px; height: 28px; font-size: 11px; }
 }
 
 /* ---------- closing ---------- */
