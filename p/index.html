@@ -58,12 +58,19 @@
     text-align: center;
     box-shadow: 0 1px 2px rgba(26,21,18,.04), 0 8px 24px rgba(26,21,18,.05);
   }
+  /* The drawn wordmark, the same asset and geometry as every other page
+     (style.css .wordmark img.word). This used to be the word set in Optima,
+     which is the lettering the app moved off, and beside the real mark it
+     reads as a different product. Laid out by the x-height of "iammo" so the
+     f's swash overhangs into padding the card already has. */
   .mark {
-    font-family: 'Optima', Georgia, "Times New Roman", serif;
-    font-size: 30px;
-    font-weight: 500;
-    letter-spacing: -0.01em;
-    margin: 0 0 10px;
+    display: block;
+    font-size: 26px;
+    height: 2.176em;
+    width: auto;
+    /* The 10px the word used to sit above the line, measured from the
+       baseline rather than from the swash's tip. */
+    margin: -0.908em auto calc(-0.784em + 18px);
   }
   .line {
     font-family: var(--font-sans);
@@ -94,7 +101,7 @@
 </head>
 <body>
   <main class="card">
-    <p class="mark">fiammo</p>
+    <img class="mark" src="/wordmark.svg?v=3" alt="fiammo">
     <p class="line" id="line">Opening fiammo&hellip;</p>
     <a class="cta" id="cta" href="https://apps.apple.com/app/id6791766677">Get fiammo</a>
     <p class="foot">Posts burn after 24 hours. Open the app to read this one.</p>

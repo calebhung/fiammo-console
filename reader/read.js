@@ -74,7 +74,9 @@
 
   function top() {
     return h("div", { class: "top" }, [
-      h("a", { class: "wordmark", href: "/", text: "fiammo" }),
+      h("a", { class: "wordmark", href: "/" }, [
+        h("img", { class: "word", src: "/wordmark.svg?v=3", alt: "fiammo" }),
+      ]),
       CAN_GET_APP ? h("a", { class: "get", href: APP_STORE, text: "Get the app" }) : null,
     ]);
   }
