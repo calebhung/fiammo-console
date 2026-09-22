@@ -7,7 +7,7 @@
 <meta name="description" content="A private, text-first social app. Everyone answers the same question each day. Write something before you read theirs. Posts burn in 24 hours.">
 <link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
 <link rel="stylesheet" href="style.css?v=5">
-<link rel="stylesheet" href="home.css?v=16">
+<link rel="stylesheet" href="home.css?v=17">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="fiammo">
 <meta property="og:title" content="fiammo">
@@ -59,8 +59,8 @@
     <div class="stage" role="img" aria-label="A post answering today's prompt is written, read by three friends, echoed by one of them into a private conversation, and then burns while the conversation stays.">
       <div class="stage-inner" id="stage" aria-hidden="true">
         <div class="card-wrap">
-          <div class="peek peek-back"><div class="peek-row"><span class="av" data-who="A">A</span><b>Avery</b><span class="peek-time">burns in 20h</span></div></div>
-          <div class="peek peek-front"><div class="peek-row"><span class="av" data-who="M">M</span><b>Maya</b><span class="peek-time">burns in 20h</span></div></div>
+          <div class="peek peek-back"><div class="peek-row"><img class="av" src="home-people/avery.jpg" alt=""><b>Avery</b><span class="peek-time">burns in 20h</span></div></div>
+          <div class="peek peek-front"><div class="peek-row"><img class="av" src="home-people/daniel.jpg" alt=""><b>Daniel</b><span class="peek-time">burns in 20h</span></div></div>
           <div class="post-card">
             <div class="card-head">
               <span class="card-label">Today's prompt</span>
@@ -68,18 +68,18 @@
             </div>
             <div class="card-rule fades"></div>
             <div class="byline fades">
-              <span class="who"><span class="av you">Y</span><b>You</b></span>
+              <span class="who"><img class="av" src="home-people/casey.jpg" alt=""><b>You</b></span>
               <span class="status" id="stage-status">Burns in 24h</span>
             </div>
             <p class="card-body"><span id="stage-pre">Honestly, for days. </span><span class="hl" id="stage-hl">I rehearse the better version in the shower like it's getting a second showing.</span><span class="caret" id="stage-caret">|</span></p>
             <div class="card-foot fades">
               <span class="readers">
-                <span class="avs"><span class="av" data-who="A">A</span><span class="av" data-who="J">J</span><span class="av" data-who="M">M</span></span>
-                <span class="readers-copy" id="stage-readers">Avery, Jordan and Maya can read it</span>
+                <span class="avs"><img class="av" src="home-people/avery.jpg" alt=""><img class="av" src="home-people/taylor.jpg" alt=""><img class="av" src="home-people/daniel.jpg" alt=""></span>
+                <span class="readers-copy" id="stage-readers">Avery, Taylor and Daniel can read it</span>
               </span>
               <span class="echo-chip" id="stage-chip">
                 <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3.5h10a1 1 0 0 1 1 1v5.5a1 1 0 0 1-1 1H7l-3 2.5V11H3a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
-                Jordan echoed
+                Taylor echoed
               </span>
             </div>
             <div class="gone" id="stage-gone"><span>Your post burned.</span><span>The conversation didn't.</span></div>
@@ -87,9 +87,9 @@
         </div>
 
         <div class="thread" id="stage-thread">
-          <span class="thread-label">Jordan echoed a line · just you two</span>
+          <span class="thread-label">Taylor echoed a line · just you two</span>
           <span class="quote" id="stage-quote">“I rehearse the better version in the shower like it’s getting a second showing.”</span>
-          <div class="msg theirs" id="stage-m1"><span class="av" data-who="J">J</span><span class="bubble">the shower debate is so real. i won every argument in there last week</span></div>
+          <div class="msg theirs" id="stage-m1"><img class="av" src="home-people/taylor.jpg" alt=""><span class="bubble">the shower debate is so real. i won every argument in there last week</span></div>
           <div class="msg-slot">
             <div class="typing" id="stage-typing"><span></span><span></span><span></span></div>
             <div class="msg mine" id="stage-m2"><span class="bubble">ok good. it's not just me</span></div>
@@ -114,8 +114,8 @@
       <div class="band-quote">
         <p class="big-quote">“What's something you changed your mind about this year?”</p>
         <div class="answered">
-          <span class="avs"><span class="av" data-who="A">A</span><span class="av" data-who="J">J</span><span class="av" data-who="M">M</span><span class="av" data-who="S">S</span></span>
-          <span>4 friends answered. Theirs unlock when yours is in.</span>
+          <span class="avs"><img class="av" src="home-people/avery.jpg" alt=""><img class="av" src="home-people/taylor.jpg" alt=""><img class="av" src="home-people/daniel.jpg" alt=""></span>
+          <span>3 friends answered. Theirs unlock when yours is in.</span>
         </div>
       </div>
     </div>
@@ -129,20 +129,20 @@
     </div>
     <div class="locked">
       <div class="locked-post" aria-hidden="true">
-        <div class="locked-who"><span class="av" data-who="A">A</span><b>Avery</b><span>burns in 20h</span></div>
+        <div class="locked-who"><img class="av" src="home-people/avery.jpg" alt=""><b>Avery</b><span>burns in 20h</span></div>
         <p>A whole afternoon of it, then I texted her and she had already forgotten.</p>
       </div>
       <div class="locked-post" aria-hidden="true">
-        <div class="locked-who"><span class="av" data-who="M">M</span><b>Maya</b><span>burns in 20h</span></div>
+        <div class="locked-who"><img class="av" src="home-people/daniel.jpg" alt=""><b>Daniel</b><span>burns in 20h</span></div>
         <p>Less than I used to. I say it out loud once and let it go.</p>
       </div>
       <div class="locked-post" aria-hidden="true">
-        <div class="locked-who"><span class="av" data-who="S">S</span><b>Sam</b><span>burns in 20h</span></div>
+        <div class="locked-who"><img class="av" src="home-people/taylor.jpg" alt=""><b>Taylor</b><span>burns in 20h</span></div>
         <p>Honestly years. I still think about one from 2019.</p>
       </div>
       <div class="locked-over">
         <a class="unlock" href="https://apps.apple.com/app/id6791766677">
-          <span class="avs"><span class="av" data-who="A">A</span><span class="av" data-who="M">M</span><span class="av" data-who="S">S</span></span>
+          <span class="avs"><img class="av" src="home-people/avery.jpg" alt=""><img class="av" src="home-people/daniel.jpg" alt=""><img class="av" src="home-people/taylor.jpg" alt=""></span>
           Write something to read theirs
         </a>
       </div>
@@ -172,8 +172,8 @@
             </div>
           </div>
           <div class="members">
-            <span class="avs"><span class="av" data-who="A">A</span><span class="av" data-who="J">J</span><span class="av" data-who="M">M</span><span class="av" data-who="S">S</span></span>
-            <span>Avery, Jordan, Maya and Sam</span>
+            <span class="avs"><img class="av" src="home-people/avery.jpg" alt=""><img class="av" src="home-people/taylor.jpg" alt=""><img class="av" src="home-people/daniel.jpg" alt=""></span>
+            <span>Avery, Taylor and Daniel</span>
           </div>
         </div>
       </div>
@@ -181,7 +181,7 @@
         <div class="panel-head"><h3>Just the two of you</h3><span>From an echo</span></div>
         <div class="panel-body">
           <span class="quote">“I rehearse the better version in the shower like it’s getting a second showing.”</span>
-          <div class="msg theirs"><span class="av" data-who="J">J</span><span class="bubble">the shower debate is so real. i won every argument in there last week</span></div>
+          <div class="msg theirs"><img class="av" src="home-people/taylor.jpg" alt=""><span class="bubble">the shower debate is so real. i won every argument in there last week</span></div>
           <div class="msg mine"><span class="bubble">ok good. it's not just me</span></div>
           <span class="panel-note">Only you see who echoed. When the post burns, the quote goes with it and the conversation stays.</span>
         </div>

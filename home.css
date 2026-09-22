@@ -99,16 +99,12 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); color: var(--bg); }
   font-size: 11px;
   font-weight: 600;
   font-family: var(--font-sans);
-  background: #F4D9CE;
-  color: #8A4A2E;
 }
-/* The app's avatar tints (FiammoAvatarTint), one per friend so a name keeps
-   its colour from section to section. Your own is ink: your voice. */
-.home .av[data-who="A"] { background: #F4D9CE; color: #8A4A2E; }
-.home .av[data-who="J"] { background: #CFE3DB; color: #3C6559; }
-.home .av[data-who="M"] { background: #D4E0EC; color: #3F5F7D; }
-.home .av[data-who="S"] { background: #EFD5E1; color: #8A4566; }
-.home .av.you { background: var(--ink); color: var(--bg); }
+/* Faces, not initials: letters in circles are what made the old page read
+   as a prototype. These are the demo world's stock photos (the accounts the
+   App Store screenshots are taken on), cropped to the face, so the people
+   here are the same people as in the feed at the bottom of the page. */
+.home img.av { object-fit: cover; display: block; background: var(--border); }
 
 .home .avs { display: inline-flex; }
 .home .avs .av { border: 2px solid var(--card); box-sizing: content-box; }
