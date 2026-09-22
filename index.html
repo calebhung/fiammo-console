@@ -19,11 +19,12 @@
 <meta property="og:url" content="https://fiammo.co/">
 <script>
   /* A password recovery link that landed here instead of /reset.html.
-     GoTrue substitutes the project's Site URL, which is this page, whenever
-     the link's redirect_to is not on the Redirect URLs allow-list. The
-     fragment it arrives with is a real session, and this page has nothing to
-     catch it, so it would sit in the address bar of a marketing page while
-     the person reads that their posts burn in 24 hours.
+     Insurance, not a live fallback. GoTrue substitutes the project's Site URL
+     for a redirect_to that is not on the Redirect URLs allow-list, and today
+     that Site URL is the custom scheme `fiammo://`, which never reaches this
+     page. Should it ever be pointed at the website, as is the more usual
+     setup, a live recovery token would land here instead, on a page that had
+     nothing to do with it.
 
      Forwarded rather than handled here: /reset.html is the page that knows
      what to do with it. The fragment never reaches a server on the way, so

@@ -224,17 +224,16 @@
   const SUPABASE_ANON_KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
 
   // Where the emailed link comes back to, which is this page. It has to be on
-  // the project's Redirect URLs allow-list in Supabase Auth, or GoTrue quietly
-  // substitutes the Site URL and the token lands somewhere with nothing to
-  // catch it. index.html forwards a recovery fragment here for exactly that
-  // case, but the allow-list entry is what makes it land right the first time.
+  // the project's Redirect URLs allow-list in Supabase Auth. There is no
+  // graceful failure if it isn't: GoTrue falls back to the Site URL, which on
+  // this project is the custom scheme `fiammo://`, so the link resolves to
+  // nothing a browser can open and the reset is simply dead.
   const RESET_URL = "https://fiammo.co/reset.html";
 
-  // The app's floor, not the server's. AccountRules.PasswordRule holds 8 while
-  // the project's own minimum is still 6, deliberately: raising the project
-  // minimum would lock out everyone already holding a 6 or 7 character
-  // password. That makes 8 a rule the clients keep, so this page has to keep
-  // it too or it becomes the one door where a shorter password gets in.
+  // The same floor the app and the project both hold (GoTrue's
+  // password_min_length is 8, and so is AccountRules.PasswordRule.minLength).
+  // Kept here as well so a short password is answered on the spot instead of
+  // after a round trip, and so this page can never drift under the other two.
   const MIN_LENGTH = 8;
   // bcrypt ignores everything past the 72nd byte, so a longer password would
   // be silently truncated. Refused rather than quietly cut down, same as the app.
@@ -410,9 +409,8 @@
     revealEl.textContent = showing ? "show" : "hide";
   });
 
-  // Why the rule lives here and not only on the server: the project minimum
-  // is 6, so a 6 character password would be accepted, and the person would
-  // then be unable to change it again from inside the app, which holds 8.
+  // Checked here as well as on the server so the answer is immediate and the
+  // wording is ours. The server would refuse a short one anyway.
   function passwordProblem(password, confirmation) {
     if (password.length < MIN_LENGTH) return `Passwords are at least ${MIN_LENGTH} characters.`;
     if (bytes(password) > MAX_BYTES) return `That password is too long. Keep it under ${MAX_BYTES} characters.`;
