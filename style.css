@@ -224,15 +224,59 @@ a:hover { color: var(--gold); }
  */
 .article { display: block; }
 
-/* The document pages run a slightly narrower measure than the rest of the
-   site, so the prose stays readable without a card holding it in. The wrap
-   carries it rather than the article, so the wordmark and the footer banner
-   line up with the text edge. */
-body.doc .wrap { max-width: 640px; }
+/* The document pages share the homepage's frame and keep a reading measure.
+   Header and footer run the homepage's width and gutters, so the wordmark
+   doesn't jump inward when you click Privacy; the prose stays in a ~680px
+   column, because legal copy stretched across a laptop is unreadable. */
+body.doc { --doc-gutter: 80px; }
+@media (max-width: 1100px) { body.doc { --doc-gutter: 48px; } }
+@media (max-width: 700px)  { body.doc { --doc-gutter: 16px; } }
 
+body.doc .wrap { max-width: none; padding: 0 0 40px; }
+
+body.doc header.site {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px var(--doc-gutter);
+  box-sizing: content-box;
+}
+
+body.doc .article {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 72px var(--doc-gutter) 0;
+  box-sizing: content-box;
+}
+
+body.doc footer.site {
+  max-width: 1280px;
+  width: calc(100% - 2 * var(--doc-gutter));
+  margin: 96px auto 0;
+  box-sizing: border-box;
+}
+
+/* The one pill in the header, drawn like the homepage's. */
+body.doc nav.legal-links a.nav-cta {
+  font-size: 15px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 11px 20px;
+  border-radius: 999px;
+  margin: 0;
+}
+body.doc nav.legal-links a.nav-cta:hover { background: var(--ink); color: var(--bg); }
+
+/* Titles take the homepage's display serif, the one place these pages depart
+   from two-tone, same as the homepage headlines. Section heads stay sans. */
 .article h1 {
-  font-size: 2.15rem;
-  line-height: 1.2;
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 0 0 18px;
 }
 
 /* A hairline under the masthead of the document, so the title has a foot to
@@ -371,7 +415,11 @@ nav.legal-links a {
 
   .card { padding: 24px; }
 
-  .article h1 { font-size: 1.75rem; }
+  body.doc .wrap { padding: 0 0 32px; }
+  body.doc header.site { flex-direction: row; align-items: center; margin-bottom: 0; padding-top: 18px; padding-bottom: 18px; }
+  body.doc nav.legal-links a.nav-cta { font-size: 14px; padding: 11px 16px; }
+  body.doc .article { padding-top: 40px; }
+  body.doc footer.site { margin-top: 64px; }
 
   .article p,
   .article li { font-size: 1rem; }
