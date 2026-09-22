@@ -77,6 +77,9 @@ header.site {
   align-items: center;
   gap: 10px;
   text-decoration: none;
+  /* Room for the f's swash, which overhangs the word by about 37px each way:
+     every header gives it at least 18px of padding, and this is the rest with a little air. */
+  margin-block: 24px;
 }
 
 .wordmark .mark {
@@ -85,29 +88,22 @@ header.site {
   display: block;
 }
 
-/* The app sets the wordmark in Optima with a Zapfino initial. Optima carries
- * over cleanly; Zapfino does not, at any size a header can hold, so the
- * initial keeps the rotated italic it already had and falls back through the
- * serif on anything that has neither face. */
-.wordmark .word {
-  font-family: 'Optima', var(--font-serif);
-  font-weight: 600;
-  font-size: 1.25rem;
-  color: var(--ink);
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-.wordmark .word .initial {
-  font-style: italic;
-  display: inline-block;
-  transform: rotate(-8deg);
-  margin-right: 1px;
-}
-
-.wordmark .word .i {
-  color: var(--gold);
-  font-style: normal;
+/* The app's wordmark, outlined from the faces the app draws it in (a Zapfino
+ * "f" turned -8deg, Optima "iammo" tracked wide, the i in copper) so it reads
+ * the same on a phone with neither font. The page lays it out by the x-height
+ * of "iammo" alone and lets the swash overhang: margins in em of a 22px word,
+ * one em being 32 of the SVG's units, which is the Optima size it was cut at.
+ *   viewBox height 144.8 -> 4.525em
+ *   x-height top at 65.9 from the top, baseline at 81.4, width's swash 54.7
+ * The swash tail sweeps down under the flame and back, so the flame sits in
+ * the crook of the f rather than a gap away from it. */
+.wordmark img.word {
+  font-size: 22px;
+  height: 4.525em;
+  width: auto;
+  margin: -2.059em 0 -1.981em -1.2em;
+  display: block;
+  pointer-events: none;
 }
 
 /* Former mono labels. The uppercase and the tracking are where the hierarchy
