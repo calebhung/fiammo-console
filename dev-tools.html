@@ -788,6 +788,7 @@
       <div class="row">
         <select id="label-filter">
           <option value="unlabeled">not labeled yet</option>
+          <option value="changed">changed in the sweep</option>
           <option value="down">labeled 👎</option>
           <option value="up">labeled 👍</option>
           <option value="all">everything</option>
@@ -1903,6 +1904,7 @@
   // A prompt's label is its newest vote, with its reason.
   function labelLine(votes) {
     const v = votes[0];
+    if (v.source === "sweep") return el("p", "why", "kept as is in the sweep, not looked at yet");
     return el("p", "why", "your label: " + (v.vote > 0 ? "👍" : "👎") + (v.reason ? " " + v.reason : ""));
   }
 
@@ -1918,7 +1920,13 @@
       const add = (text, extra) => {
         const key = (text || "").toLowerCase();
         if (!key || byText.has(key)) return;
-        byText.set(key, { text, votes: votes.filter(v => same(v.prompt_text, text)), ...extra });
+        byText.set(key, {
+          text,
+          votes: votes.filter(v => same(v.prompt_text, text)),
+          // The rewrite that put this text here, if any: shown as "was".
+          revision: (data.revisions || []).find(r => same(r.new_text, text)) || null,
+          ...extra,
+        });
       };
       for (const cell of data.calendar || []) {
         if (!cell.text || cell.source === "weekly") continue;
@@ -1942,6 +1950,7 @@
     const items = labelState.items;
     labelState.queue = items.filter(it => {
       const l = labelOf(it);
+      if (f === "changed") return !!it.revision;
       return f === "all" || (f === "unlabeled" ? l === 0 : f === "up" ? l > 0 : l < 0);
     });
     const at = keepText ? labelState.queue.findIndex(it => same(it.text, keepText)) : -1;
@@ -1978,6 +1987,14 @@
       const ul = el("ul", "label-options");
       for (const o of item.poll_options) ul.appendChild(el("li", null, o));
       labelCardEl.appendChild(ul);
+    }
+
+    // A rewrite shows what it replaced and why, so the label is on the change.
+    if (item.revision) {
+      const r = item.revision;
+      const was = r.old_text + ((r.old_options || []).length ? "  →  " + r.old_options.join(" / ") : "");
+      labelCardEl.appendChild(el("p", "why", "was: " + was));
+      if (r.why) labelCardEl.appendChild(el("p", "why", "why: " + r.why));
     }
 
     const row = el("div", "row vote-row");
