@@ -20,5 +20,10 @@
         ]
       }
     ]
+  },
+  "webcredentials": {
+    "apps": [
+      "BXP7FGLHSU.forthepeople.fiammo"
+    ]
   }
 }
