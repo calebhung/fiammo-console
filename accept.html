@@ -214,6 +214,22 @@
   .disclosure a { color: var(--muted); }
   .disclosure a:hover { color: var(--accent-strong); }
 
+  /* Shown only for ?token=sample-review. A reviewer who types a number and
+     waits for a code that never comes concludes the flow is broken, which is
+     the opposite of what this link is for. The message flow on file already
+     says this page is a demonstration; the page should say it too. */
+  #sample-note {
+    margin: 0 0 2px;
+    padding: 9px 13px;
+    border: 1px dashed var(--border);
+    border-radius: 9px;
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    line-height: 1.5;
+    color: var(--muted);
+    max-width: 320px;
+  }
+
   .secondary {
     margin-top: 24px;
     text-align: center;
@@ -258,6 +274,7 @@
        circle from the moment the host adds them, and installing resolves the
        rest (074_link_circle_contacts_on_signup) with no text ever involved. -->
   <section id="state" class="card">
+    <p id="sample-note" hidden>Sample of fiammo's opt-in page, published for review. It behaves exactly like the real page, with placeholder details. No message is sent to any number entered here.</p>
     <img class="hero-mark" src="flame.svg?v=2" alt="">
     <h1 id="state-title">someone added you to their circle</h1>
     <p id="state-body">get their posts in the app, or as a text. no account needed for texts.</p>
@@ -324,6 +341,7 @@
   const consentEl = document.getElementById("consent");
   const consentBoxEl = document.getElementById("consent-box");
   const consentTextEl = document.getElementById("consent-text");
+  const sampleNoteEl = document.getElementById("sample-note");
   const declineBtnEl = document.getElementById("decline-link");
   const disclosureEl = document.getElementById("disclosure");
 
@@ -453,6 +471,7 @@
       return;
     }
     if (isSample) {
+      sampleNoteEl.hidden = false;
       showInvite("Jordan");
       return;
     }
@@ -502,6 +521,11 @@
     if (codeEl.value.length === 6) formEl.requestSubmit();
   });
 
+  function maskTyped(v) {
+    const d = digitsOf(v);
+    return d.length >= 2 ? `(•••) •••-••${d.slice(-2)}` : "(•••) •••-••••";
+  }
+
   function setFormBusy(busy) {
     btnEl.disabled = busy || !readyToSubmit();
     declineBtnEl.disabled = busy;
@@ -537,7 +561,10 @@
     btnEl.textContent = step === "number" ? "sending…" : "confirming…";
 
     if (isSample) {
-      if (step === "number") return toCodeStep("(•••) •••-••23");
+      // No server to ask for the real mask, so mask what was actually typed.
+      // Reading back a number nobody entered is the single thing most likely
+      // to make a reviewer decide the page is a mock-up.
+      if (step === "number") return toCodeStep(maskTyped(numberEl.value));
       return youreSet("Jordan");
     }
 
@@ -566,8 +593,23 @@
     }
   });
 
+  // Declining used to go through window.confirm(). In an in-app browser, or
+  // anywhere dialogs are suppressed, that call returns false without ever
+  // drawing anything, so "no thanks" looked dead. Two taps on the button
+  // itself ask the same question and cannot be swallowed.
+  let declineArmed = false;
+  function disarmDecline() {
+    declineArmed = false;
+    declineBtnEl.textContent = "no thanks";
+  }
   declineBtnEl.addEventListener("click", async () => {
-    if (!confirm("You won't get any texts from this invite. Continue?")) return;
+    if (!declineArmed) {
+      declineArmed = true;
+      declineBtnEl.textContent = "tap again to decline";
+      setTimeout(() => { if (declineArmed) disarmDecline(); }, 5000);
+      return;
+    }
+    disarmDecline();
     setFormBusy(true);
 
     if (isSample) {
