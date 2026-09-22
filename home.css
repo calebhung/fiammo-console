@@ -564,18 +564,39 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); color: var(--bg); }
 /* ---------- closing ---------- */
 
 .closing {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-rows: 1fr auto 1fr;
+  column-gap: 96px;
+  row-gap: 36px;
   padding-top: 150px;
 }
-.closing h2 { font-size: clamp(46px, 6.7vw, 96px); line-height: 1; letter-spacing: -.04em; }
-.closing .store-btn { flex-shrink: 0; margin-bottom: 12px; }
+.closing h2 {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: clamp(46px, 6.7vw, 96px);
+  line-height: 1;
+  letter-spacing: -.04em;
+}
+.closing .store-btn { grid-column: 1; grid-row: 3; justify-self: start; align-self: start; }
 
-@media (max-width: 700px) {
-  .closing { flex-direction: column; align-items: stretch; padding-top: 80px; gap: 22px; }
-  .closing .store-btn { margin-bottom: 0; }
+/* A bare screen rather than a drawn iPhone: the corners and a soft lift are
+   enough to read as a phone, and a bezel would be the heaviest thing here. */
+.real { grid-column: 2; grid-row: 1 / span 3; margin: 0; }
+.real img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 48px;
+  box-shadow: 0 0 0 1px var(--border), 0 40px 80px -40px rgba(18, 11, 4, .35);
+}
+
+@media (max-width: 900px) {
+  .closing { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; padding-top: 80px; row-gap: 28px; }
+  .closing h2, .real, .closing .store-btn { grid-column: 1; grid-row: auto; }
+  .real { justify-self: center; width: min(300px, 78%); }
+  .real img { border-radius: 40px; }
+  .closing .store-btn { justify-self: stretch; }
 }
 
 /* ---------- footer ---------- */
