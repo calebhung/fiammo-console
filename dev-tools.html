@@ -1740,14 +1740,10 @@
     }
 
     // Votes
+    // One person votes, so the newest vote is the label; older ones are
+    // earlier minds, not a tally.
     const votes = cell.votes || [];
-    const up = votes.filter(v => v.vote > 0).length, down = votes.length - up;
-    if (votes.length) {
-      box.appendChild(el("p", "stats", "👍 " + up + " · 👎 " + down));
-      for (const v of votes.slice(0, 3)) {
-        if (v.reason) box.appendChild(el("p", "why", (v.vote > 0 ? "👍 " : "👎 ") + v.reason));
-      }
-    }
+    if (votes.length) box.appendChild(labelLine(votes));
 
     if (!cell.text || cell.source === "weekly") return box;
 
@@ -1904,6 +1900,12 @@
   const labelLog = document.getElementById("label-log");
   let labelState = { items: [], queue: [], i: 0, today: null };
 
+  // A prompt's label is its newest vote, with its reason.
+  function labelLine(votes) {
+    const v = votes[0];
+    return el("p", "why", "your label: " + (v.vote > 0 ? "👍" : "👎") + (v.reason ? " " + v.reason : ""));
+  }
+
   function labelOf(item) { return item.votes.length ? item.votes[0].vote : 0; }
 
   async function refreshLabels() {
@@ -2036,11 +2038,7 @@
     // how it did, and the judge. Hidden until it has a label of yours.
     const later = el("div", "later");
     if (item.votes.length) {
-      const up = item.votes.filter(v => v.vote > 0).length;
-      later.appendChild(el("p", "stats", "your labels: 👍 " + up + " · 👎 " + (item.votes.length - up)));
-      for (const v of item.votes.slice(0, 3)) {
-        if (v.reason) later.appendChild(el("p", "why", (v.vote > 0 ? "👍 " : "👎 ") + v.reason));
-      }
+      later.appendChild(labelLine(item.votes));
       const j = item.cell && (item.cell.judgements || []).find(j => same(j.prompt_text, item.text));
       if (j) later.appendChild(el("p", "stats", "judge: " + j.score + "/100" + (j.flagged ? " · would swap" : "") +
         ((j.reasons || []).length ? " · " + j.reasons.join(", ") : "")));
