@@ -168,3 +168,89 @@
     else if (root.getBoundingClientRect().bottom > 0 && root.getBoundingClientRect().top < innerHeight) start();
   });
 })();
+
+/* The circle picker in "Everyone you chose". Circles add up, the way the
+ * app's Sending to sheet does: close friends is the default, roommates and
+ * home bring their people in, and just me clears the rest. Everyone past the
+ * three friends with faces is counted in a +N rather than drawn as a letter.
+ */
+(function () {
+  "use strict";
+
+  var chips = document.getElementById("chips");
+  if (!chips) return;
+  var avs = document.getElementById("members-avs");
+  var copy = document.getElementById("members-copy");
+  var count = document.getElementById("members-count");
+
+  var CIRCLES = {
+    "close friends": ["Avery", "Taylor", "Daniel"],
+    "roommates": ["Taylor", "Marcus", "Priya"],
+    "home": ["Daniel", "Ruth", "Dani", "Nell"]
+  };
+  var FACES = { Avery: "avery", Taylor: "taylor", Daniel: "daniel" };
+  var buttons = chips.querySelectorAll(".chip");
+  var picked = ["close friends"];
+
+  function face(name) {
+    var img = document.createElement("img");
+    img.className = "av";
+    img.alt = "";
+    img.src = "home-people/" + name + ".jpg";
+    return img;
+  }
+
+  function render() {
+    for (var i = 0; i < buttons.length; i++) {
+      var on = picked.indexOf(buttons[i].getAttribute("data-circle")) !== -1;
+      buttons[i].classList.toggle("on", on);
+      buttons[i].setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
+    avs.textContent = "";
+    if (picked[0] === "just me") {
+      avs.appendChild(face("casey"));
+      copy.textContent = "Only you";
+      count.textContent = "";
+      return;
+    }
+
+    var people = [];
+    picked.forEach(function (c) {
+      CIRCLES[c].forEach(function (p) { if (people.indexOf(p) === -1) people.push(p); });
+    });
+    var withFaces = people.filter(function (p) { return FACES[p]; }).slice(0, 3);
+    withFaces.forEach(function (p) { avs.appendChild(face(FACES[p])); });
+    var rest = people.length - withFaces.length;
+    if (rest > 0) {
+      var more = document.createElement("span");
+      more.className = "av-more";
+      more.textContent = "+" + rest;
+      avs.appendChild(more);
+    }
+
+    if (people.length <= 3) {
+      copy.textContent = people.slice(0, -1).join(", ") + (people.length > 1 ? " and " : "") + people[people.length - 1];
+    } else {
+      copy.textContent = people.slice(0, 3).join(", ") + " and " + (people.length - 3) + " more";
+    }
+    count.textContent = people.length + (people.length === 1 ? " person" : " people");
+  }
+
+  chips.addEventListener("click", function (e) {
+    var b = e.target.closest(".chip");
+    if (!b) return;
+    var c = b.getAttribute("data-circle");
+    if (c === "just me") {
+      picked = ["just me"];
+    } else {
+      picked = picked.filter(function (x) { return x !== "just me"; });
+      var at = picked.indexOf(c);
+      if (at === -1) picked.push(c); else picked.splice(at, 1);
+      // Unpicking the last circle leaves the post with nobody, which the app
+      // treats as a post just for you.
+      if (!picked.length) picked = ["just me"];
+    }
+    render();
+  });
+})();
