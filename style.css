@@ -77,9 +77,8 @@ header.site {
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  /* Room for the f's swash, which overhangs the word by about 22px each way:
-     every header gives it at least 18px of padding, and this is the rest with a little air. */
-  margin-block: 12px;
+  /* A little air over the f's swash on a phone, whose header pads 18px. */
+  margin-block: 6px;
 }
 
 .wordmark .mark {
@@ -90,20 +89,21 @@ header.site {
 
 /* The app's wordmark, outlined from the faces the app draws it in (a Zapfino
  * "f" turned -8deg, Optima "iammo" tracked wide, the i in copper) so it reads
- * the same on a phone with neither font. The f is cut at 26pt against the
- * app's 38 -- at the app's size it towered over a header. The page lays it
- * out by the x-height of "iammo" alone and lets the swash overhang: margins in
- * em of a 22px word, one em being 32 of the SVG's units, the Optima size it
- * was cut at.
- *   viewBox height 99.7 -> 3.116em
- *   x-height top at 43.8 from the top, baseline at 59.3, swash left 37.7
- * The swash tail sweeps down under the flame and back, so the flame sits in
- * the crook of the f rather than a gap away from it. */
+ * the same on a phone with neither font. The f is cut at 18pt against the
+ * app's 38: Zapfino's f is drawn about three times the height of the word,
+ * and at 26 or more it towered over a header. The page lays it out by the
+ * x-height of "iammo" alone and lets the swash overhang (about 20px up, 17px
+ * down, which every header's padding already holds): margins in em of a 22px
+ * word, one em being 32 of the SVG's units, the Optima size it was cut at.
+ *   viewBox height 69.6 -> 2.176em
+ *   x-height top at 29.1 from the top, baseline at 44.6, swash left 26.4
+ * The left margin pulls the swash's tail in under the flame so the flame sits
+ * in the crook of the f; any less and the flame floats a gap away. */
 .wordmark img.word {
   font-size: 22px;
-  height: 3.116em;
+  height: 2.176em;
   width: auto;
-  margin: -1.368em 0 -1.263em -0.7em;
+  margin: -0.908em 0 -0.784em -1em;
   display: block;
   pointer-events: none;
 }
