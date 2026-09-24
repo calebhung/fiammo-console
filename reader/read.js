@@ -23,7 +23,7 @@
   var CODE = parts[2] || "", TOKEN = parts[3] || "";
 
   var app = document.getElementById("app");
-  var S = { data: null, pending: null, nodded: false, invited: false, timer: null };
+  var S = { data: null, invited: false, timer: null };
 
   // ---------------------------------------------------------------- browser
   // A random secret that says "this browser". The server keeps only a hash.
@@ -67,7 +67,8 @@
   }
   var ICON = {
     ember: '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M7 1.2c.4 2.1 3.6 3.5 3.6 6.6A3.6 3.6 0 017 11.6a3.6 3.6 0 01-3.6-3.8c0-1.6 1-2.6 1.7-3.2-.1 1.2.4 2 1.1 2.2C6.2 5 6.4 3 7 1.2z"/></svg>',
-    up: '<svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 12V2.5M3 6l4-4 4 4"/></svg>',
+    play: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 3.2l7.5 4.4a.5.5 0 010 .8L5 12.8a.5.5 0 01-.8-.4V3.6a.5.5 0 01.8-.4z"/></svg>',
+    pause: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="4.5" y="3.5" width="2.6" height="9" rx="1"/><rect x="8.9" y="3.5" width="2.6" height="9" rx="1"/></svg>',
     person: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.6"/><path d="M3 13.5c.8-2.4 2.7-3.6 5-3.6s4.2 1.2 5 3.6"/></svg>',
     flame: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.5c.5 2.4 4 4 4 7.5A4 4 0 018 13.2 4 4 0 014 9c0-1.8 1.1-3 1.9-3.6-.1 1.3.5 2.2 1.2 2.4C6.9 5.7 7.3 3.5 8 1.5z"/></svg>',
   };
@@ -142,7 +143,6 @@
   // ---------------------------------------------------------------- post
   function renderPost() {
     var d = S.data, p = d.post, a = d.author;
-    S.nodded = !!d.reader.nodded;
 
     var burn = h("span", { class: "burn", text: burnsIn(p.expires_at) || "" });
     var who = h("span", { class: "who" }, ["@" + (a.handle || name(a).toLowerCase()) + (a.founding_number != null ? " #" + a.founding_number : "")]);
@@ -154,32 +154,20 @@
       ? h("div", { class: "photos" }, p.images.map(function (u) { return h("img", { src: u, alt: "", loading: "lazy", referrerpolicy: "no-referrer" }); }))
       : null;
 
-    var nod = h("button", { class: "nod", type: "button", "aria-pressed": String(S.nodded), onclick: onNod, html: ICON.ember + "<span></span>" });
-    nod.lastChild.textContent = S.nodded ? "Nodded" : "Nod";
-    var field = h("textarea", { id: "reply", rows: "1", placeholder: "Write back to " + name(a) + "...", "aria-label": "Write back to " + name(a), maxlength: "2000" });
-    var send = h("button", { class: "send", type: "button", "aria-label": "Send", disabled: true, html: ICON.up, onclick: onSend });
-    field.addEventListener("input", function () {
-      field.style.height = "auto"; field.style.height = Math.min(field.scrollHeight, 140) + "px";
-      send.disabled = !field.value.trim();
-    });
-    field.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && !e.shiftKey && !e.isComposing && window.matchMedia("(hover: hover)").matches) { e.preventDefault(); onSend(); }
-    });
-    var log = h("div", { class: "answer", id: "log" });
-    var answer = h("div", { class: "answer" }, [nod, log, h("div", { class: "reply" }, [field, send]), h("div", { id: "codeslot" })]);
-
-    S.el = { nod: nod, field: field, send: send, log: log, burn: burn };
+    S.el = { burn: burn };
 
     screen([
       top(),
       byline,
       p.prompt_text ? h("p", { class: "prompt" }, ["Answering ", h("b", { text: p.prompt_text })]) : null,
+      player(p.audio),
       text, photos,
       h("div", { class: "hair" }),
-      answer,
       h("div", { id: "inviteslot" }),
     ]);
-    if (S.nodded || d.reader.replies > 0) showInvite();
+    // Nothing is answered here now, and the invite used to wait for an answer.
+    // Without that, waiting means never showing it at all.
+    showInvite();
 
     // The post burns in place, the same moment it burns in the app.
     S.timer = setInterval(function () {
@@ -189,70 +177,44 @@
     }, 15000);
   }
 
-  function onNod() {
-    if (S.nodded || S.busy) return;
-    if (!S.data.reader.known) { S.pending = { kind: "nod" }; return askForCode(); }
-    doNod();
-  }
-  function onSend() {
-    var text = S.el.field.value.trim();
-    if (!text || S.busy) return;
-    if (!S.data.reader.known) { S.pending = { kind: "reply", text: text }; return askForCode(); }
-    doReply(text);
-  }
+  // ------------------------------------------------------------- voice
+  // A voice post keeps its transcript in content (108), so this page always
+  // rendered one as if it had been typed. The audio itself was never sent
+  // until now. The player sits above the transcript rather than replacing it:
+  // a texted post gets read in places audio is not welcome, which is the
+  // reason the transcript exists at all.
+  function player(audio) {
+    if (!audio || !audio.url) return null;
 
-  function doNod() {
-    S.busy = true;
-    S.nodded = true; S.el.nod.setAttribute("aria-pressed", "true"); S.el.nod.lastChild.textContent = "Nodded";
-    api("answer", { kind: "nod" }).then(function (r) {
-      S.busy = false;
-      if (r.status === 200) { note(name(S.data.author) + " will see you nodded"); return showInvite(); }
-      S.nodded = false; S.el.nod.setAttribute("aria-pressed", "false"); S.el.nod.lastChild.textContent = "Nod";
-      answerFailed(r);
+    var el = h("audio", { src: audio.url, preload: "none" });
+    var icon = h("span", { class: "pp", html: ICON.play });
+    var time = h("span", { class: "t", text: clock(audio.duration_seconds) });
+    var bar = h("div", { class: "bar" }, [h("i", {})]);
+    var fill = bar.firstChild;
+    var btn = h("button", { class: "voice", type: "button", "aria-label": "Play the voice post" }, [icon, bar, time]);
+
+    function paint() {
+      var d = el.duration || audio.duration_seconds || 0;
+      fill.style.width = d ? Math.min(100, (el.currentTime / d) * 100) + "%" : "0%";
+      time.textContent = clock(el.currentTime ? d - el.currentTime : d);
+    }
+    btn.addEventListener("click", function () {
+      if (el.paused) { el.play().catch(function () { time.textContent = "can't play"; }); }
+      else el.pause();
     });
+    el.addEventListener("play",  function () { icon.innerHTML = ICON.pause; btn.setAttribute("aria-label", "Pause the voice post"); });
+    el.addEventListener("pause", function () { icon.innerHTML = ICON.play;  btn.setAttribute("aria-label", "Play the voice post"); });
+    el.addEventListener("timeupdate", paint);
+    el.addEventListener("loadedmetadata", paint);
+    el.addEventListener("ended", function () { el.currentTime = 0; paint(); });
+
+    return h("div", { class: "voicewrap" }, [btn, el]);
   }
 
-  function doReply(text) {
-    S.busy = true; S.el.send.disabled = true;
-    var d = S.data;
-    var id = crypto.randomUUID ? crypto.randomUUID() : uuid4();
-    var sealing = d.seal && window.fiammoSeal
-      ? window.fiammoSeal.sealReply({ publicKey: d.seal.public_key, keyId: d.seal.key_id, ownerId: d.seal.owner_id,
-                                      linkId: d.seal.link_id, answerId: id, body: text })
-          .then(function (s) { return { kind: "reply", id: id, ciphertext: s.ciphertext, envelope: s.envelope }; })
-      : Promise.resolve(d.seal ? null : { kind: "reply", id: id, body: text });
-    sealing.then(function (payload) {
-      if (!payload) throw new Error("seal unavailable");
-      return api("answer", payload);
-    }).then(function (r) {
-      S.busy = false;
-      if (r.status === 200) {
-        S.el.log.appendChild(h("div", { class: "bubble", text: text }));
-        note("Sent to " + name(d.author));
-        S.el.field.value = ""; S.el.field.style.height = "auto"; S.el.send.disabled = true;
-        return showInvite();
-      }
-      S.el.send.disabled = false;
-      answerFailed(r);
-    }, function () {
-      S.busy = false; S.el.send.disabled = false;
-      say(S.el.log, "This browser couldn't lock your reply for " + name(d.author) + ". Try Safari or Chrome.");
-    });
-  }
-
-  function note(t) {
-    var old = S.el.log.querySelector(".notice"); if (old) old.remove();
-    S.el.log.appendChild(h("div", { class: "notice", text: t }));
-  }
-  function say(where, t) {
-    var old = where.querySelector(".error"); if (old) old.remove();
-    where.appendChild(h("p", { class: "error", role: "alert", text: t }));
-  }
-  function answerFailed(r) {
-    if (r.status === 410) return renderBurned(S.data.author, null);
-    if (r.status === 403) { S.data.reader.known = false; return askForCode(); }
-    if (r.status === 429) return say(S.el.log, "That's a lot at once. Try again in a little while.");
-    say(S.el.log, "That didn't send. Check your connection and try again.");
+  function clock(s) {
+    if (!s && s !== 0) return "";
+    var n = Math.max(0, Math.round(s));
+    return Math.floor(n / 60) + ":" + String(n % 60).padStart(2, "0");
   }
 
   function showInvite() {
@@ -260,7 +222,12 @@
     S.invited = true;
     var n = name(S.data.author);
     document.getElementById("inviteslot").appendChild(h("section", { class: "card" }, [
-      h("h2", { text: n + " writes here most days. Tomorrow's won't come by text." }),
+      // True only for a one-off texted post. Someone who opted in to this
+      // author's circle gets every post by text, and telling them otherwise
+      // right after they confirmed reads as a bait and switch.
+      h("h2", { text: S.data.reader.one_off
+        ? n + " writes here most days. Tomorrow's won't come by text."
+        : n + " writes here most days. The app has all of it, not just the link." }),
       h("div", { class: "perk", html: ICON.person + "<span></span>" }),
       h("div", { class: "perk", html: ICON.flame + "<span>Posts burn after a day. Nothing to scroll back through.</span>" }),
       CAN_GET_APP ? h("a", { class: "primary", href: APP_STORE, text: "Get fiammo" }) : null,
@@ -271,29 +238,9 @@
   }
 
   // ---------------------------------------------------------------- codes
-  // Shown the first time this browser answers. The code goes to the number
-  // the link was sent to; nobody types a number here.
-  function askForCode() {
-    var slot = document.getElementById("codeslot");
-    if (slot.firstChild) return;
-    var n = name(S.data.author);
-    var card = codeCard({
-      title: "Confirm it's you to answer",
-      body: "We're texting a code to " + S.data.reader.masked + ", the number " + n + " sent this to. " +
-            (S.pending && S.pending.kind === "nod" ? "Your nod" : "Your reply") + " sends once it checks out.",
-      foot: "Once per browser.",
-      autoSend: true,
-      onVerified: function () {
-        S.data.reader.known = true;
-        slot.textContent = "";
-        var p = S.pending; S.pending = null;
-        if (!p) return;
-        if (p.kind === "nod") doNod(); else doReply(p.text);
-      },
-    });
-    slot.appendChild(card);
-  }
-
+  // The code goes to the number the link was sent to; nobody types a number
+  // here. Only a claimed link opened somewhere else needs one now that this
+  // page has nothing to answer with.
   function codeCard(o) {
     var digits = "";
     var boxes = h("div", { class: "code" });

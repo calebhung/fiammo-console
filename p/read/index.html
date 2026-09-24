@@ -11,9 +11,11 @@
     open         the post, "burned", or "locked" (opened on another phone)
     send_code    text a code to the number the link was sent to
     verify_code  prove it; this browser is then known for that number
-    answer       a nod, or a reply sealed here to the author's key (seal.js)
 
-  Reading never needs a code; answering always needs a proven number.
+  Reading never needs a code. Answering is off (2026-09-24): the nod and the
+  reply both worked, but nothing in the app has ever read post_text_answers,
+  so the page was telling people they had reached someone who would never
+  see it. The endpoint answers 410 for "answer" until there is an inbox.
 -->
 <html lang="en">
 <head>
@@ -133,47 +135,30 @@
 
   .hair { height: .5px; background: var(--border); }
 
-  .answer { display: flex; flex-direction: column; gap: 12px; }
-  .nod {
-    align-self: flex-start; cursor: pointer;
-    display: inline-flex; align-items: center; gap: 8px;
-    height: 38px; padding: 0 18px; border-radius: 19px;
-    border: 1px solid var(--fg); background: transparent; color: var(--fg);
-    font: 500 15px var(--sans);
-    transition: background .18s var(--arrive), color .18s var(--arrive);
-  }
-  .nod svg { width: 14px; height: 14px; }
-  .nod[aria-pressed="true"] { background: var(--fg); color: var(--paper); cursor: default; }
-  .reply {
-    display: flex; align-items: flex-end; gap: 8px;
-    background: var(--card); border-radius: 22px;
+  /* A voice post: the player above, the transcript below it. Sized to the
+     reply box it replaces, so the page keeps its rhythm. */
+  .voicewrap { display: flex; }
+  .voice {
+    flex: 1; display: flex; align-items: center; gap: 12px; cursor: pointer;
+    background: var(--card); border: 0; border-radius: 22px;
     box-shadow: inset 0 0 0 .5px var(--border);
-    padding: 6px 6px 6px 16px;
+    padding: 10px 16px 10px 12px; text-align: left; color: var(--fg);
+    transition: box-shadow .18s var(--arrive);
   }
-  .reply:focus-within { box-shadow: inset 0 0 0 1px var(--gold); }
-  .reply textarea {
-    flex: 1; border: 0; outline: 0; resize: none; background: transparent;
-    font: 16px/1.4 var(--sans); color: var(--fg);
-    padding: 7px 0; min-height: 22px; max-height: 140px;
-  }
-  .reply textarea::placeholder { color: var(--muted); }
-  .send {
-    flex: none; width: 34px; height: 34px; border-radius: 50%; border: 0; cursor: pointer;
+  .voice:hover { box-shadow: inset 0 0 0 1px var(--border); }
+  .voice .pp {
+    flex: none; width: 34px; height: 34px; border-radius: 50%;
     background: var(--ink); color: #fff; display: grid; place-items: center;
-    transition: opacity .15s;
   }
-  .send:disabled { opacity: .25; cursor: default; }
-  .send svg { width: 15px; height: 15px; }
-
-  .bubble {
-    align-self: flex-end; max-width: 85%;
-    background: var(--ink); color: #fff;
-    border-radius: 18px; padding: 10px 14px;
-    font-size: 15px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere;
-    animation: arrive .28s var(--arrive) both;
+  .voice .pp svg { width: 14px; height: 14px; }
+  .voice .bar {
+    flex: 1; height: 3px; border-radius: 2px; background: var(--border); overflow: hidden;
   }
-  .notice { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--fg); animation: arrive .28s var(--arrive) both; }
-  .notice::before { content: ""; width: 14px; height: 1px; background: var(--fg); }
+  .voice .bar i { display: block; height: 100%; width: 0; background: var(--fg); border-radius: 2px; }
+  .voice .t {
+    flex: none; font: 500 12px var(--mono, var(--sans)); color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
 
   .card {
     background: var(--card); border-radius: 16px; padding: 18px;
@@ -237,11 +222,10 @@
 <!-- The scripts live outside /p/: _redirects rewrites every /p/<a>/<b> to this
      page, and /p/read/read.js has exactly that shape, so under /p/read/ they
      came back as this HTML. -->
-<script src="/reader/seal.js" defer></script>
 <!-- Versioned with the wordmark change: read.js draws the header for every
      rendered state, so a cached copy of it would paint the old text wordmark
      against the new stylesheet, which styles an <img> and not a word. Bump
      this whenever read.js and this page's CSS have to agree. -->
-<script src="/reader/read.js?v=2" defer></script>
+<script src="/reader/read.js?v=3" defer></script>
 </body>
 </html>
