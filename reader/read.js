@@ -215,7 +215,13 @@
     el.addEventListener("loadedmetadata", paint);
     el.addEventListener("ended", function () { el.currentTime = 0; paint(); });
 
-    return h("div", { class: "voicewrap" }, [btn, el]);
+    // Labelled, because a bare player next to a block of text leaves the two
+    // looking unrelated: the recording is the post, and the transcript under
+    // it is that recording written out.
+    return h("div", { class: "voicewrap" }, [
+      h("div", { class: "vlabel", text: "Voice post" }),
+      btn, el,
+    ]);
   }
 
   function transcript(paras) {

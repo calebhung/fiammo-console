@@ -137,7 +137,8 @@
 
   /* A voice post: the player above, the transcript below it. Sized to the
      reply box it replaces, so the page keeps its rhythm. */
-  .voicewrap { display: flex; }
+  .voicewrap { display: flex; flex-direction: column; gap: 7px; }
+  .vlabel { font: 500 12px var(--sans); color: var(--muted); }
   .voice {
     flex: 1; display: flex; align-items: center; gap: 12px; cursor: pointer;
     background: var(--card); border: 0; border-radius: 22px;
