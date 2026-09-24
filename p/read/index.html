@@ -160,6 +160,26 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* The transcript folds under the recording, and wears the sans: nobody
+     wrote it, so it never takes the writing's face (the app moved transcripts
+     off the serif for the same reason). */
+  .twrap { display: flex; flex-direction: column; gap: 12px; margin-top: -4px; }
+  .tt {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 5px;
+    background: none; border: 0; padding: 4px 0; cursor: pointer;
+    font: 500 13px var(--sans); color: var(--muted);
+  }
+  .tt:hover { color: var(--fg); }
+  .tt .chev { display: grid; place-items: center; transition: transform .18s var(--arrive); }
+  .tt .chev svg { width: 12px; height: 12px; }
+  .tt[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .transcript { display: flex; flex-direction: column; gap: 10px; animation: arrive .24s var(--arrive) both; }
+  .transcript p {
+    font-family: var(--sans); font-size: 15px; line-height: 1.55;
+    color: var(--muted); margin: 0;
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+
   .card {
     background: var(--card); border-radius: 16px; padding: 18px;
     box-shadow: 0 0 0 .5px var(--border);

@@ -69,6 +69,7 @@
     ember: '<svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M7 1.2c.4 2.1 3.6 3.5 3.6 6.6A3.6 3.6 0 017 11.6a3.6 3.6 0 01-3.6-3.8c0-1.6 1-2.6 1.7-3.2-.1 1.2.4 2 1.1 2.2C6.2 5 6.4 3 7 1.2z"/></svg>',
     play: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5 3.2l7.5 4.4a.5.5 0 010 .8L5 12.8a.5.5 0 01-.8-.4V3.6a.5.5 0 01.8-.4z"/></svg>',
     pause: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><rect x="4.5" y="3.5" width="2.6" height="9" rx="1"/><rect x="8.9" y="3.5" width="2.6" height="9" rx="1"/></svg>',
+    chev: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>',
     person: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><circle cx="8" cy="5.5" r="2.6"/><path d="M3 13.5c.8-2.4 2.7-3.6 5-3.6s4.2 1.2 5 3.6"/></svg>',
     flame: '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.5c.5 2.4 4 4 4 7.5A4 4 0 018 13.2 4 4 0 014 9c0-1.8 1.1-3 1.9-3.6-.1 1.3.5 2.2 1.2 2.4C6.9 5.7 7.3 3.5 8 1.5z"/></svg>',
   };
@@ -149,7 +150,13 @@
     var byline = h("div", { class: "byline" }, [avatar(a, 36), who, h("span", { class: "meta", text: "· " + ago(p.created_at) }), burn]);
 
     var paras = String(p.content || "").split(/\n{2,}/).filter(function (t) { return t.trim(); });
-    var text = h("div", { class: "text" }, paras.map(function (t) { return h("p", { text: t.trim() }); }));
+    // A voice post's content is its transcript (108), not writing, so it does
+    // not get the writing's face or the writing's place on the page: it folds
+    // under the recording it transcribes, in the sans, the way the app shows
+    // one. Anything actually written keeps the serif.
+    var body = p.audio
+      ? transcript(paras)
+      : h("div", { class: "text" }, paras.map(function (t) { return h("p", { text: t.trim() }); }));
     var photos = p.images && p.images.length
       ? h("div", { class: "photos" }, p.images.map(function (u) { return h("img", { src: u, alt: "", loading: "lazy", referrerpolicy: "no-referrer" }); }))
       : null;
@@ -161,7 +168,7 @@
       byline,
       p.prompt_text ? h("p", { class: "prompt" }, ["Answering ", h("b", { text: p.prompt_text })]) : null,
       player(p.audio),
-      text, photos,
+      body, photos,
       h("div", { class: "hair" }),
       h("div", { id: "inviteslot" }),
     ]);
@@ -209,6 +216,24 @@
     el.addEventListener("ended", function () { el.currentTime = 0; paint(); });
 
     return h("div", { class: "voicewrap" }, [btn, el]);
+  }
+
+  function transcript(paras) {
+    if (!paras.length) return null;
+    var id = "transcript";
+    var body = h("div", { class: "transcript", id: id, hidden: true },
+      paras.map(function (t) { return h("p", { text: t.trim() }); }));
+    var label = h("span", { text: "Transcript" });
+    var btn = h("button", {
+      class: "tt", type: "button", "aria-expanded": "false", "aria-controls": id,
+    }, [label, h("span", { class: "chev", html: ICON.chev })]);
+    btn.addEventListener("click", function () {
+      var opening = body.hidden;
+      body.hidden = !opening;
+      btn.setAttribute("aria-expanded", String(opening));
+      label.textContent = opening ? "Hide transcript" : "Transcript";
+    });
+    return h("div", { class: "twrap" }, [btn, body]);
   }
 
   function clock(s) {
