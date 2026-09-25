@@ -235,9 +235,11 @@
   function moreList(more, a) {
     if (!more || !more.length) return null;
     return h("section", { class: "more" }, [
-      h("h3", { text: name(a) + " also sent you" }),
+      h("h3", { text: "Also sent to you" }),
       h("div", { class: "morerows" }, more.map(function (m) {
-        var meta = [ago(m.created_at)];
+        var meta = [];
+        if (m.author) meta.push(m.author);
+        meta.push(ago(m.created_at));
         if (m.voice) meta.push("Voice post");
         else if (m.photos === 1) meta.push("1 photo");
         else if (m.photos > 1) meta.push(m.photos + " photos");
@@ -280,20 +282,29 @@
     if (S.invited) return;
     S.invited = true;
     var n = name(S.data.author);
+    // A day's text can name several people, and the card then belongs to all
+    // of them rather than to whichever post happened to be opened. "Your
+    // friends" rather than a list, because the list is already on the page
+    // above and three names here would not fit the line.
+    var several = (S.data.more || []).some(function (m) { return m.author_id && m.author_id !== S.data.author.id; });
+    var who = several ? "Your friends" : n;
+    var verb = several ? "write" : "writes";
     document.getElementById("inviteslot").appendChild(h("section", { class: "card" }, [
-      // True only for a one-off texted post. Someone who opted in to this
-      // author's circle gets every post by text, and telling them otherwise
-      // right after they confirmed reads as a bait and switch.
+      // True only for a one-off texted post. Someone who opted in to a
+      // circle gets every post by text, and telling them otherwise right
+      // after they confirmed reads as a bait and switch.
       h("h2", { text: S.data.reader.one_off
-        ? n + " writes here most days. Tomorrow's won't come by text."
-        : n + " writes here most days. The app has all of it, not just the link." }),
+        ? who + " " + verb + " here most days. Tomorrow's won't come by text."
+        : who + " " + verb + " here most days. The app has all of it, not just the link." }),
       h("div", { class: "perk", html: ICON.person + "<span></span>" }),
       h("div", { class: "perk", html: ICON.flame + "<span>Posts burn after a day. Nothing to scroll back through.</span>" }),
       CAN_GET_APP ? h("a", { class: "primary", href: APP_STORE, text: "Get fiammo" }) : null,
       h("p", { class: "fine", style: "text-align:center", text: CAN_GET_APP ? "Free on iPhone" : "fiammo is on iPhone for now." }),
     ]));
     var perk = document.querySelector("#inviteslot .perk span");
-    perk.textContent = "Sign up with " + S.data.reader.masked + " and " + n + "'s friend request is waiting for you.";
+    perk.textContent = several
+      ? "Sign up with " + S.data.reader.masked + " and their friend requests are waiting for you."
+      : "Sign up with " + S.data.reader.masked + " and " + n + "'s friend request is waiting for you.";
   }
 
   // ---------------------------------------------------------------- codes
