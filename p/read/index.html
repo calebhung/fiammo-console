@@ -135,9 +135,35 @@
 
   .hair { height: .5px; background: var(--border); }
 
+  /* The other posts this author texted to this number. A short receipt, not a
+     feed: everything here burns within a day, and the card below still says
+     there is nothing to scroll back through. */
+  .more { display: flex; flex-direction: column; gap: 10px; }
+  .more h3 {
+    margin: 0; font: 500 13px var(--sans); color: var(--muted);
+  }
+  .morerows { display: flex; flex-direction: column; }
+  .morerow {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 0; text-decoration: none; color: inherit;
+    box-shadow: inset 0 -.5px 0 var(--border);
+  }
+  .mbody { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .mchev { flex: none; display: grid; place-items: center; color: var(--muted); }
+  .mchev svg { width: 12px; height: 12px; }
+  .morerow:last-child { box-shadow: none; }
+  .morerow:active { opacity: .6; }
+  .mtext {
+    font: 15px/1.45 var(--sans); color: var(--fg);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .mmeta { font: 500 12px var(--sans); color: var(--muted); }
+
   /* A voice post: the player above, the transcript below it. Sized to the
      reply box it replaces, so the page keeps its rhythm. */
-  .voicewrap { display: flex; }
+  .voicewrap { display: flex; flex-direction: column; gap: 7px; }
+  .vlabel { font: 500 12px var(--sans); color: var(--muted); }
   .voice {
     flex: 1; display: flex; align-items: center; gap: 12px; cursor: pointer;
     background: var(--card); border: 0; border-radius: 22px;
@@ -158,6 +184,26 @@
   .voice .t {
     flex: none; font: 500 12px var(--mono, var(--sans)); color: var(--muted);
     font-variant-numeric: tabular-nums;
+  }
+
+  /* The transcript folds under the recording, and wears the sans: nobody
+     wrote it, so it never takes the writing's face (the app moved transcripts
+     off the serif for the same reason). */
+  .twrap { display: flex; flex-direction: column; gap: 12px; margin-top: -4px; }
+  .tt {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 5px;
+    background: none; border: 0; padding: 4px 0; cursor: pointer;
+    font: 500 13px var(--sans); color: var(--muted);
+  }
+  .tt:hover { color: var(--fg); }
+  .tt .chev { display: grid; place-items: center; transition: transform .18s var(--arrive); }
+  .tt .chev svg { width: 12px; height: 12px; }
+  .tt[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .transcript { display: flex; flex-direction: column; gap: 10px; animation: arrive .24s var(--arrive) both; }
+  .transcript p {
+    font-family: var(--sans); font-size: 15px; line-height: 1.55;
+    color: var(--muted); margin: 0;
+    white-space: pre-wrap; overflow-wrap: anywhere;
   }
 
   .card {
@@ -226,6 +272,6 @@
      rendered state, so a cached copy of it would paint the old text wordmark
      against the new stylesheet, which styles an <img> and not a word. Bump
      this whenever read.js and this page's CSS have to agree. -->
-<script src="/reader/read.js?v=3" defer></script>
+<script src="/reader/read.js?v=4" defer></script>
 </body>
 </html>
