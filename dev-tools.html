@@ -1779,7 +1779,10 @@
     const swap = el("button", "danger", "swap this day");
     swap.title = "trades this prompt with one of the same kind about half a year out; nothing else moves";
     swapRow.appendChild(swap);
-    swapRow.style.display = isFuture && cell.source === "rotation" && down > 0 ? "" : "none";
+    // The swap follows the saved label, not the pick in hand: a coming day
+    // earns it by having been thumbed down. A sweep's vote isn't a look.
+    const labeledDown = votes.length > 0 && votes[0].source !== "sweep" && votes[0].vote < 0;
+    swapRow.style.display = isFuture && cell.source === "rotation" && labeledDown ? "" : "none";
     box.appendChild(swapRow);
     swap.addEventListener("click", async () => {
       if (!confirm("Swap " + dateFromDay(cell.day) + "'s prompt?\n\nIt trades places with a prompt of the same kind about half a year out. " +
