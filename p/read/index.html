@@ -135,6 +135,31 @@
 
   .hair { height: .5px; background: var(--border); }
 
+  /* The other posts this author texted to this number. A short receipt, not a
+     feed: everything here burns within a day, and the card below still says
+     there is nothing to scroll back through. */
+  .more { display: flex; flex-direction: column; gap: 10px; }
+  .more h3 {
+    margin: 0; font: 500 13px var(--sans); color: var(--muted);
+  }
+  .morerows { display: flex; flex-direction: column; }
+  .morerow {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 0; text-decoration: none; color: inherit;
+    box-shadow: inset 0 -.5px 0 var(--border);
+  }
+  .mbody { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .mchev { flex: none; display: grid; place-items: center; color: var(--muted); }
+  .mchev svg { width: 12px; height: 12px; }
+  .morerow:last-child { box-shadow: none; }
+  .morerow:active { opacity: .6; }
+  .mtext {
+    font: 15px/1.45 var(--sans); color: var(--fg);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .mmeta { font: 500 12px var(--sans); color: var(--muted); }
+
   /* A voice post: the player above, the transcript below it. Sized to the
      reply box it replaces, so the page keeps its rhythm. */
   .voicewrap { display: flex; flex-direction: column; gap: 7px; }
@@ -247,6 +272,6 @@
      rendered state, so a cached copy of it would paint the old text wordmark
      against the new stylesheet, which styles an <img> and not a word. Bump
      this whenever read.js and this page's CSS have to agree. -->
-<script src="/reader/read.js?v=3" defer></script>
+<script src="/reader/read.js?v=4" defer></script>
 </body>
 </html>
