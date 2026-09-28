@@ -619,6 +619,107 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); color: var(--bg); }
   .closing .store-btn { justify-self: stretch; }
 }
 
+/* ---------- questions ---------- */
+
+/* The same two-column shape as the prompt band and "write to read": the
+   heading holds still on the left while the list runs down the right. Native
+   <details>, so every answer is in the page for a reader with no script and
+   for anything that indexes it, and nothing is open until it's asked for.
+   One question at a time is home.js's job (a page of open answers is a wall);
+   without the script they simply all open independently. */
+
+.faq {
+  display: grid;
+  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  gap: 80px;
+  padding-top: 150px;
+  align-items: start;
+}
+
+.faq-copy { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 48px; }
+.faq h2 { font-size: clamp(34px, 3.6vw, 48px); line-height: 1.02; letter-spacing: -.03em; }
+.faq h2 em { color: var(--accent-strong); }
+.faq-copy p { font-size: 15px; line-height: 1.6; color: var(--quiet); max-width: 320px; }
+.faq-copy a { color: var(--accent-strong); }
+
+/* A list of rules rather than a stack of cards: these are the quiet end of the
+   page, and cards here would weigh as much as the panels above them. */
+.faq-list { border-top: 1px solid var(--border); }
+
+.qa { border-bottom: 1px solid var(--border); }
+
+.qa summary {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  cursor: pointer;
+  list-style: none;
+  padding: 22px 0;
+  font-family: var(--font-display);
+  font-size: 21px;
+  line-height: 1.3;
+  color: var(--ink);
+}
+.qa summary::-webkit-details-marker { display: none; }
+.qa summary:hover { color: var(--accent-strong); }
+.qa summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+/* The mark is a plus that becomes a minus, drawn from two rules so it costs
+   nothing and turns on the page's own curve. */
+.qa summary i {
+  position: relative;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin-left: auto;
+  align-self: center;
+  color: var(--accent);
+  transition: transform .28s var(--arrive);
+}
+.qa summary i::before,
+.qa summary i::after {
+  content: "";
+  position: absolute;
+  inset: 50% 0 auto;
+  height: 1.5px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: translateY(-50%);
+}
+.qa summary i::after { transition: opacity .2s var(--arrive); transform: translateY(-50%) rotate(90deg); }
+.qa[open] summary i { transform: rotate(180deg); }
+.qa[open] summary i::after { opacity: 0; }
+
+.qa-body { padding: 0 44px 26px 0; }
+.qa-body p {
+  max-width: 62ch;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--body);
+}
+.qa-body a { color: var(--accent-strong); }
+
+/* Arrive the way everything else on the page does. Height is left alone on
+   purpose: <details> has no height to animate to from closed, and the
+   measured-and-set version of this stutters on the first open. */
+.qa[open] .qa-body { animation: qa-in .3s var(--arrive) both; }
+@keyframes qa-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qa[open] .qa-body { animation: none; }
+  .qa summary i { transition: none; }
+}
+
+@media (max-width: 900px) {
+  .faq { grid-template-columns: minmax(0, 1fr); gap: 36px; padding-top: 80px; }
+  .faq-copy { position: static; }
+  .faq-copy p { max-width: 460px; }
+  .qa summary { font-size: 19px; gap: 16px; padding: 18px 0; }
+  .qa-body { padding-right: 0; padding-bottom: 22px; }
+}
+
 /* ---------- footer ---------- */
 
 /* Margins rather than .page's padding, so the footer's top rule stops at the
