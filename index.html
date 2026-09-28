@@ -7,7 +7,7 @@
 <meta name="description" content="A private, text-first social app. Everyone answers the same question each day. Write something before you read theirs. Posts burn in 24 hours.">
 <link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
 <link rel="stylesheet" href="style.css?v=9">
-<link rel="stylesheet" href="home.css?v=19">
+<link rel="stylesheet" href="home.css?v=20">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="fiammo">
 <meta property="og:title" content="fiammo">
@@ -222,14 +222,17 @@
   <!-- The questions people actually ask before they download it, at the end
        where someone who has read the page is either sold or has one thing in
        the way. Answers are the true ones, not the flattering ones: the
-       waitlist, the write-to-read gate, iPhone only. Native <details> so the
-       answers are in the page without a script, and open one at a time under
-       the thumb. -->
+       waitlist, the write-to-read gate, iPhone only.
+
+       Laid out the way app sites lay this section out, because a reader has
+       seen it fifty times and should not have to work out what it is: the
+       heading centred over one column of cards, and a way to reach a person
+       under it. Native <details>, so the answers are in the page without a
+       script and open one at a time under the thumb. -->
   <section class="faq page">
-    <div class="faq-copy">
-      <span class="kicker">Questions</span>
-      <h2>What people <em>actually ask.</em></h2>
-      <p>Anything else is on the <a href="/support.html">support page</a>, or write to <a href="mailto:support@fiammo.co">support@fiammo.co</a> and a person answers.</p>
+    <div class="faq-head">
+      <h2>Frequently asked <em>questions</em></h2>
+      <p>What people want to know before they write the first one.</p>
     </div>
 
     <div class="faq-list">
@@ -250,7 +253,7 @@
 
       <details class="qa">
         <summary>Can strangers see what I write?<i aria-hidden="true"></i></summary>
-        <div class="qa-body"><p>Only if you mark a post Public, which is off unless you choose it. Those are the one thing on Discover. No followers, no feed of strangers to scroll.</p></div>
+        <div class="qa-body"><p>Only if you mark a post Public, which is off unless you choose it. Those are the one thing that shows on Discover. Everything else stays with the people you picked.</p></div>
       </details>
 
       <details class="qa">
@@ -287,6 +290,12 @@
         <summary>Is there an Android version?<i aria-hidden="true"></i></summary>
         <div class="qa-body"><p>Not yet. iPhone only for now, iOS 17.6 or later.</p></div>
       </details>
+    </div>
+
+    <div class="faq-foot">
+      <h3>Still have questions?</h3>
+      <p>The <a href="/support.html">support page</a> has more, or write to us and a person answers.</p>
+      <a class="store-btn" href="mailto:support@fiammo.co">Email support</a>
     </div>
   </section>
 
