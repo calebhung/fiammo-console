@@ -254,3 +254,26 @@
     render();
   });
 })();
+
+/* The questions at the foot of the page: one answer open at a time.
+ *
+ * <details> carries the open/closed state and the keyboard on its own; the
+ * only thing left is that a page of open answers is a wall of text, so opening
+ * one closes the last. Nothing here is required for the section to work.
+ */
+(function () {
+  "use strict";
+
+  var list = document.querySelector(".faq-list");
+  if (!list) return;
+
+  var all = list.querySelectorAll("details.qa");
+
+  list.addEventListener("toggle", function (e) {
+    var opened = e.target;
+    if (!opened.open) return;
+    for (var i = 0; i < all.length; i++) {
+      if (all[i] !== opened) all[i].open = false;
+    }
+  }, true);
+})();

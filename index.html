@@ -7,7 +7,7 @@
 <meta name="description" content="A private, text-first social app. Everyone answers the same question each day. Write something before you read theirs. Posts burn in 24 hours.">
 <link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
 <link rel="stylesheet" href="style.css?v=9">
-<link rel="stylesheet" href="home.css?v=18">
+<link rel="stylesheet" href="home.css?v=19">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="fiammo">
 <meta property="og:title" content="fiammo">
@@ -219,6 +219,77 @@
     <a class="store-btn always" href="https://apps.apple.com/app/id6791766677">Get fiammo</a>
   </section>
 
+  <!-- The questions people actually ask before they download it, at the end
+       where someone who has read the page is either sold or has one thing in
+       the way. Answers are the true ones, not the flattering ones: the
+       waitlist, the write-to-read gate, iPhone only. Native <details> so the
+       answers are in the page without a script, and open one at a time under
+       the thumb. -->
+  <section class="faq page">
+    <div class="faq-copy">
+      <span class="kicker">Questions</span>
+      <h2>What people <em>actually ask.</em></h2>
+      <p>Anything else, including resetting a password or deleting your account, is on the <a href="/support.html">support page</a>. Or write to <a href="mailto:support@fiammo.co">support@fiammo.co</a> and a person answers.</p>
+    </div>
+
+    <div class="faq-list">
+      <details class="qa">
+        <summary>Is fiammo free?<i aria-hidden="true"></i></summary>
+        <div class="qa-body"><p>Yes. Free on the App Store, nothing to buy inside it, no ads.</p></div>
+      </details>
+
+      <details class="qa">
+        <summary>Can I sign up right now?<i aria-hidden="true"></i></summary>
+        <div class="qa-body"><p>You can make an account today, but we're opening fiammo up a few people at a time so the first circles stay small, so you may sit on the list for a bit. If you know someone already here, ask them to invite your number from their Rewards page. Everyone gets five invites, and one of them takes you straight in.</p></div>
+      </details>
+
+      <details class="qa">
+        <summary>Do my friends need it too?<i aria-hidden="true"></i></summary>
+        <div class="qa-body"><p>Yes. It all happens inside the app, so the people you want to write to need it on their phone. That's the shape of the thing: four or five people who write back, not an audience.</p></div>
+      </details>
+
+      <details class="qa">
+        <summary>Is any of it public?<i aria-hidden="true"></i></summary>
+        <div class="qa-body"><p>No. No followers, no public profile, no way for a stranger to find what you wrote. Every post goes to friends or to a circle you made yourself, and you choose which before you post.</p></div>
+      </details>
+
+      <details class="qa">
+        <summary>What happens when a post burns?<i aria-hidden="true"></i></summary>
+        <div class="qa-body"><p>Twenty-four hours after you post it, no one else can read it. Your own copy stays yours to look back on. If a friend echoed a line, that conversation keeps going; the quoted line leaves with the post.</p></div>
+      </details>
+
+      <details class="qa">
+        <summary>Do I have to write every day?<i aria-hidden="true"></i></summary>
+        <div class="qa-body"><p>No. No streaks, nothing to keep alive, nobody is told you skipped. The one rule is the trade: to read your friends' posts today, you have to have written something today.</p></div>
+      </details>
+
+      <details class="qa">
+        <summary>Does it have to be the day's question?<i aria-hidden="true"></i></summary>
+        <div class="qa-body"><p>No. The question is just the easiest way in, and the thing everyone has in common that day. Post whatever you like to friends or a circle and the day opens up the same way.</p></div>
+      </details>
+
+      <details class="qa">
+        <summary>What's an echo?<i aria-hidden="true"></i></summary>
+        <div class="qa-body"><p>Instead of a comment under the post, you highlight the line that got you. That opens a conversation between just the two of you, starting with the line. The author sees who echoed; nobody else sees names or counts.</p></div>
+      </details>
+
+      <details class="qa">
+        <summary>Can you read my messages?<i aria-hidden="true"></i></summary>
+        <div class="qa-body"><p>No. Echo conversations and direct messages are end-to-end encrypted, and the key that opens them is on your phone rather than on our servers. We hold the sealed text and can't read it, and someone who got into your account from another device couldn't either. More in the <a href="/privacy.html">privacy policy</a>.</p></div>
+      </details>
+
+      <details class="qa">
+        <summary>Does AI read what I write?<i aria-hidden="true"></i></summary>
+        <div class="qa-body"><p>Once a week or so, Constellation reads your own writing back, burned posts included, and says what it keeps seeing in it. Only you see that. It never reads anyone else's posts, it can't read your messages, and nothing you write trains anyone's model. The <a href="/privacy.html">privacy policy</a> names who processes it.</p></div>
+      </details>
+
+      <details class="qa">
+        <summary>Is there an Android version?<i aria-hidden="true"></i></summary>
+        <div class="qa-body"><p>Not yet. fiammo is iPhone only for now, on iOS 17.6 or later.</p></div>
+      </details>
+    </div>
+  </section>
+
 </main>
 
 <footer class="site page">
@@ -236,6 +307,6 @@
   </div>
 </footer>
 
-<script src="home.js?v=5"></script>
+<script src="home.js?v=6"></script>
 </body>
 </html>
