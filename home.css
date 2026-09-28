@@ -621,32 +621,39 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); color: var(--bg); }
 
 /* ---------- questions ---------- */
 
-/* The same two-column shape as the prompt band and "write to read": the
-   heading holds still on the left while the list runs down the right. Native
-   <details>, so every answer is in the page for a reader with no script and
-   for anything that indexes it, and nothing is open until it's asked for.
-   One question at a time is home.js's job (a page of open answers is a wall);
-   without the script they simply all open independently. */
+/* The shape this section has on every app site, because a reader recognises it
+   before they read it: the heading centred, one column of cards under it, a
+   way to reach a person at the foot. The page's own card, paper and type do
+   the rest, so it is the familiar arrangement without the familiar styling.
+   Native <details>, so every answer is in the page for a reader with no script
+   and for anything that indexes it, and nothing is open until it's asked for.
+   One question at a time is home.js's job; without the script they simply
+   open independently. */
 
-.faq {
-  display: grid;
-  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
-  gap: 80px;
-  padding-top: 150px;
-  align-items: start;
+.faq { padding-top: 150px; }
+
+.faq-head { max-width: 620px; margin: 0 auto 44px; text-align: center; }
+.faq h2 { font-size: clamp(34px, 4.2vw, 52px); line-height: 1.05; letter-spacing: -.03em; }
+.faq h2 em { color: var(--accent-strong); }
+.faq-head p { margin-top: 16px; font-size: 17px; line-height: 1.6; color: var(--body); }
+
+.faq-list {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.faq-copy { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 48px; }
-.faq h2 { font-size: clamp(34px, 3.6vw, 48px); line-height: 1.02; letter-spacing: -.03em; }
-.faq h2 em { color: var(--accent-strong); }
-.faq-copy p { font-size: 15px; line-height: 1.6; color: var(--quiet); max-width: 320px; }
-.faq-copy a { color: var(--accent-strong); }
-
-/* A list of rules rather than a stack of cards: these are the quiet end of the
-   page, and cards here would weigh as much as the panels above them. */
-.faq-list { border-top: 1px solid var(--border); }
-
-.qa { border-bottom: 1px solid var(--border); }
+/* Cards rather than a ruled list: it is what the section looks like
+   elsewhere, and a white card lifting off desk paper is what this design
+   system already does with a row. */
+.qa {
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: 0 1px 0 var(--border);
+  padding: 0 26px;
+}
 
 .qa summary {
   display: flex;
@@ -654,10 +661,10 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); color: var(--bg); }
   gap: 24px;
   cursor: pointer;
   list-style: none;
-  padding: 22px 0;
+  padding: 20px 0;
   font-family: var(--font-display);
-  font-size: 21px;
-  line-height: 1.3;
+  font-size: 19px;
+  line-height: 1.35;
   color: var(--ink);
 }
 .qa summary::-webkit-details-marker { display: none; }
@@ -690,13 +697,8 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); color: var(--bg); }
 .qa[open] summary i { transform: rotate(180deg); }
 .qa[open] summary i::after { opacity: 0; }
 
-.qa-body { padding: 0 44px 26px 0; }
-.qa-body p {
-  max-width: 62ch;
-  font-size: 16px;
-  line-height: 1.65;
-  color: var(--body);
-}
+.qa-body { padding: 0 44px 22px 0; }
+.qa-body p { font-size: 16px; line-height: 1.65; color: var(--body); }
 .qa-body a { color: var(--accent-strong); }
 
 /* Arrive the way everything else on the page does. Height is left alone on
@@ -712,12 +714,23 @@ nav.legal-links a.nav-cta:hover { background: var(--ink); color: var(--bg); }
   .qa summary i { transition: none; }
 }
 
+/* The way out for a question the list didn't answer. */
+.faq-foot { max-width: 760px; margin: 52px auto 0; text-align: center; }
+.faq-foot h3 { font-size: 26px; letter-spacing: -.02em; }
+.faq-foot p { margin-top: 10px; font-size: 16px; line-height: 1.6; color: var(--quiet); }
+.faq-foot a { color: var(--accent-strong); }
+/* The link colour above would otherwise beat .store-btn's own, and paint the
+   label copper on ink. */
+.faq-foot a.store-btn { margin-top: 24px; height: 48px; font-size: 16px; color: var(--bg); }
+
 @media (max-width: 900px) {
-  .faq { grid-template-columns: minmax(0, 1fr); gap: 36px; padding-top: 80px; }
-  .faq-copy { position: static; }
-  .faq-copy p { max-width: 460px; }
-  .qa summary { font-size: 19px; gap: 16px; padding: 18px 0; }
-  .qa-body { padding-right: 0; padding-bottom: 22px; }
+  .faq { padding-top: 80px; }
+  .faq-head { margin-bottom: 28px; }
+  .faq-head p { font-size: 16px; }
+  .qa { padding: 0 20px; border-radius: 18px; }
+  .qa summary { font-size: 18px; gap: 16px; padding: 17px 0; }
+  .qa-body { padding-right: 0; padding-bottom: 19px; }
+  .faq-foot { margin-top: 36px; }
 }
 
 /* ---------- footer ---------- */
