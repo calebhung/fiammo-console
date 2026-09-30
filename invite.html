@@ -8,7 +8,11 @@
 <meta name="description" content="A private, text-first social app.">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="fiammo">
-<meta property="og:title" content="You're invited to fiammo">
+<!-- Messages builds this preview once, on the sender's phone, and never
+     fetches it again, so it can't count down. A fixed length, true on the
+     day it's sent; the page below shows the days actually left. The app's
+     invite text leaves the deadline to this line (InviteSender.message). -->
+<meta property="og:title" content="You're invited to fiammo · expires in a week">
 <meta property="og:description" content="Write something before you read theirs.">
 <meta property="og:image" content="https://fiammo.co/og-image.png">
 <meta property="og:image:width" content="1200">
