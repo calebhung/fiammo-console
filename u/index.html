@@ -61,6 +61,14 @@
   /* The name only appears once it has actually resolved, so the page never
      flashes a placeholder name at somebody. */
   .pending .named { visibility: hidden; }
+
+  /* invite.html's .expiry, for the line under the button. */
+  .return-line {
+    font-size: 13px;
+    color: var(--muted, #8a8580);
+    margin-top: 14px;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -77,6 +85,7 @@
     <p class="handle named" id="handle"></p>
     <p class="body">Posts here burn after a day. Get the app to read what they wrote.</p>
     <a class="download-btn" id="cta" href="https://apps.apple.com/app/id6791766677">get fiammo</a>
+    <p class="return-line named" id="return-line" hidden></p>
   </main>
 
   <footer class="site">
@@ -111,6 +120,20 @@
 
   var id = (location.pathname.replace(/\/+$/, "").split("/").pop() || "").toLowerCase();
 
+  // A link from the app's fire card carries an invite (?i=, migration 201).
+  // It can't follow anyone through the App Store, so it counts when the link
+  // is opened again with fiammo installed, which opens the app instead of
+  // this page. The line under the button says so.
+  var code = new URLSearchParams(location.search).get("i");
+  var hasInvite = !!code && /^[abcdefghjkmnpqrstuvwxyz23456789]{8}$/.test(code);
+
+  function showReturnLine(name) {
+    if (!hasInvite) return;
+    var line = document.getElementById("return-line");
+    line.textContent = "Once you have fiammo, open this link again to add " + (name || "them") + ".";
+    line.hidden = false;
+  }
+
   // Every failure path lands on the same page state: bad id, unknown id, HTTP
   // error, timeout, offline. A visitor never gets a different outcome for a
   // real id than a made-up one, so the URL space says nothing about which
@@ -140,11 +163,13 @@
     var hero = document.getElementById("hero");
     if (!profile) {
       document.getElementById("line").textContent = "Someone shared their fiammo";
+      showReturnLine(null);
       hero.classList.remove("pending");
       return;
     }
     document.getElementById("line").textContent = profile.first_name + " is on fiammo";
     document.getElementById("handle").textContent = "@" + profile.handle;
+    showReturnLine(profile.first_name);
     hero.classList.remove("pending");
   });
 })();
