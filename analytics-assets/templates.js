@@ -3,6 +3,9 @@
 // no `range` follows the range picked at the top of the page.
 
 const WRITE = ["post", "tap", "journal"];
+const SKY_ACTIONS = ["space_drag", "space_pinch", "space_star", "space_star_back", "space_miss", "space_help"];
+const FAILED = [{ prop: "result", op: "is", value: "failed" }];
+const step = (name, label) => ({ events: ["onboarding_step"], filters: [{ prop: "step", op: "is", value: name }], label });
 
 export const TEMPLATES = {
   "kpi-active": {
@@ -135,6 +138,118 @@ export const TEMPLATES = {
   },
 };
 
+// What the app sends (migration 199): the sky, and the app itself.
+Object.assign(TEMPLATES, {
+  "kpi-sky-people": {
+    name: "People who opened the sky", type: "segmentation", viz: "number", interval: "day",
+    series: [{ events: ["space_open"], measure: "uniques" }],
+  },
+  "kpi-sky-visits": {
+    name: "Visits to the sky", type: "segmentation", viz: "number", interval: "day",
+    series: [{ events: ["space_open"], measure: "totals" }],
+  },
+  "kpi-sky-seconds": {
+    name: "Median seconds in the sky", type: "segmentation", viz: "number", interval: "day",
+    series: [{ events: ["space_close"], measure: "median_prop", prop: "seconds" }],
+  },
+  "kpi-sky-stars": {
+    name: "Stars opened", type: "segmentation", viz: "number", interval: "day",
+    series: [{ events: ["space_star"], measure: "totals" }],
+  },
+  "sky-visits": {
+    name: "Sky visits per day", type: "segmentation", viz: "line", interval: "day",
+    series: [{ events: ["space_open"], measure: "uniques", label: "People" }, { events: ["space_open"], measure: "totals", label: "Visits" }],
+  },
+  "sky-reach": {
+    name: "Share of active people who open the sky", type: "segmentation", viz: "line", interval: "week",
+    series: [{ events: ["space_open"], measure: "pct_active" }],
+  },
+  "sky-after-reading": {
+    name: "A new reading, then the sky", type: "funnel", viz: "steps", interval: "week", window: 7 * 86400,
+    steps: [{ events: ["reading"] }, { events: ["sky_reveal"] }, { events: ["space_open"] }, { events: ["space_star"] }],
+  },
+  "sky-time": {
+    name: "Seconds in the sky per visit", type: "segmentation", viz: "line", interval: "week",
+    series: [{ events: ["space_close"], measure: "median_prop", prop: "seconds", label: "Median" }, { events: ["space_close"], measure: "avg_prop", prop: "seconds", label: "Average" }],
+  },
+  "sky-stars-per-visit": {
+    name: "Stars opened per visit", type: "segmentation", viz: "bar",
+    series: [{ events: ["space_close"], measure: "distribution", prop: "stars_opened" }],
+  },
+  "sky-stars-by-rank": {
+    name: "Which stars get opened", type: "segmentation", viz: "hbar", interval: "day",
+    breakdown: { kind: "event_prop", prop: "rank" },
+    series: [{ events: ["space_star"], measure: "totals" }],
+  },
+  "sky-actions": {
+    name: "What people do in the sky", type: "segmentation", viz: "hbar", interval: "day",
+    breakdown: { kind: "event" },
+    series: [{ events: SKY_ACTIONS, measure: "totals" }],
+  },
+  "sky-from": {
+    name: "Where the sky is opened from", type: "segmentation", viz: "hbar", interval: "day",
+    breakdown: { kind: "event_prop", prop: "from" },
+    series: [{ events: ["space_open"], measure: "totals" }],
+  },
+  "kpi-openers": {
+    name: "People who opened the app", type: "segmentation", viz: "number", interval: "day",
+    series: [{ events: ["app_open"], measure: "uniques" }],
+  },
+  "kpi-opens": {
+    name: "App opens", type: "segmentation", viz: "number", interval: "day",
+    series: [{ events: ["app_open"], measure: "totals" }],
+  },
+  "kpi-visit-seconds": {
+    name: "Median seconds per visit", type: "segmentation", viz: "number", interval: "day",
+    series: [{ events: ["app_close"], measure: "median_prop", prop: "seconds" }],
+  },
+  "kpi-failures": {
+    name: "Things that failed", type: "segmentation", viz: "number", interval: "day",
+    series: [{ events: ["outcome"], measure: "totals", filters: FAILED }],
+  },
+  "app-opens": {
+    name: "App opens per day", type: "segmentation", viz: "line", interval: "day",
+    series: [{ events: ["app_open"], measure: "uniques", label: "People" }, { events: ["app_open"], measure: "totals", label: "Opens" }],
+  },
+  "opens-per-person": {
+    name: "Opens per person per day", type: "segmentation", viz: "line", interval: "day",
+    series: [{ events: ["app_open"], measure: "avg" }],
+  },
+  "visit-length": {
+    name: "Seconds per visit", type: "segmentation", viz: "line", interval: "week",
+    series: [{ events: ["app_close"], measure: "median_prop", prop: "seconds", label: "Median" }, { events: ["app_close"], measure: "avg_prop", prop: "seconds", label: "Average" }],
+  },
+  "screens": {
+    name: "Screens viewed", type: "segmentation", viz: "table", interval: "week",
+    breakdown: { kind: "event_prop", prop: "name" },
+    series: [{ events: ["screen"], measure: "totals" }, { events: ["screen"], measure: "uniques" }],
+  },
+  "buttons": {
+    name: "Buttons pressed", type: "segmentation", viz: "table", interval: "week",
+    breakdown: { kind: "event_prop", prop: "name" },
+    series: [{ events: ["button"], measure: "totals" }, { events: ["button"], measure: "uniques" }],
+  },
+  "failures": {
+    name: "What failed", type: "segmentation", viz: "hbar", interval: "day",
+    breakdown: { kind: "event_prop", prop: "name" },
+    series: [{ events: ["outcome"], measure: "totals", filters: FAILED }],
+  },
+  "push-opens": {
+    name: "Notifications opened, by kind", type: "segmentation", viz: "hbar", interval: "day",
+    breakdown: { kind: "event_prop", prop: "kind" },
+    series: [{ events: ["push_open"], measure: "totals" }],
+  },
+  "onboarding-funnel": {
+    name: "Onboarding, step by step", type: "funnel", viz: "steps", interval: "week", window: 86400,
+    steps: [step("howItWorks", "How it works"), step("findPeople", "Find people"), step("firstCircle", "First circle"),
+            step("time", "Prompt time"), step("question", "First question")],
+  },
+  "heatmap-opens": {
+    name: "When people open the app", type: "heatmap",
+    series: [{ events: ["app_open"], measure: "totals" }],
+  },
+});
+
 export const OVERVIEW = {
   id: "overview",
   name: "Overview",
@@ -167,6 +282,54 @@ export const OVERVIEW = {
     ],
   },
 };
+
+export const SKY = {
+  id: "sky",
+  name: "Sky",
+  builtin: true,
+  spec: {
+    items: [
+      { ref: "template:kpi-sky-people", size: "1/4" },
+      { ref: "template:kpi-sky-visits", size: "1/4" },
+      { ref: "template:kpi-sky-seconds", size: "1/4" },
+      { ref: "template:kpi-sky-stars", size: "1/4" },
+      { ref: "template:sky-visits", size: "2/3" },
+      { ref: "template:sky-reach", size: "1/3" },
+      { ref: "template:sky-after-reading", size: "1/2" },
+      { ref: "template:sky-time", size: "1/2" },
+      { ref: "template:sky-actions", size: "1/2" },
+      { ref: "template:sky-stars-by-rank", size: "1/2" },
+      { ref: "template:sky-stars-per-visit", size: "1/2" },
+      { ref: "template:sky-from", size: "1/2" },
+    ],
+  },
+};
+
+export const APP = {
+  id: "app",
+  name: "App usage",
+  builtin: true,
+  spec: {
+    items: [
+      { ref: "template:kpi-openers", size: "1/4" },
+      { ref: "template:kpi-opens", size: "1/4" },
+      { ref: "template:kpi-visit-seconds", size: "1/4" },
+      { ref: "template:kpi-failures", size: "1/4" },
+      { ref: "template:app-opens", size: "2/3" },
+      { ref: "template:opens-per-person", size: "1/3" },
+      { ref: "template:visit-length", size: "1/2" },
+      { ref: "template:heatmap-opens", size: "1/2" },
+      { ref: "template:screens", size: "1/2" },
+      { ref: "template:buttons", size: "1/2" },
+      { ref: "template:failures", size: "1/2" },
+      { ref: "template:push-opens", size: "1/2" },
+      { ref: "template:onboarding-funnel", size: "full" },
+    ],
+  },
+};
+
+// Dashboards that ship with the page, in the order the menu lists them.
+export const BUILTIN_DASHBOARDS = [OVERVIEW, SKY, APP];
 
 export const NEW_SPECS = {
   segmentation: () => ({ type: "segmentation", viz: "line", interval: "day", series: [{ events: ["$active"], measure: "uniques" }] }),
