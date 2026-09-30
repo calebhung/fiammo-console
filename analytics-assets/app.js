@@ -4,7 +4,7 @@
 
 import * as E from "./engine.js";
 import * as C from "./charts.js";
-import { TEMPLATES, OVERVIEW, NEW_SPECS } from "./templates.js";
+import { TEMPLATES, BUILTIN_DASHBOARDS, NEW_SPECS } from "./templates.js";
 
 const { h } = C;
 
@@ -400,7 +400,7 @@ function renderNav() {
         oninput: debounce(e => { state.navFilter = e.target.value; renderNav(); const el = $("nav").querySelector(".nav-search"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); }, 120) })),
     h("div", { class: "nav-scroll" },
       h("div", { class: "nav-section" }, h("div", { class: "nav-head" }, h("span", { text: "Dashboards" }), h("button", { class: "nav-add", type: "button", title: "New dashboard", text: "+", onclick: newDashboard })),
-        match(OVERVIEW.name) ? link("dashboard/overview", OVERVIEW.name, null, h("span", { class: "nav-note", text: "built-in" })) : null,
+        BUILTIN_DASHBOARDS.filter(d => match(d.name)).map(d => link(`dashboard/${d.id}`, d.name, null, h("span", { class: "nav-note", text: "built-in" }))),
         dashboards.map(d => link(`dashboard/${d.id}`, d.name))),
       h("div", { class: "nav-section" }, h("div", { class: "nav-head" }, h("span", { text: "Saved charts" }), h("span", { class: "nav-count", text: savedOf("chart").length })),
         charts.length ? charts.map(c => link(`chart/${c.id}`, c.name, TYPE_TAGS[c.spec.type])) : h("div", { class: "nav-empty", text: state.savedError ? "Saving is unavailable" : q ? "No matches" : "Build a chart and save it" })),
@@ -472,7 +472,7 @@ function activePopover(anchor) {
   popover(anchor, () => {
     const chosen = new Set(state.prefs.activeTypes);
     const commit = () => { state.prefs.activeTypes = [...chosen]; savePrefs(); rebuild(); renderTopbar(); renderView(); };
-    const groups = groupEvents(Object.entries(E.EVENTS));
+    const groups = groupEvents(E.eventCatalogue(state.ds));
     return h("div", { class: "active-pop" },
       h("div", { class: "pop-title", text: "Any active event ($active) means any of:" }),
       h("div", { class: "pop-list" }, groups.map(([g, items]) => [h("div", { class: "pop-group", text: g }), items.map(([key, meta]) => h("label", { class: "pop-opt" },
@@ -754,7 +754,8 @@ function downloadCSV(name, table) {
 /* ── dashboards ────────────────────────────────────────────────────────────── */
 
 function dashboardById(id) {
-  if (id === "overview") return OVERVIEW;
+  const builtin = BUILTIN_DASHBOARDS.find(d => d.id === id);
+  if (builtin) return builtin;
   const it = state.saved.get(id);
   return it && it.kind === "dashboard" ? it : null;
 }
@@ -1181,7 +1182,7 @@ function eventPicker(anchor, selected, onChange) {
     const list = h("div", { class: "pop-list" });
     const draw = () => {
       const q = search.value.trim().toLowerCase();
-      const entries = [...Object.entries(E.PSEUDO_EVENTS), ...Object.entries(E.EVENTS)].filter(([k, m]) => !q || k.includes(q) || m.label.toLowerCase().includes(q));
+      const entries = [...Object.entries(E.PSEUDO_EVENTS), ...E.eventCatalogue(state.ds)].filter(([k, m]) => !q || k.includes(q) || m.label.toLowerCase().includes(q));
       list.replaceChildren(...groupEvents(entries).map(([g, items]) => [h("div", { class: "pop-group", text: g }), items.map(([key, meta]) => h("label", { class: "pop-opt" },
         h("input", { type: "checkbox", checked: chosen.has(key), onchange: e => { if (e.target.checked) chosen.add(key); else chosen.delete(key); onChange([...chosen]); } }),
         h("span", { class: "opt-label", text: meta.label }), h("code", { text: key }), h("span", { class: "opt-count", text: key.startsWith("$") ? "" : (counts[key] || 0).toLocaleString() })))]).flat(Infinity));
@@ -1195,7 +1196,7 @@ function eventPicker(anchor, selected, onChange) {
 
 function propsForEvents(events) {
   const out = {};
-  for (const t of E.resolveTypes(state.ds, events || [])) for (const p of state.raw.schema?.[t] || []) if (E.EVENT_PROPS[p]) out[p] = E.EVENT_PROPS[p];
+  for (const t of E.resolveTypes(state.ds, events || [])) for (const p of state.raw.schema?.[t] || []) out[p] = E.propMeta(p);
   return out;
 }
 
@@ -1474,7 +1475,7 @@ function renderEvents() {
   const ds = state.ds;
   setTitle(["Data", "Event catalogue"]);
   const range = E.resolveRange(ds, state.prefs.range);
-  const rows = Object.entries(E.EVENTS).map(([t, meta]) => {
+  const rows = E.eventCatalogue(ds).map(([t, meta]) => {
     const all = ds.byType.get(t) || [];
     const inRange = all.filter(e => e.dn >= range.startDn && e.dn <= range.endDn);
     const people = new Set(inRange.map(e => e.user)).size;

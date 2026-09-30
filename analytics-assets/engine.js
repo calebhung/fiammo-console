@@ -2,6 +2,13 @@
 // stream admin-analytics returns (migration 163 in the app repo): no DOM, so
 // it runs in node as well as the page.
 //
+// Two kinds of event arrive. Most are read back from what people made (a
+// post, a message, a friend). Since migration 199 the app also sends what
+// people did (UsageLog.swift): opening the app, screens, buttons, the sky.
+// Those carry their property names in the schema the server sends, so an
+// event or property the app starts sending shows up here, under "Other", with
+// no page change; naming it below just gives it a label and a type.
+//
 // A chart is a spec, plain JSON the page saves as-is:
 //   { type, range, interval, series|steps|start/return, segment, breakdown, formula, … }
 // and each run* function turns a spec plus the dataset into a result the
@@ -40,7 +47,32 @@ export const EVENTS = {
   catchup_add:   { label: "Added to catch up", group: "Catch up" },
   catchup_log:   { label: "Logged a catch up", group: "Catch up" },
   reading:       { label: "Got a constellation reading", group: "Constellation" },
+  // Sent by the app (199), not read back from the tables
+  sky_info:        { label: "Read what the sky is", group: "Constellation" },
+  sky_reveal:      { label: "Revealed a new sky", group: "Constellation" },
+  space_open:      { label: "Opened the sky", group: "Constellation" },
+  space_close:     { label: "Left the sky", group: "Constellation" },
+  space_drag:      { label: "Looked around the sky", group: "Constellation" },
+  space_pinch:     { label: "Zoomed the sky", group: "Constellation" },
+  space_star:      { label: "Opened a star", group: "Constellation" },
+  space_star_back: { label: "Went back from a star", group: "Constellation" },
+  space_miss:      { label: "Tapped the sky and missed", group: "Constellation" },
+  space_help:      { label: "Read a star's help", group: "Constellation" },
+  app_open:        { label: "Opened the app", group: "App" },
+  app_close:       { label: "Left the app", group: "App" },
+  screen:          { label: "Viewed a screen", group: "App" },
+  button:          { label: "Pressed a button", group: "App" },
+  outcome:         { label: "Something finished or failed", group: "App" },
+  push_open:       { label: "Opened a notification", group: "App" },
+  onboarding_step: { label: "Reached an onboarding step", group: "App" },
 };
+
+// Every event type to offer: the named ones, then any the data holds that
+// aren't named yet, by their raw key.
+export function eventCatalogue(ds) {
+  const extra = ds ? [...ds.byType.keys()].filter(t => !EVENTS[t]).sort().map(t => [t, { label: t, group: "Other" }]) : [];
+  return [...Object.entries(EVENTS), ...extra];
+}
 
 export const PSEUDO_EVENTS = {
   $active: { label: "Any active event", group: "Computed" },
@@ -55,7 +87,9 @@ export const DEFAULT_ACTIVE = [
 ];
 
 // Passive or set-up events a journey skips unless asked not to.
-export const JOURNEY_SKIP = ["age_ok", "push_on", "reading", "dm_in", "echoed", "group_join", "invite_joined"];
+export const JOURNEY_SKIP = ["age_ok", "push_on", "reading", "dm_in", "echoed", "group_join", "invite_joined",
+  // The app's own events come many to a visit; a journey would be nothing else
+  "screen", "button", "outcome", "app_close", "space_drag", "space_pinch", "space_miss", "space_help"];
 
 export const EVENT_PROPS = {
   words:      { label: "words", type: "number" },
@@ -80,7 +114,31 @@ export const EVENT_PROPS = {
   kind:       { label: "kind", type: "string" },
   source:     { label: "source", type: "string" },
   entries:    { label: "entries", type: "number" },
+  // The app's own events (199)
+  name:         { label: "name", type: "string" },
+  screen:       { label: "screen", type: "string" },
+  from:         { label: "from", type: "string" },
+  feel:         { label: "haptic", type: "string" },
+  result:       { label: "result", type: "string" },
+  line:         { label: "source line", type: "string" },
+  cold:         { label: "cold launch", type: "boolean" },
+  seconds:      { label: "seconds", type: "number" },
+  stars:        { label: "stars", type: "number" },
+  has_reading:  { label: "has a reading", type: "boolean" },
+  stars_opened: { label: "stars opened", type: "number" },
+  drags:        { label: "drags", type: "number" },
+  pinches:      { label: "pinches", type: "number" },
+  distance:     { label: "distance (pt)", type: "number" },
+  scale:        { label: "zoom", type: "number" },
+  rank:         { label: "star rank (0 brightest)", type: "string" },
+  tier:         { label: "star tier", type: "string" },
+  row:          { label: "row", type: "string" },
+  step:         { label: "step", type: "string" },
+  draws_in:     { label: "draws something new", type: "boolean" },
 };
+
+// A property the app sends that isn't named above is treated as a label.
+export const propMeta = name => EVENT_PROPS[name] || { label: name.replace(/_/g, " "), type: "string" };
 
 export const USER_PROPS = {
   handle:            { label: "handle", type: "string" },
