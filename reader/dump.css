@@ -1,0 +1,216 @@
+/* fiammo: the page for /d/<token>, a dump shared by link (d/index.html).
+   Set the way the app sets an opened dump (MonthRecapView): an article on the
+   paper, one column, hairlines between its parts, no colour but the photos'. */
+
+/* Same values as style.css, which mirrors Color+Fiammo.swift. */
+:root {
+  --paper: #F9F8F6;
+  --card: #FFFFFF;
+  --border: #E9E7E3;
+  --fg: #1A1512;
+  --muted: #85807A;
+  --ink: #120B04;
+  --copper: #C96F3B;
+  --sage: #B8731A;
+  --serif: 'Lora', Georgia, 'Times New Roman', serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* Motion+Fiammo: arrive fast, settle, never overshoot. */
+  --arrive: cubic-bezier(.2, .8, .2, 1);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--fg);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+}
+main {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px 20px 48px;
+  display: flex;
+  flex-direction: column;
+}
+[hidden] { display: none !important; }
+
+/* ------------------------------------------------------------------ chrome */
+.top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+/* The drawn wordmark, the same asset and geometry as every other page
+   (style.css .wordmark img.word). */
+.wordmark {
+  display: flex; align-items: center; flex-shrink: 0;
+  text-decoration: none; margin-block: 6px;
+}
+.wordmark img.word {
+  font-size: 22px; height: 2.176em; width: auto;
+  margin: -0.908em 0 -0.784em; display: block; pointer-events: none;
+}
+/* style.css's .nav-cta: outlined ink, filling only on hover. */
+.get {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 14px;
+  border-radius: 999px; border: 1px solid var(--ink);
+  background: transparent; color: var(--ink);
+  font: 500 13px var(--sans); text-decoration: none;
+}
+.get:hover { background: var(--ink); color: var(--paper); }
+
+.avatar {
+  flex: none; border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center;
+  font-weight: 600; font-family: var(--sans);
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.hair { height: .5px; background: var(--border); }
+
+/* ------------------------------------------------------------------- cover */
+/* RecapCover, uncarded: who, the photos, the title, the two numbers, what
+   the month was mostly about. */
+.byline { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.byline .name { font: 600 15px var(--sans); color: var(--fg); white-space: nowrap; }
+.byline .handle { font: 400 15px var(--sans); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* RecapCollage: every photo sits in a unit square (dump.js fold()), each tile
+   giving up half the gap on every side, the block drawn half a gap larger all
+   round so its outer edges come back out to the frame. */
+.print { margin-top: 12px; border-radius: 8px; overflow: hidden; }
+.collage { position: relative; aspect-ratio: 1; margin: -1.5px; }
+.tile {
+  position: absolute; padding: 1.5px; border: 0; background: none; cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
+}
+.tile img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  border-radius: 5px; background: var(--border);
+  transition: opacity .18s var(--arrive);
+}
+.tile:hover img { opacity: .92; }
+.tile:focus-visible { outline: none; }
+.tile:focus-visible img { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink); }
+
+.title {
+  font-family: var(--serif); font-weight: 600; font-size: 26px; line-height: 1.2;
+  margin: 14px 0 0; text-wrap: balance;
+}
+.stats { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; margin-top: 10px; }
+.stat { white-space: nowrap; font: 400 12.5px var(--sans); color: var(--muted); }
+.stat b { font: 600 21px var(--serif); color: var(--fg); margin-right: 6px; font-variant-numeric: tabular-nums; }
+
+.about { margin-top: 12px; padding-top: 12px; box-shadow: inset 0 .5px 0 var(--border); }
+.about .label { font: 500 12px var(--sans); color: var(--muted); }
+.about .names {
+  font: italic 400 15px/1.55 var(--serif); color: var(--fg); margin-top: 3px;
+}
+.about .names span { white-space: nowrap; }
+.about .names i { font-style: normal; color: var(--muted); margin: 0 4px; }
+
+/* ------------------------------------------------------------------- picks */
+.picks { margin-top: 30px; }
+.picks h2 {
+  font-family: var(--serif); font-weight: 600; font-size: 20px; line-height: 1.3;
+  margin: 0 0 12px; text-wrap: balance;
+}
+.pick {
+  padding: 18px 0; box-shadow: inset 0 .5px 0 var(--border);
+  display: flex; flex-direction: column; gap: 7px;
+}
+/* The question the post answered, over the words: an answer read without its
+   question is half a thought. */
+.pick .prompt { font: 500 13px/1.45 var(--sans); color: var(--muted); margin: 0; }
+.pick .words {
+  font-family: var(--serif); font-size: 17px; line-height: 1.65;
+  color: rgba(26, 21, 18, .9); margin: 0;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+/* Nine lines, and Read more for the rest, offered only when there is a rest
+   (measured in dump.js, the way RecapPickText measures it). */
+.pick .words.closed {
+  display: -webkit-box; -webkit-line-clamp: 9; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pick .more {
+  align-self: flex-start; background: none; border: 0; padding: 2px 0; cursor: pointer;
+  font: 500 13px var(--sans); color: var(--sage);
+}
+.pick .meta { font: 500 12px var(--sans); color: var(--muted); }
+
+.foot { margin-top: 6px; padding-top: 22px; box-shadow: inset 0 .5px 0 var(--border); }
+.foot.bare { margin-top: 24px; }
+
+/* -------------------------------------------------------------------- card */
+.card {
+  background: var(--card); border-radius: 16px; padding: 18px;
+  box-shadow: 0 0 0 .5px var(--border);
+  display: flex; flex-direction: column; gap: 12px;
+  animation: arrive .32s var(--arrive) both;
+}
+.card h2 { font-family: var(--serif); font-weight: 400; font-size: 20px; line-height: 1.3; margin: 0; text-wrap: balance; }
+.card p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.perk { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; color: var(--fg); }
+.perk svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--copper); }
+.fine { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin: 0; }
+
+/* style.css's .download-btn: ink filled at a 10px radius. */
+.primary {
+  display: flex; align-items: center; justify-content: center;
+  height: 50px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--ink); background: var(--ink); color: var(--paper);
+  font: 500 15px var(--sans); text-decoration: none;
+}
+.primary:hover { background: var(--fg); border-color: var(--fg); }
+
+/* ------------------------------------------------------------ other states */
+.hello { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; margin-bottom: 22px; }
+.hello h1 { font-family: var(--serif); font-weight: 400; font-size: 27px; line-height: 1.22; margin: 0; text-wrap: balance; }
+.hello p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--muted); }
+.ash {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px;
+  margin-bottom: 22px; border-radius: 8px; overflow: hidden;
+}
+.ash i { display: block; aspect-ratio: 1; background: #EFEBE6; border-radius: 5px; }
+
+.loading { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; }
+.loading i { display: block; height: 10px; border-radius: 5px; background: #F0EEEA; }
+
+/* ------------------------------------------------------------------ viewer */
+/* A photo opened from the collage: the whole picture on ink, the others a
+   tap to either side. */
+.viewer {
+  position: fixed; inset: 0; z-index: 10; background: rgba(18, 11, 4, .96);
+  display: flex; align-items: center; justify-content: center;
+  animation: fade .2s var(--arrive) both;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  touch-action: pan-y;
+}
+.viewer img {
+  max-width: 100%; max-height: 100%; object-fit: contain; display: block;
+  user-select: none; -webkit-user-drag: none;
+}
+.viewer button {
+  position: absolute; border: 0; cursor: pointer; color: #fff;
+  background: rgba(255, 255, 255, .14); border-radius: 50%;
+  width: 44px; height: 44px; display: grid; place-items: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.viewer button:hover { background: rgba(255, 255, 255, .24); }
+.viewer button svg { width: 16px; height: 16px; }
+.viewer .close { top: calc(env(safe-area-inset-top, 0px) + 14px); left: 14px; }
+.viewer .prev { left: 10px; top: 50%; margin-top: -22px; }
+.viewer .next { right: 10px; top: 50%; margin-top: -22px; }
+.viewer .count {
+  position: absolute; left: 0; right: 0; text-align: center;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  font: 500 12.5px var(--sans); color: rgba(255, 255, 255, .7); font-variant-numeric: tabular-nums;
+}
+body.viewing { overflow: hidden; }
+
+@keyframes arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .card, .viewer { animation: none; }
+  .tile img { transition: none; }
+}

@@ -1,0 +1,59 @@
+<!doctype html>
+<!--
+  fiammo: /d/<token>, a dump its author shared by link, seen in the browser.
+
+  A dump is a month put together by the person whose month it was: a few
+  photos, how much they wrote, what it was about, and up to three posts they
+  brought back. _redirects sends every path under /d/ here. The page is the
+  texted post reader's cousin (p/read/) and is drawn by /reader/dump.js and
+  /reader/dump.css. What it may show is decided server-side by the
+  recap-share-link edge function (fiammo repo, migration 220, SHARE_LINKS.md):
+  the dump, or "burned" for a link that was turned off or a dump that is gone.
+  Seeing it needs nothing: no code, no number, no account. The page shows that
+  one dump and nothing else its author wrote.
+
+  The tags below are what Messages and every other unfurler show for the link.
+  They are the same for every dump on purpose: a preview is built by whoever
+  is sent the link, before anyone opens it, and often kept. It must never
+  carry the dump's words or photos, and nothing here can, because this file is
+  static and the dump is only fetched by the script after the page opens.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>fiammo</title>
+<meta name="description" content="A month on fiammo: a few photos, and what it was about.">
+<meta name="robots" content="noindex">
+<!-- The token in the path is the key to this dump. Nothing leaving the page,
+     an image or a link, gets to carry it in a Referer. -->
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#F9F8F6">
+<!-- Safari's own "Open / Get" bar for fiammo on iPhone, above the page. -->
+<meta name="apple-itunes-app" content="app-id=6791766677">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="fiammo">
+<meta property="og:title" content="A dump shared with you on fiammo">
+<meta property="og:description" content="A month in a few photos, and what it was about.">
+<meta property="og:image" content="https://fiammo.co/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The fiammo flame">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/flame.svg?v=2" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="/reader/dump.css?v=1">
+</head>
+<body>
+<main id="app" aria-live="polite">
+  <div class="top"><a class="wordmark" href="/"><img class="word" src="/wordmark.svg?v=3" alt="fiammo"></a></div>
+  <div class="loading" aria-label="Loading"><i style="width:40%"></i><i style="width:96%"></i><i style="width:88%"></i><i style="width:60%"></i></div>
+</main>
+<noscript><main><p class="fine">This page needs JavaScript to open the dump.</p></main></noscript>
+<!-- Under /reader/, not /d/: _redirects rewrites every path under /d/ to this
+     page, so a script kept beside it would come back as this HTML. -->
+<script src="/reader/dump.js?v=1" defer></script>
+</body>
+</html>
