@@ -20,6 +20,13 @@
 # redirect rather than an asset and falls through to the 404 page.
 /p/*  /p/  200
 
+# /s/<token> — a post its author shared by link, read in the browser (s/,
+# backed by the post-share-link edge function). Same 200-rewrite shape as
+# /p/: the token has to stay in the URL for the page to read it back out of
+# location.pathname. Nothing else lives under /s/; the page's script and
+# stylesheet are under /reader/ so this rule can't swallow them.
+/s/*  /s/  200
+
 # /u/<id> — a scanned profile code. Same 200-rewrite shape as /p/ and for the
 # same reason: the id has to stay in the URL for the page to read it back out
 # of location.pathname. Keyed on the user id rather than the handle because

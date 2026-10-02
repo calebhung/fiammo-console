@@ -1,0 +1,224 @@
+/* fiammo: the reader's stylesheet, shared by the two pages read.js draws:
+   /p/<code>/<token> (p/read/, a post texted to one person) and /s/<token>
+   (s/, a post its author shared by link). It lives under /reader/ with the
+   script for the same reason the script does: _redirects rewrites the paths
+   under /p/ and /s/ to those pages, stylesheets included. */
+/* Same values as style.css, which mirrors Color+Fiammo.swift. */
+:root {
+  --paper: #F9F8F6;
+  --card: #FFFFFF;
+  --border: #E9E7E3;
+  --fg: #1A1512;
+  --muted: #85807A;
+  --ink: #120B04;
+  --copper: #C96F3B;
+  --bronze: #8B5210;
+  --gold: #B8731A;
+  --error: #D97366;
+  --serif: 'Lora', Georgia, 'Times New Roman', serif;
+  --sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --script: Optima, Candara, 'Lora', serif;
+  /* Motion+Fiammo: arrive fast, settle, never overshoot. */
+  --arrive: cubic-bezier(.2, .8, .2, 1);
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--fg);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+}
+main {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 20px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+[hidden] { display: none !important; }
+
+.top { display: flex; align-items: center; justify-content: space-between; }
+/* The drawn wordmark, the same asset and geometry as every other page
+   (style.css .wordmark img.word). This used to be the word set in Optima,
+   which is the lettering the app moved off, and beside the real mark it
+   reads as a different product. Laid out by the x-height of "iammo" so the
+   f's swash overhangs into padding the header already has. */
+.wordmark {
+  display: flex; align-items: center; flex-shrink: 0;
+  text-decoration: none; margin-block: 6px;
+}
+.wordmark img.word {
+  font-size: 22px; height: 2.176em; width: auto;
+  margin: -0.908em 0 -0.784em; display: block; pointer-events: none;
+}
+.meta { color: var(--muted); font-size: 13px; }
+/* On every screen, so each texted post is also a way to the app. */
+/* The header pill is style.css's .nav-cta: outlined ink, filling only on
+   hover. It used to be a solid gold lozenge, which is the accent carrying a
+   fill it is not meant to carry, and it shouted louder than the post. */
+.get {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 14px;
+  border-radius: 999px; border: 1px solid var(--ink);
+  background: transparent; color: var(--ink);
+  font: 500 13px var(--sans); text-decoration: none;
+}
+.get:hover { background: var(--ink); color: var(--paper); }
+
+.avatar {
+  flex: none; border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center;
+  font-weight: 600; font-family: var(--sans);
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.byline { display: flex; align-items: center; gap: 10px; }
+.byline .who { color: var(--gold); font-size: 15px; }
+.byline .burn { margin-left: auto; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+.prompt { font-size: 13px; line-height: 1.5; color: var(--muted); margin: -8px 0 0; }
+.prompt b { color: var(--fg); font-weight: 500; }
+
+.text { display: flex; flex-direction: column; gap: 12px; }
+.text p {
+  font-family: var(--serif); font-size: 17px; line-height: 1.65;
+  color: rgba(26, 21, 18, .86); margin: 0;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.photos { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+.photos img { width: 100%; border-radius: 12px; display: block; background: var(--border); }
+
+.hair { height: .5px; background: var(--border); }
+
+/* The other posts this author texted to this number. A short receipt, not a
+   feed: everything here burns within a day, and the card below still says
+   there is nothing to scroll back through. */
+.more { display: flex; flex-direction: column; gap: 10px; }
+.more h3 {
+  margin: 0; font: 500 13px var(--sans); color: var(--muted);
+}
+.morerows { display: flex; flex-direction: column; }
+.morerow {
+  display: flex; align-items: center; gap: 14px;
+  padding: 12px 0; text-decoration: none; color: inherit;
+  box-shadow: inset 0 -.5px 0 var(--border);
+}
+.mbody { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mchev { flex: none; display: grid; place-items: center; color: var(--muted); }
+.mchev svg { width: 12px; height: 12px; }
+.morerow:last-child { box-shadow: none; }
+.morerow:active { opacity: .6; }
+/* An excerpt is the person's writing, so it wears the writing's face and
+   colour, a size down from the post itself. Only the meta line under it is
+   the phone around it. (The transcript stays in the sans on purpose: nobody
+   wrote that one.) */
+.mtext {
+  font-family: var(--serif); font-size: 16px; line-height: 1.5;
+  color: rgba(26, 21, 18, .86);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mmeta { font: 500 12px var(--sans); color: var(--muted); }
+
+/* A voice post: the player above, the transcript below it. Sized to the
+   reply box it replaces, so the page keeps its rhythm. */
+.voicewrap { display: flex; flex-direction: column; gap: 7px; }
+.vlabel { font: 500 12px var(--sans); color: var(--muted); }
+.voice {
+  flex: 1; display: flex; align-items: center; gap: 12px; cursor: pointer;
+  background: var(--card); border: 0; border-radius: 22px;
+  box-shadow: inset 0 0 0 .5px var(--border);
+  padding: 10px 16px 10px 12px; text-align: left; color: var(--fg);
+  transition: box-shadow .18s var(--arrive);
+}
+.voice:hover { box-shadow: inset 0 0 0 1px var(--border); }
+.voice .pp {
+  flex: none; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--ink); color: #fff; display: grid; place-items: center;
+}
+.voice .pp svg { width: 14px; height: 14px; }
+.voice .bar {
+  flex: 1; height: 3px; border-radius: 2px; background: var(--border); overflow: hidden;
+}
+.voice .bar i { display: block; height: 100%; width: 0; background: var(--fg); border-radius: 2px; }
+.voice .t {
+  flex: none; font: 500 12px var(--mono, var(--sans)); color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The transcript folds under the recording, and wears the sans: nobody
+   wrote it, so it never takes the writing's face (the app moved transcripts
+   off the serif for the same reason). */
+.twrap { display: flex; flex-direction: column; gap: 12px; margin-top: -4px; }
+.tt {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 5px;
+  background: none; border: 0; padding: 4px 0; cursor: pointer;
+  font: 500 13px var(--sans); color: var(--muted);
+}
+.tt:hover { color: var(--fg); }
+.tt .chev { display: grid; place-items: center; transition: transform .18s var(--arrive); }
+.tt .chev svg { width: 12px; height: 12px; }
+.tt[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.transcript { display: flex; flex-direction: column; gap: 10px; animation: arrive .24s var(--arrive) both; }
+.transcript p {
+  font-family: var(--sans); font-size: 15px; line-height: 1.55;
+  color: var(--muted); margin: 0;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
+.card {
+  background: var(--card); border-radius: 16px; padding: 18px;
+  box-shadow: 0 0 0 .5px var(--border);
+  display: flex; flex-direction: column; gap: 12px;
+  animation: arrive .32s var(--arrive) both;
+}
+.card h2 { font-family: var(--serif); font-weight: 400; font-size: 20px; line-height: 1.3; margin: 0; text-wrap: balance; }
+.card p { margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.perk { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; color: var(--fg); }
+.perk svg { flex: none; width: 16px; height: 16px; margin-top: 2px; color: var(--copper); }
+
+.code { position: relative; display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.code span {
+  height: 54px; border-radius: 10px; background: var(--card);
+  box-shadow: inset 0 0 0 .5px var(--border);
+  display: grid; place-items: center; font-size: 24px; font-variant-numeric: tabular-nums;
+}
+.code span.at { box-shadow: inset 0 0 0 1px var(--gold); }
+.code input {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; border: 0; font-size: 16px; color: transparent; caret-color: transparent;
+}
+.fine { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin: 0; }
+.error { font-size: 13.5px; line-height: 1.45; color: var(--error); margin: 0; }
+.link { background: none; border: 0; padding: 0; font: inherit; color: var(--copper); cursor: pointer; }
+.link:disabled { color: var(--muted); cursor: default; }
+
+/* The primary action is style.css's .download-btn: ink filled at a 10px
+   radius. Copper is the accent for warmth, rarely a large fill, and a
+   50px-tall gold slab was the largest fill on the page. */
+.primary {
+  display: flex; align-items: center; justify-content: center;
+  height: 50px; border-radius: 10px; cursor: pointer;
+  border: 1px solid var(--ink); background: var(--ink); color: var(--paper);
+  font: 500 15px var(--sans); text-decoration: none;
+}
+.primary:hover { background: var(--fg); border-color: var(--fg); }
+.primary:disabled { opacity: .45; cursor: default; }
+
+.hello { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.hello h1 { font-family: var(--serif); font-weight: 400; font-size: 27px; line-height: 1.22; margin: 0; text-wrap: balance; }
+.hello p { margin: 0; font-size: 15px; line-height: 1.5; color: var(--muted); }
+.ash { display: flex; flex-direction: column; gap: 12px; padding: 18px 16px; background: var(--card); border-radius: 14px; box-shadow: 0 0 0 .5px var(--border); }
+.ash i { display: block; height: 9px; border-radius: 5px; background: #EFEBE6; }
+
+.loading { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; }
+.loading i { display: block; height: 10px; border-radius: 5px; background: #F0EEEA; }
+
+button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+@keyframes arrive { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
