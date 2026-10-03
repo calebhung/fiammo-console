@@ -8,7 +8,7 @@
 <link rel="icon" href="flame.svg?v=2" type="image/svg+xml">
 <link rel="stylesheet" href="style.css?v=9">
 <style>
-  .wrap { max-width: 1040px; }
+  .wrap { max-width: 980px; }
 
   #gate {
     display: flex;
@@ -25,7 +25,7 @@
     width: 100%;
     max-width: 280px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     background: var(--bg);
     color: var(--text);
   }
@@ -65,71 +65,100 @@
      reach anything. */
   .shell {
     display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
-    gap: 28px;
+    grid-template-columns: 176px minmax(0, 1fr);
+    gap: 56px;
     align-items: start;
   }
   #tool-nav {
     position: sticky;
-    top: 16px;
-    max-height: calc(100vh - 32px);
+    top: 24px;
+    max-height: calc(100vh - 48px);
     overflow-y: auto;
+    scrollbar-width: none;
   }
-  #tool-nav .nav-group { margin-bottom: 20px; }
+  #tool-nav::-webkit-scrollbar { display: none; }
+  #tool-nav .nav-group { margin-bottom: 26px; }
   #tool-nav .nav-group-label {
-    font-family: var(--font-mono);
-    font-size: 0.64rem;
-    letter-spacing: 0.18em;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--muted);
-    padding: 0 10px;
-    margin-bottom: 4px;
+    opacity: 0.75;
+    padding-left: 14px;
+    margin-bottom: 6px;
   }
+  /* Not the page's all-accent button: a nav item is a quiet line of text that
+     takes a hairline of copper when it's the one you're on. */
   #tool-nav button.nav-item {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 8px;
     width: 100%;
-    padding: 7px 10px;
+    padding: 6px 14px;
     border: none;
-    border-radius: 8px;
+    border-radius: 0;
     background: none;
-    color: var(--text);
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
+    color: var(--muted);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
     text-align: left;
+    transition: color 0.12s ease;
   }
-  #tool-nav button.nav-item:hover { background: var(--border); }
-  #tool-nav button.nav-item.active { background: var(--card); box-shadow: var(--lift); color: var(--accent-strong); }
+  #tool-nav button.nav-item:hover { background: none; color: var(--ink); }
+  #tool-nav button.nav-item.active { color: var(--ink); font-weight: 500; }
+  #tool-nav button.nav-item.active::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
   #tool-nav .nav-item .nav-label { flex: 1; min-width: 0; }
-  /* A tool that acts on real users or can't be undone, marked before you open it. */
+  /* A tool that acts on real users or can't be undone: a faint mark, not an alarm. */
   #tool-nav .nav-item.risky .nav-label::after {
     content: "";
     display: inline-block;
-    width: 6px;
-    height: 6px;
-    margin-left: 7px;
+    width: 5px;
+    height: 5px;
+    margin-left: 8px;
     border-radius: 50%;
     background: #B3261E;
+    opacity: 0.55;
     vertical-align: middle;
   }
+  /* Just the number, in copper — what's waiting, with no badge around it. */
   #tool-nav .nav-count {
     display: none;
-    padding: 0 7px;
-    border-radius: 999px;
-    background: #B3261E;
-    color: var(--on-accent);
-    font-size: 0.68rem;
-    line-height: 1.6;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--accent);
   }
-  #tool-nav .nav-count.show { display: inline-block; }
+  #tool-nav .nav-count.show { display: inline; }
 
-  .tool { display: none; }
-  .tool.active { display: block; }
-  .tool h2 { margin-top: 0; }
+  /* The tool sits straight on the desk paper, as the reading pages do: the
+     page already has a sidebar to frame it, and a box inside a frame is one
+     border too many. */
+  .tool, .tool.card { display: none; background: none; border: none; box-shadow: none; padding: 0; }
+  #tool-panes { font-family: var(--font-sans); }
+  .tool.active { display: block; animation: tool-in 0.18s ease-out; }
+  @keyframes tool-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .tool.active { animation: none; } }
+  .tool h2 {
+    margin: 0 0 8px;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
 
   @media (max-width: 760px) {
-    .shell { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+    .shell { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+    .tool h2 { font-size: 1.3rem; }
     #tool-nav {
       position: static;
       max-height: none;
@@ -140,51 +169,75 @@
     }
     #tool-nav .nav-group { display: contents; }
     #tool-nav .nav-group-label { display: none; }
-    #tool-nav button.nav-item { width: auto; flex-shrink: 0; white-space: nowrap; border: 1px solid var(--border); }
+    #tool-nav button.nav-item { width: auto; flex-shrink: 0; white-space: nowrap; border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px; }
+    #tool-nav button.nav-item.active { background: var(--ink); border-color: var(--ink); color: var(--card); }
+    #tool-nav button.nav-item.active::before { display: none; }
+    #tool-nav .nav-count { color: inherit; }
   }
   .tool p.hint {
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    line-height: 1.6;
     color: var(--muted);
-    margin: -6px 0 16px;
+    max-width: 62ch;
+    margin: 0 0 28px;
   }
 
   button, .tool input[type="email"] {
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: 0.85rem;
   }
 
+  /* Quiet by default: most buttons here are refresh, reload, copy. Ink marks
+     the one action a tool exists for, red the ones that can't be taken back,
+     and copper stays for what's live or chosen. */
   button {
-    padding: 10px 18px;
-    border-radius: 8px;
-    border: 1px solid var(--accent-strong);
-    background: var(--accent);
-    color: var(--on-accent);
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
     cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
   }
-  button:hover { background: var(--accent-strong); }
-  button:disabled { opacity: 0.5; cursor: default; }
-  button.danger { border-color: #B3261E; background: #B3261E; }
-  button.danger:hover { background: #8C1D17; }
+  button:hover { background: var(--bg); border-color: var(--muted); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:disabled { opacity: 0.45; cursor: default; }
+  button:disabled:hover { background: var(--card); border-color: var(--border); }
+  button.primary { background: var(--ink); border-color: var(--ink); color: var(--card); }
+  button.primary:hover { background: var(--text); border-color: var(--text); }
+  button.primary:disabled:hover { background: var(--ink); border-color: var(--ink); }
+  button.danger { border-color: #B3261E; background: #B3261E; color: var(--on-accent); }
+  button.danger:hover { background: #8C1D17; border-color: #8C1D17; }
+  button.danger:disabled:hover { background: #B3261E; border-color: #B3261E; }
 
   .tool input[type="email"], .tool input[type="text"] {
-    padding: 9px 12px;
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    padding: 9px 14px;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
+    border-radius: 10px;
+    background: var(--card);
     color: var(--text);
     width: 100%;
     max-width: 320px;
-    margin-right: 8px;
+    margin-right: 0;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
   }
+  .tool input:focus, .tool textarea:focus, .tool select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(201, 111, 59, 0.14);
+  }
+  .tool input::placeholder, .tool textarea::placeholder { color: var(--muted); opacity: 0.7; }
 
   .tool textarea {
     font-family: 'Lora', Georgia, 'Times New Roman', serif;
     font-size: 0.95rem;
-    padding: 9px 12px;
+    padding: 10px 14px;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
+    border-radius: 10px;
+    background: var(--card);
     color: var(--text);
     width: 100%;
     max-width: 420px;
@@ -194,22 +247,22 @@
   }
 
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .row + .row { margin-top: 10px; }
+  .row + .row { margin-top: 12px; }
 
   .confirm-row {
     display: flex;
     align-items: flex-start;
     gap: 8px;
     margin: 14px 0;
-    font-family: var(--font-mono);
-    font-size: 0.82rem;
+    font-family: var(--font-sans);
+    font-size: 0.86rem;
   }
   .choice-row {
     display: flex;
     gap: 14px;
-    margin: 10px 0 4px;
-    font-family: var(--font-mono);
-    font-size: 0.82rem;
+    margin: 14px 0 4px;
+    font-family: var(--font-sans);
+    font-size: 0.86rem;
   }
   .choice-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
   .choice-row input[type="radio"] { accent-color: #B3261E; width: 14px; height: 14px; }
@@ -222,10 +275,10 @@
   }
 
   pre.result {
-    margin-top: 14px;
-    padding: 14px;
-    border-radius: 8px;
-    background: var(--bg);
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: var(--card);
     border: 1px solid var(--border);
     font-family: var(--font-mono);
     font-size: 0.78rem;
@@ -237,10 +290,10 @@
   pre.result.err { border-color: #B3261E; color: #B3261E; }
 
   .badge {
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: 0.78rem;
-    padding: 6px 10px;
-    border-radius: 8px;
+    padding: 5px 12px;
+    border-radius: 999px;
     background: var(--border);
     color: var(--muted);
   }
@@ -268,8 +321,8 @@
     margin-top: 10px;
     padding: 10px 12px;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
+    border-radius: 10px;
+    background: var(--card);
   }
   #diagnostics-categories summary,
   #diagnostics-history summary {
@@ -290,12 +343,12 @@
   .prompt-cycler { gap: 8px; flex-wrap: wrap; }
   .prompt-cycler button { padding: 8px 12px; }
   .prompt-cycler input[type="date"] {
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: 0.85rem;
     padding: 8px 10px;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
+    border-radius: 10px;
+    background: var(--card);
     color: var(--text);
   }
 
@@ -303,8 +356,8 @@
     margin-top: 12px;
     padding: 14px;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
+    border-radius: 10px;
+    background: var(--card);
   }
   .prompt-card .row { gap: 8px; flex-wrap: wrap; }
   .prompt-text {
@@ -339,15 +392,15 @@
   .prompt-eval .stats { margin-top: 6px; }
   .prompt-eval .why { font-family: 'Lora', Georgia, serif; font-size: 0.92rem; margin: 6px 0 0; }
   .vote-row { margin-top: 10px; }
-  .prompt-eval button.vote { padding: 6px 12px; background: var(--bg); color: var(--text); border-color: var(--border); }
+  .prompt-eval button.vote { padding: 6px 12px; background: var(--card); color: var(--text); border-color: var(--border); }
   .prompt-eval button.vote.picked { border-color: var(--accent-strong); background: var(--accent); color: var(--on-accent); }
   #label-card { margin-top: 12px; }
   #label-card .label-text { font-family: 'Lora', Georgia, serif; font-size: 1.25rem; line-height: 1.45; margin: 10px 0 6px; }
   #label-card .label-options { margin: 4px 0 0; padding-left: 18px; }
   #label-card .label-options li { font-family: 'Lora', Georgia, serif; font-size: 0.98rem; margin: 2px 0; }
-  #label-card .vote-row button.vote { padding: 10px 22px; font-size: 1.1rem; background: var(--bg); color: var(--text); border-color: var(--border); }
+  #label-card .vote-row button.vote { padding: 10px 22px; font-size: 1.1rem; background: var(--card); color: var(--text); border-color: var(--border); }
   #label-card .vote-row button.vote.picked { border-color: var(--accent-strong); background: var(--accent); color: var(--on-accent); }
-  #label-card textarea { width: 100%; max-width: none; min-height: 64px; font: inherit; padding: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 6px; box-sizing: border-box; }
+  #label-card textarea { width: 100%; max-width: none; min-height: 64px; font: inherit; padding: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 6px; box-sizing: border-box; }
   #label-card .why { font-family: 'Lora', Georgia, serif; font-size: 0.92rem; margin: 6px 0 0; }
   #label-card .later { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
   .label-keys { color: var(--muted); font-size: 0.8rem; margin-top: 10px; }
@@ -375,8 +428,8 @@
   .report-row {
     padding: 10px 12px;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--bg);
+    border-radius: 10px;
+    background: var(--card);
     margin-top: 10px;
   }
   .report-row .report-top {
@@ -426,7 +479,7 @@
   .waitlist-row .facts b { font-weight: normal; color: var(--text); }
   .waitlist-row .lapsed { text-decoration: line-through; }
   .waitlist-row button { padding: 6px 12px; font-size: 0.78rem; }
-  .waitlist-controls select { font-family: var(--font-mono); font-size: 0.85rem; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+  .tool select, .waitlist-controls select { font-family: var(--font-sans); font-size: 0.85rem; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); }
 
   /* --- activity log --- */
 
@@ -454,7 +507,7 @@
     padding: 4px 10px;
     border: 1px solid var(--border);
     border-radius: 999px;
-    background: var(--bg);
+    background: var(--card);
     color: var(--muted);
     cursor: pointer;
     user-select: none;
@@ -463,9 +516,9 @@
   }
   .log-chip input { display: none; }
   .log-chip.on {
-    border-color: var(--accent-strong);
-    background: var(--accent);
-    color: var(--on-accent);
+    border-color: var(--accent);
+    background: rgba(201, 111, 59, 0.1);
+    color: var(--accent-strong);
   }
 
   #log-live-dot {
@@ -473,7 +526,7 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: var(--on-accent);
+    background: var(--accent);
     margin-right: 7px;
     animation: log-pulse 1.6s ease-in-out infinite;
   }
@@ -640,7 +693,7 @@
     <h1 style="margin:0">dev tools</h1>
     <p style="margin:0; color: var(--muted)">enter the admin password to continue</p>
     <input type="password" id="gate-password" placeholder="password" autocomplete="off">
-    <button id="gate-submit">enter</button>
+    <button class="primary" id="gate-submit">enter</button>
     <div class="error" id="gate-error"></div>
   </section>
 
@@ -708,7 +761,7 @@
         <input type="text" id="demo-last-name" placeholder="last name (optional)">
       </div>
       <div class="row">
-        <button id="create-demo-btn">generate demo account</button>
+        <button class="primary" id="create-demo-btn">generate demo account</button>
         <button id="copy-demo-email-btn" style="display:none">copy email</button>
         <button id="copy-demo-password-btn" style="display:none">copy password</button>
       </div>
@@ -723,7 +776,7 @@
       <div class="row">
         <input type="text" id="change-handle-current" placeholder="@currenthandle">
         <input type="text" id="change-handle-new" placeholder="@newhandle">
-        <button id="change-handle-btn">change handle</button>
+        <button class="primary" id="change-handle-btn">change handle</button>
       </div>
       <pre class="result" id="change-handle-result"></pre>
       </div>
@@ -745,7 +798,7 @@
       <h2>refresh today's prompt</h2>
       <div class="tool-body">
       <p class="hint">gives today a different prompt, effective immediately. it does this by <strong>swapping</strong> today's prompt with one about six months out — today shows that one, and today's original moves to that day. it does not skip forward: skipping made today borrow tomorrow's prompt, so the same prompt then appeared two days running. no other day changes, and the swap is permanent rather than a one-day override.</p>
-      <button id="refresh-prompt-btn">refresh prompt</button>
+      <button class="primary" id="refresh-prompt-btn">refresh prompt</button>
       <pre class="result" id="refresh-prompt-result"></pre>
       </div>
     </section>
@@ -775,7 +828,7 @@
       <h2>refresh constellations</h2>
       <div class="tool-body">
       <p class="hint">forces every user's constellation (mind-map themes + insight) to regenerate on their next app sync — bypasses the normal 7-day cooldown and minimum word/entry threshold.</p>
-      <button id="refresh-constellation-btn">refresh constellations</button>
+      <button class="primary" id="refresh-constellation-btn">refresh constellations</button>
       <pre class="result" id="refresh-constellation-result"></pre>
       </div>
     </section>
@@ -910,7 +963,7 @@
       <div class="tool-body">
       <p class="hint">runs an end-to-end sweep of every backend-dependent feature (auth, circles, posts, echoes, DMs, blocking & reporting, notifications, push, schema drift) against two persistent diagnostic accounts, then cleans up everything it created. no real SMS/push reaches a device — pipelines are verified without contacting real phones. takes roughly 30–60s.</p>
       <div class="row">
-        <button id="run-diagnostics-btn">run full diagnostics</button>
+        <button class="primary" id="run-diagnostics-btn">run full diagnostics</button>
         <span id="diagnostics-progress" class="badge" style="display:none"></span>
       </div>
       <p class="stats" id="diagnostics-summary"></p>
