@@ -1,27 +1,27 @@
 <!doctype html>
 <!--
-  fiammo — /p/<code>/<token>: a post someone texted you, read in the browser.
+  fiammo: /s/<token>, a post its author shared by link, read in the browser.
 
-  _redirects sends every two-segment /p/ path here (a one-segment /p/<code>
-  is still the old forward-to-the-App-Store page in /p/index.html). All the
-  deciding happens server-side in the text-link edge function (fiammo repo,
-  supabase/functions/text-link, migration 164). This page only renders what
-  it is told and asks for what it needs:
+  _redirects sends every path under /s/ here. The page is the texted post
+  reader's sibling (p/read/) and is drawn by the same script and stylesheet
+  (/reader/read.js, /reader/read.css). What it may show is decided server-side
+  by the post-share-link edge function (fiammo repo, migration 208,
+  SHARE_LINKS.md): the post, or "burned" for a link that was turned off or a
+  post that is gone. Reading needs nothing: no code, no number, no account.
+  The page shows that one post and nothing else its author wrote.
 
-    open         the post, "burned", or "locked" (opened on another phone)
-    send_code    text a code to the number the link was sent to
-    verify_code  prove it; this browser is then known for that number
-
-  Reading never needs a code. Answering is off (2026-09-24): the nod and the
-  reply both worked, but nothing in the app has ever read post_text_answers,
-  so the page was telling people they had reached someone who would never
-  see it. The endpoint answers 410 for "answer" until there is an inbox.
+  The tags below are what Messages and every other unfurler show for the link.
+  They are the same for every post on purpose: a preview is built by whoever
+  is sent the link, before anyone opens it, and often kept. It must never
+  carry the post's words or photos, and nothing here can, because this file is
+  static and the post is only fetched by the script after the page opens.
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>fiammo</title>
+<meta name="description" content="A post shared from fiammo. Read it before it burns.">
 <meta name="robots" content="noindex">
 <!-- The token in the path is the key to this post. Nothing leaving the page,
      an image or a link, gets to carry it in a Referer. -->
@@ -31,7 +31,7 @@
 <meta name="apple-itunes-app" content="app-id=6791766677">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="fiammo">
-<meta property="og:title" content="Something written for you">
+<meta property="og:title" content="A post shared with you on fiammo">
 <meta property="og:description" content="Read it before it burns.">
 <meta property="og:image" content="https://fiammo.co/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -42,8 +42,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap">
-<!-- The stylesheet lives outside /p/ with the script, and is shared with /s/
-     (a post shared by link), which read.js also draws. -->
 <link rel="stylesheet" href="/reader/read.css?v=7">
 </head>
 <body>
@@ -52,13 +50,8 @@
   <div class="loading" aria-label="Loading"><i style="width:40%"></i><i style="width:96%"></i><i style="width:88%"></i><i style="width:60%"></i></div>
 </main>
 <noscript><main><p class="fine">This page needs JavaScript to open the post.</p></main></noscript>
-<!-- The scripts live outside /p/: _redirects rewrites every /p/<a>/<b> to this
-     page, and /p/read/read.js has exactly that shape, so under /p/read/ they
-     came back as this HTML. -->
-<!-- Versioned with the wordmark change: read.js draws the header for every
-     rendered state, so a cached copy of it would paint the old text wordmark
-     against the new stylesheet, which styles an <img> and not a word. Bump
-     this whenever read.js and this page's CSS have to agree. -->
+<!-- Under /reader/, not /s/: _redirects rewrites every path under /s/ to this
+     page, so a script kept beside it would come back as this HTML. -->
 <script src="/reader/read.js?v=7" defer></script>
 </body>
 </html>

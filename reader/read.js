@@ -1,11 +1,18 @@
-// fiammo — the reader for /p/<code>/<token> (page: p/read/index.html). See its header for the
-// shape of it; the rules themselves live in the text-link edge function.
+// fiammo — the reader for two kinds of link, each with its own page and its
+// own edge function holding the rules:
+//   /p/<code>/<token>  a post texted to one person   p/read/   text-link
+//   /s/<token>         a post shared by link         s/        post-share-link
+// A shared link is the simpler one: the token is all there is, so there is
+// no browser secret, no code and no list of other posts. It draws the same
+// post, the same burned screen and the same way to the app.
 (function () {
   "use strict";
 
   // The publishable key, same one the app ships in Config.swift and /p/ uses.
   // It goes in the apikey header only (see p/index.html for why not Bearer).
-  var API = "https://syqqxogkqmuojchbglle.supabase.co/functions/v1/text-link";
+  var parts = location.pathname.replace(/\/+$/, "").split("/");
+  var SHARE = parts[1] === "s";
+  var API = "https://syqqxogkqmuojchbglle.supabase.co/functions/v1/" + (SHARE ? "post-share-link" : "text-link");
   var KEY = "sb_publishable_Zcxmg3htO9UvumePY6U3bw_wQrh7X6K";
   // A local stack can stand in, but only on a local host: a query string on
   // the real site must never be able to point this page, and the browser
@@ -19,8 +26,16 @@
   // fiammo is iPhone-only: on Android there's no app to point at.
   var CAN_GET_APP = !/android/i.test(navigator.userAgent);
 
-  var parts = location.pathname.replace(/\/+$/, "").split("/");
-  var CODE = parts[2] || "", TOKEN = parts[3] || "";
+  var CODE = SHARE ? "" : (parts[2] || ""), TOKEN = (SHARE ? parts[2] : parts[3]) || "";
+
+  // A shared link carries its author's invite (?i=, migration 208), the way a
+  // profile link does (/u/). It can't follow anyone through the App Store, so
+  // it counts when the link is opened again with fiammo installed.
+  var INVITE = SHARE && /^[abcdefghjkmnpqrstuvwxyz23456789]{8}$/.test(new URLSearchParams(location.search).get("i") || "");
+  // Whether opening the link again opens the app. Not until the association
+  // file claims /s/ for a build that answers it (SHARE_LINKS.md, "Shipping"),
+  // and until then the page must not tell anyone to do it.
+  var SHARE_OPENS_APP = false;
 
   var app = document.getElementById("app");
   var S = { data: null, invited: false, timer: null };
@@ -29,7 +44,7 @@
   // A random secret that says "this browser". The server keeps only a hash.
   // If storage is blocked it lives for this page load, which is still enough
   // to claim and read.
-  var BROWSER = (function () {
+  var BROWSER = SHARE ? null : (function () {
     var k = "fiammo.reader";
     try { var v = localStorage.getItem(k); if (v && /^[A-Za-z0-9_-]{43}$/.test(v)) return v; } catch (e) {}
     var b = crypto.getRandomValues(new Uint8Array(32)), s = "";
@@ -40,7 +55,9 @@
   })();
 
   function api(action, extra) {
-    var body = { action: action, code: CODE, token: TOKEN, browser: BROWSER };
+    // A shared link sends its token and nothing else: nothing here says
+    // which browser is asking.
+    var body = SHARE ? { token: TOKEN } : { action: action, code: CODE, token: TOKEN, browser: BROWSER };
     for (var k in extra || {}) body[k] = extra[k];
     return fetch(API, {
       method: "POST",
@@ -102,7 +119,9 @@
     return TINTS[Number(hash % BigInt(TINTS.length))];
   }
   function avatar(author, size) {
-    var t = tint(author.id);
+    // A shared link's author comes with the colour already picked, so their
+    // id never has to reach the page.
+    var t = author.tint != null && TINTS[author.tint] ? TINTS[author.tint] : tint(author.id);
     var el = h("div", { class: "avatar", style: "width:" + size + "px;height:" + size + "px;font-size:" + Math.round(size * .42) + "px;background:" + t[0] + ";color:" + t[1] });
     var letter = (author.first_name || "?").trim().charAt(0).toUpperCase();
     if (author.avatar_url && /^https:\/\//.test(author.avatar_url)) {
@@ -130,9 +149,11 @@
 
   // ---------------------------------------------------------------- load
   function load() {
-    if (!/^[a-z2-9]{8}$/.test(CODE) || !/^[a-zA-Z2-9]{10}$/.test(TOKEN)) return notFound();
+    if (SHARE ? !/^[a-z2-7]{26}$/.test(TOKEN)
+              : (!/^[a-z2-9]{8}$/.test(CODE) || !/^[a-zA-Z2-9]{10}$/.test(TOKEN))) return notFound();
     api("open").then(function (r) {
       if (r.status === 404) return notFound();
+      if (r.status === 429 && SHARE) return failed("This link has been opened a lot in the last few minutes. Try again in a minute.");
       if (r.status !== 200) return failed();
       S.data = r.body;
       if (r.body.state === "post") return renderPost();
@@ -170,6 +191,9 @@
       p.prompt_text ? h("p", { class: "prompt" }, ["Answering ", h("b", { text: p.prompt_text })]) : null,
       player(p.audio),
       body, photos,
+      // A post's video stays in the app: it is served only to someone signed
+      // in who can see the post (migration 200).
+      p.has_video ? h("p", { class: "fine", text: "This post has a video, which plays in the app." }) : null,
       h("div", { class: "hair" }),
       moreList(d.more, a),
       h("div", { id: "inviteslot" }),
@@ -281,6 +305,7 @@
   function showInvite() {
     if (S.invited) return;
     S.invited = true;
+    if (SHARE) return document.getElementById("inviteslot").appendChild(shareCard(name(S.data.author), false));
     var n = name(S.data.author);
     // A day's text can name several people, and the card then belongs to all
     // of them rather than to whichever post happened to be opened. "Your
@@ -305,6 +330,29 @@
     perk.textContent = several
       ? "Sign up with " + S.data.reader.masked + " and their friend requests are waiting for you."
       : "Sign up with " + S.data.reader.masked + " and " + n + "'s friend request is waiting for you.";
+  }
+
+  // The way to the app under a shared post, and under one that burned. It
+  // promises only what is true for someone holding a link: no number was
+  // given, so no friend request is waiting, and the invite counts only when
+  // the link is opened again in the app.
+  function shareCard(n, burned) {
+    var perks = [];
+    if (INVITE && SHARE_OPENS_APP) perks.push([ICON.person, "Once you have fiammo, open this link again to add " + n + "."]);
+    perks.push([ICON.flame, "Posts burn after a day. Nothing to scroll back through."]);
+    var card = h("section", { class: "card" }, [
+      h("h2", { text: burned ? "Catch the next one" : n + " writes here most days. This is one post." }),
+      burned ? h("p", { text: n + " writes here most days. With fiammo you'll see it while it's still up." }) : null,
+    ].concat(perks.map(function (k) {
+      return h("div", { class: "perk", html: k[0] + "<span></span>" });
+    })).concat([
+      CAN_GET_APP ? h("a", { class: "primary", href: APP_STORE, text: "Get fiammo" }) : null,
+      h("p", { class: "fine", style: "text-align:center", text: CAN_GET_APP ? "Free on iPhone" : "fiammo is on iPhone for now." }),
+    ]));
+    // Text goes in as text, never through innerHTML: it carries a name.
+    var spans = card.querySelectorAll(".perk span");
+    perks.forEach(function (k, i) { spans[i].textContent = k[1]; });
+    return card;
   }
 
   // ---------------------------------------------------------------- codes
@@ -391,7 +439,8 @@
         h("p", { text: n + "'s post was up for a day, and now it's gone. Not saved anywhere, including here." }),
       ]),
       h("div", { class: "ash", "aria-hidden": "true" }, [h("i", { style: "width:34%" }), h("i", { style: "width:94%" }), h("i", { style: "width:80%" }), h("i", { style: "width:46%" })]),
-      newer && /^\/p\/[a-z2-9]{8}\/[a-zA-Z2-9]{10}$/.test(newer)
+      SHARE ? shareCard(n, true)
+      : newer && /^\/p\/[a-z2-9]{8}\/[a-zA-Z2-9]{10}$/.test(newer)
         ? h("section", { class: "card" }, [
             h("div", { class: "perk", html: ICON.flame + "<span></span>" }),
             h("a", { class: "primary", href: newer, text: "Read it" }),
@@ -403,7 +452,7 @@
           ]),
     ]);
     var perk = app.querySelector(".card .perk span");
-    if (perk) perk.textContent = n + " sent you something newer.";
+    if (perk && !SHARE) perk.textContent = n + " sent you something newer.";
   }
 
   function notFound() {
@@ -417,12 +466,12 @@
     ]);
   }
 
-  function failed() {
+  function failed(why) {
     screen([
       top(),
       h("div", { class: "hello" }, [
         h("h1", { text: "This didn't load" }),
-        h("p", { text: "Check your connection and try again." }),
+        h("p", { text: why || "Check your connection and try again." }),
       ]),
       h("button", { class: "primary", type: "button", text: "Try again", onclick: function () { location.reload(); } }),
     ]);
