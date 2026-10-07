@@ -79,6 +79,10 @@ main {
 
 .byline { display: flex; align-items: center; gap: 10px; }
 .byline .who { color: var(--gold); font-size: 15px; }
+/* The name gives way first: a long username with a year on the date beside
+   it (a post shared after it burned) wrapped the date and the burn in two. */
+.byline .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.byline .avatar, .byline .meta, .byline .burn { white-space: nowrap; flex-shrink: 0; }
 .byline .burn { margin-left: auto; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 
 .prompt { font-size: 13px; line-height: 1.5; color: var(--muted); margin: -8px 0 0; }
