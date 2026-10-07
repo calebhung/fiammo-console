@@ -5,6 +5,13 @@
 // A shared link is the simpler one: the token is all there is, so there is
 // no browser secret, no code and no list of other posts. It draws the same
 // post, the same burned screen and the same way to the app.
+//
+// A shared link comes in two kinds. One made while the post was live ends
+// when the post burns. One its author made after the burn (migration 251,
+// post.after_burn) shows a post that is already gone from fiammo, for a
+// time of its own (a day from when it was last sent, as shipped): the page
+// says when it was written, that it has burned, and when the link ends, and
+// "this link has ended" once it has.
 (function () {
   "use strict";
 
@@ -146,6 +153,24 @@
     var m = Math.ceil(ms / 60000);
     return m >= 60 ? "Burns in " + Math.floor(m / 60) + "h" : "Burns in " + m + "m";
   }
+  // "Jun 3", with the year once it isn't this one.
+  function day(iso) {
+    var d = new Date(iso);
+    if (isNaN(d)) return "";
+    var o = { month: "short", day: "numeric" };
+    if (d.getFullYear() !== new Date().getFullYear()) o.year = "numeric";
+    return d.toLocaleDateString("en-US", o);
+  }
+  // A link made after the burn runs for a day, or for as many as the app's
+  // setting says, so its end is told by its date while that is a day or
+  // more away, and counted down from there.
+  function endsOn(iso) {
+    var ms = Date.parse(iso) - Date.now();
+    if (!(ms > 0)) return null;
+    var m = Math.ceil(ms / 60000);
+    if (m >= 60 * 24) return "The link ends " + day(iso) + ".";
+    return "The link ends in " + (m >= 60 ? Math.floor(m / 60) + "h." : m + "m.");
+  }
 
   // ---------------------------------------------------------------- load
   function load() {
@@ -158,7 +183,7 @@
       S.data = r.body;
       if (r.body.state === "post") return renderPost();
       if (r.body.state === "locked") return renderLocked();
-      if (r.body.state === "burned") return renderBurned(r.body.author, r.body.newer);
+      if (r.body.state === "burned") return renderBurned(r.body.author, r.body.newer, r.body.after_burn === true);
       failed();
     });
   }
@@ -167,9 +192,24 @@
   function renderPost() {
     var d = S.data, p = d.post, a = d.author;
 
-    var burn = h("span", { class: "burn", text: burnsIn(p.expires_at) || "" });
+    // A post shared after it burned: the day it was written rather than how
+    // long ago, "Burned" where the burn would be counted down, and under
+    // the post a line saying so and when the link ends. The byline has no
+    // room for a second date beside the first.
+    var after = p.after_burn === true;
+    var burn = h("span", { class: "burn", text: after ? "Burned" : (burnsIn(p.expires_at) || "") });
+    var note = after ? h("p", { class: "fine" }) : null;
+    // What is left, drawn where it is counted. False once nothing is.
+    function left() {
+      var t = after ? endsOn(p.expires_at) : burnsIn(p.expires_at);
+      if (!t) return false;
+      if (after) note.textContent = "This post has burned on fiammo. " + name(a) + " shared it with you by link. " + t;
+      else burn.textContent = t;
+      return true;
+    }
+    left();
     var who = h("span", { class: "who" }, ["@" + (a.handle || name(a).toLowerCase()) + (a.founding_number != null ? " #" + a.founding_number : "")]);
-    var byline = h("div", { class: "byline" }, [avatar(a, 36), who, h("span", { class: "meta", text: "· " + ago(p.created_at) }), burn]);
+    var byline = h("div", { class: "byline" }, [avatar(a, 36), who, h("span", { class: "meta", text: "· " + (after ? day(p.created_at) : ago(p.created_at)) }), burn]);
 
     var paras = String(p.content || "").split(/\n{2,}/).filter(function (t) { return t.trim(); });
     // A voice post's content is its transcript (108), not writing, so it does
@@ -194,6 +234,7 @@
       // A post's video stays in the app: it is served only to someone signed
       // in who can see the post (migration 200).
       p.has_video ? h("p", { class: "fine", text: "This post has a video, which plays in the app." }) : null,
+      note,
       h("div", { class: "hair" }),
       moreList(d.more, a),
       h("div", { id: "inviteslot" }),
@@ -202,11 +243,10 @@
     // Without that, waiting means never showing it at all.
     showInvite();
 
-    // The post burns in place, the same moment it burns in the app.
+    // The post burns in place, the same moment it burns in the app, and a
+    // link made after the burn ends in place.
     S.timer = setInterval(function () {
-      var t = burnsIn(p.expires_at);
-      if (!t) return renderBurned(a, null);
-      burn.textContent = t;
+      if (!left()) renderBurned(a, null, after);
     }, 15000);
   }
 
@@ -429,14 +469,19 @@
     ]);
   }
 
-  function renderBurned(a, newer) {
+  // `after`: the link was made after the post burned, so what is over is
+  // the link's own time, not the post's day. The page isn't told how long
+  // that was, so it doesn't say.
+  function renderBurned(a, newer, after) {
     var n = name(a);
     screen([
       top(),
       h("div", { class: "hello" }, [
         avatar(a, 52),
-        h("h1", { text: "This one burned" }),
-        h("p", { text: n + "'s post was up for a day, and now it's gone. Not saved anywhere, including here." }),
+        h("h1", { text: after ? "This link has ended" : "This one burned" }),
+        h("p", { text: after
+          ? n + " shared a post that had already burned. The link was only good for a while, and that time is up."
+          : n + "'s post was up for a day, and now it's gone. Not saved anywhere, including here." }),
       ]),
       h("div", { class: "ash", "aria-hidden": "true" }, [h("i", { style: "width:34%" }), h("i", { style: "width:94%" }), h("i", { style: "width:80%" }), h("i", { style: "width:46%" })]),
       SHARE ? shareCard(n, true)

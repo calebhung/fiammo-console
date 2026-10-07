@@ -8,7 +8,9 @@
   by the post-share-link edge function (fiammo repo, migration 208,
   SHARE_LINKS.md): the post, or "burned" for a link that was turned off or a
   post that is gone. Reading needs nothing: no code, no number, no account.
-  The page shows that one post and nothing else its author wrote.
+  The page shows that one post and nothing else its author wrote. A link its
+  author made after the post burned (migration 251) shows that post until the
+  link's own end, a day after it was last sent.
 
   The tags below are what Messages and every other unfurler show for the link.
   They are the same for every post on purpose: a preview is built by whoever
@@ -42,7 +44,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap">
-<link rel="stylesheet" href="/reader/read.css?v=7">
+<link rel="stylesheet" href="/reader/read.css?v=8">
 </head>
 <body>
 <main id="app" aria-live="polite">
@@ -52,6 +54,6 @@
 <noscript><main><p class="fine">This page needs JavaScript to open the post.</p></main></noscript>
 <!-- Under /reader/, not /s/: _redirects rewrites every path under /s/ to this
      page, so a script kept beside it would come back as this HTML. -->
-<script src="/reader/read.js?v=7" defer></script>
+<script src="/reader/read.js?v=8" defer></script>
 </body>
 </html>
