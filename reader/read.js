@@ -8,9 +8,10 @@
 //
 // A shared link comes in two kinds. One made while the post was live ends
 // when the post burns. One its author made after the burn (migration 251,
-// post.after_burn) shows a post that is already gone from fiammo, for a few
-// days of its own: the page says when it was written, that it has burned,
-// and when the link ends, and "this link has ended" once it has.
+// post.after_burn) shows a post that is already gone from fiammo, for a
+// time of its own (a day from when it was last sent, as shipped): the page
+// says when it was written, that it has burned, and when the link ends, and
+// "this link has ended" once it has.
 (function () {
   "use strict";
 
@@ -160,8 +161,9 @@
     if (d.getFullYear() !== new Date().getFullYear()) o.year = "numeric";
     return d.toLocaleDateString("en-US", o);
   }
-  // A link made after the burn runs for days, so its end is told by its
-  // date until the last day, and counted down from there.
+  // A link made after the burn runs for a day, or for as many as the app's
+  // setting says, so its end is told by its date while that is a day or
+  // more away, and counted down from there.
   function endsOn(iso) {
     var ms = Date.parse(iso) - Date.now();
     if (!(ms > 0)) return null;
@@ -468,7 +470,8 @@
   }
 
   // `after`: the link was made after the post burned, so what is over is
-  // the link's few days, not the post's one.
+  // the link's own time, not the post's day. The page isn't told how long
+  // that was, so it doesn't say.
   function renderBurned(a, newer, after) {
     var n = name(a);
     screen([
@@ -477,7 +480,7 @@
         avatar(a, 52),
         h("h1", { text: after ? "This link has ended" : "This one burned" }),
         h("p", { text: after
-          ? n + " shared a post that had already burned, for a few days. That time is up."
+          ? n + " shared a post that had already burned. The link was only good for a while, and that time is up."
           : n + "'s post was up for a day, and now it's gone. Not saved anywhere, including here." }),
       ]),
       h("div", { class: "ash", "aria-hidden": "true" }, [h("i", { style: "width:34%" }), h("i", { style: "width:94%" }), h("i", { style: "width:80%" }), h("i", { style: "width:46%" })]),
