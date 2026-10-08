@@ -277,3 +277,58 @@
     }
   }, true);
 })();
+
+/* On an iPhone, the App Store is asked for as the page arrives.
+ *
+ * A page can't draw the store's own card, and the only way to it used to be
+ * a tap on Get fiammo. What iOS does have is its answer to a page that heads
+ * for the store with nobody having tapped: it stops and asks, "Open in App
+ * Store?", over the page it was on. So the page heads for the store once it
+ * has drawn, and the asking is iOS's. Open is the store on fiammo's page;
+ * Cancel is the homepage, untouched, with its buttons where they were.
+ *
+ * Once a visit, and only when the homepage is where the visit began. Someone
+ * who came across from the support or privacy page is reading the site, and
+ * someone who said Cancel a minute ago has answered.
+ */
+(function () {
+  "use strict";
+
+  // The store's own scheme rather than the https link the buttons carry. The
+  // https one is a page: Safari would leave for apps.apple.com before anything
+  // was asked, and Cancel would strand the visitor there instead of here.
+  // No country segment, as everywhere else: the visitor's own storefront.
+  var STORE = "itms-apps://apps.apple.com/app/id6791766677";
+  var ASKED = "fiammo.store-asked";
+
+  // fiammo is an iPhone app. An iPad says it is a Mac, and on a Mac this
+  // scheme would raise the Mac's store for an app it can't run.
+  if (!/\b(iPhone|iPod)\b/.test(navigator.userAgent)) return;
+
+  if (document.referrer.indexOf(location.origin + "/") === 0) return;
+
+  // sessionStorage, so the answer lasts as long as the tab does. Where it
+  // can't be read or written the page stays quiet: asking on every load is
+  // worse than never asking.
+  try {
+    if (sessionStorage.getItem(ASKED)) return;
+  } catch (e) { return; }
+
+  function ask() {
+    try { sessionStorage.setItem(ASKED, "1"); } catch (e) { return; }
+    location.href = STORE;
+  }
+
+  // A tab opened behind another waits until it is the one being looked at.
+  function whenSeen() {
+    if (document.visibilityState === "visible") return ask();
+    document.addEventListener("visibilitychange", function seen() {
+      if (document.visibilityState !== "visible") return;
+      document.removeEventListener("visibilitychange", seen);
+      ask();
+    });
+  }
+
+  // Half a second, so the prompt lands on fiammo's page and not a blank tab.
+  setTimeout(whenSeen, 500);
+})();
